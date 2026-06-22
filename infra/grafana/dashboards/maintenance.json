@@ -1,0 +1,35 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "schemaVersion": 39,
+  "title": "Maintenance Dashboard",
+  "tags": ["smartforge", "maintenance"],
+  "time": { "from": "now-3h", "to": "now" },
+  "refresh": "10s",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Machine Health Score",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 0 },
+      "targets": [{ "expr": "smartforge_machine_health_score", "legendFormat": "{{machine_id}}" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Vibration Index (fault trend)",
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 0 },
+      "targets": [{ "expr": "smartforge_machine_vibration_index", "legendFormat": "{{machine_id}}" }]
+    },
+    {
+      "type": "stat",
+      "title": "Open Work Orders",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 9 },
+      "targets": [{ "expr": "smartforge_open_work_orders_total" }]
+    },
+    {
+      "type": "stat",
+      "title": "Unplanned Downtime (min)",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 9 },
+      "targets": [{ "expr": "smartforge_unplanned_downtime_minutes_total" }]
+    }
+  ]
+}

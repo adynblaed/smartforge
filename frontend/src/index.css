@@ -1,0 +1,371 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --color-highlight: var(--highlight);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  /* Future Form purple — the brand accent for buttons/links (was teal). */
+  --primary: oklch(0.62 0.17 274);
+  --primary-foreground: oklch(0.985 0 0);
+  /* Semantic status tokens (hex kept in sync with smartforge HEX for charts/3D) */
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #38bdf8;
+  --highlight: #8b5cf6;
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0 0 0 / 8%); /* soft translucent hairline */
+  --input: oklch(0 0 0 / 10%);
+  --ring: oklch(0.708 0 0);
+  /* Soft elevation shadows for a glassy, layered surface treatment. */
+  --shadow-soft: 0 1px 2px oklch(0 0 0 / 6%), 0 8px 24px -12px oklch(0 0 0 / 12%);
+  --shadow-glass: 0 1px 0 oklch(1 0 0 / 6%) inset, 0 10px 30px -16px oklch(0 0 0 / 45%);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.62 0.17 274);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+
+  /* Motion design tokens — reusable easings + durations so animations stay
+     consistent and themes/components can expand on a shared vocabulary. */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 140ms;
+  --dur-base: 240ms;
+  --dur-slow: 420ms;
+}
+
+/* shadcn dark — the canonical shadcn/ui dark theme: neutral gray surfaces
+   (bg 0.145 / card 0.205 / muted 0.269) with translucent white hairline borders
+   (10%). Brand teal kept as the primary accent. Semantic status + shadow tokens
+   inherit the shared :root values. */
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.68 0.16 274); /* Future Form purple */
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  /* Borderless dark mode: all element edges are a fully-transparent COLOR (0%
+     alpha) so surfaces separate purely by their fill/elevation — a seamless,
+     no-line look. NOTE: must be a real color (oklch …/0%), NOT the `transparent`
+     keyword — the keyword breaks `@apply border-border` and falls back to
+     currentColor (white). --ring stays for keyboard focus visibility. */
+  --border: oklch(1 0 0 / 0%);
+  --input: oklch(1 0 0 / 0%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.68 0.16 274);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 0%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+/* "Future" — Future Form brand theme, layered on top of .dark (#252535 base). */
+.future {
+  --background: #252535;
+  --card: #2d2d40;
+  --card-foreground: oklch(0.985 0 0);
+  --popover: #2d2d40;
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.68 0.16 274);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: #34344c;
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: #34344c;
+  --muted-foreground: oklch(0.75 0.02 280);
+  --accent: #3c3c58;
+  --accent-foreground: oklch(0.985 0 0);
+  --info: #818cf8;
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: oklch(0.68 0.16 274);
+  --sidebar: #1f1f2e;
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.68 0.16 274);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: #34344c;
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 12%);
+  --sidebar-ring: oklch(0.68 0.16 274);
+}
+
+/* Scrolling ECG trace used by the Factory Simulation live entity panels. */
+@keyframes sf-ecg {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.sf-ecg {
+  animation-name: sf-ecg;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+
+/* Reusable, theme-agnostic motion primitives. Apply via the matching class; the
+   reduced-motion preference is honored per-utility (see @media below). Built on
+   the --ease-*/--dur-* tokens so new themes/components share one vocabulary. */
+@keyframes sf-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes sf-pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+@keyframes sf-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+@keyframes sf-shimmer {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+
+.sf-fade-in {
+  animation: sf-fade-in var(--dur-slow) var(--ease-out-soft) both;
+}
+.sf-pulse-soft {
+  animation: sf-pulse-soft 2s ease-in-out infinite;
+}
+.sf-float {
+  animation: sf-float 4s ease-in-out infinite;
+}
+.sf-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in oklch, var(--muted-foreground) 18%, transparent) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: sf-shimmer 1.6s linear infinite;
+}
+
+/* A slow, smooth diagonal light sweep on hover, masked to the LOGO SHAPE so the
+   shine only appears on the colored (non-transparent) parts — not the bounding
+   box. We animate the gradient's background-position (not a transform) so the
+   mask stays aligned to the logo and the motion stays smooth/non-stuttery. */
+@keyframes sf-logo-shine {
+  0% {
+    opacity: 0;
+    background-position: 160% 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    background-position: -60% 0;
+  }
+}
+.sf-logo-shine {
+  position: relative;
+}
+.sf-logo-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background-image: linear-gradient(
+    105deg,
+    transparent 42%,
+    color-mix(in oklch, white 70%, transparent) 50%,
+    transparent 58%
+  );
+  background-repeat: no-repeat;
+  background-size: 220% 100%;
+  background-position: 160% 0;
+  /* confine the sweep to the logo's opaque pixels */
+  -webkit-mask-image: url("/favicon.svg");
+  mask-image: url("/favicon.svg");
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+.sf-logo-shine:hover::after {
+  animation: sf-logo-shine 2.2s ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sf-fade-in,
+  .sf-pulse-soft,
+  .sf-float,
+  .sf-shimmer {
+    animation: none;
+  }
+  .sf-logo-shine:hover::after {
+    animation: none;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  /* Tailwind v4 preflight resets a bare `border` to currentColor (the text
+     color → white in dark), and the `*` rule above (specificity 0,0,0) doesn't
+     reliably win over it. This higher-specificity rule forces EVERY element's
+     border to the theme --border token (transparent in dark = fully borderless;
+     subtle in light). Explicit border-<color> utilities live in the utilities
+     layer and still win, so status badges/pills keep their color. */
+  html * {
+    border-color: var(--border);
+  }
+  /* Theme the root + body via the raw token (NOT @apply bg-background): under
+     @theme inline the --color-* vars aren't emitted as real custom properties,
+     so `@apply bg-background` resolves to an undefined var → transparent body,
+     which exposes the white html canvas on sparse pages in dark mode. Setting
+     the background on html guarantees full-viewport theming in every mode. */
+  html {
+    background-color: var(--background);
+  }
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+  button,
+  [role="button"] {
+    cursor: pointer;
+  }
+
+  /* Minimal, theme-blended scrollbars site-wide. Tracks are transparent; thumbs
+     use the muted-foreground token at low opacity so they recede into the dark
+     or light theme and brighten slightly on hover. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklch, var(--muted-foreground) 35%, transparent)
+      transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: color-mix(in oklch, var(--muted-foreground) 30%, transparent);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in oklch, var(--muted-foreground) 55%, transparent);
+  }
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+}

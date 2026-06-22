@@ -1,0 +1,23 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "schemaVersion": 39,
+  "title": "Supply Chain Dashboard",
+  "tags": ["smartforge", "supply-chain"],
+  "time": { "from": "now-12h", "to": "now" },
+  "refresh": "30s",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Inventory Items Below Threshold",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [{ "expr": "smartforge_inventory_items_below_threshold_total" }]
+    },
+    {
+      "type": "stat",
+      "title": "Delayed Customer Orders (jobs at risk)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [{ "expr": "smartforge_customer_orders_delayed_total" }]
+    }
+  ]
+}

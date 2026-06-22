@@ -1,0 +1,23 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "schemaVersion": 39,
+  "title": "Quality Dashboard",
+  "tags": ["smartforge", "quality"],
+  "time": { "from": "now-6h", "to": "now" },
+  "refresh": "10s",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "OEE % by Line",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 0 },
+      "targets": [{ "expr": "smartforge_oee_percent", "legendFormat": "{{line_id}}" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Scrap Rate % by Line (rework trend)",
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 0 },
+      "targets": [{ "expr": "smartforge_scrap_rate_percent", "legendFormat": "{{line_id}}" }]
+    }
+  ]
+}

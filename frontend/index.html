@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="SmartForge by FutureForm — smart factory intelligence platform."
+    />
+    <title>SmartForge — FutureForm</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=5" />
+    <link rel="apple-touch-icon" href="/favicon.svg?v=5" />
+    <!-- Apply the saved theme BEFORE first paint to avoid a flash of light theme
+         (mirrors ThemeProvider; default "dark"). -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("vite-ui-theme") || "dark"
+          if (t === "system") {
+            t = window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light"
+          }
+          var root = document.documentElement
+          if (t === "future") root.classList.add("dark", "future")
+          else root.classList.add(t)
+        } catch (e) {}
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./src/main.tsx"></script>
+  </body>
+</html>

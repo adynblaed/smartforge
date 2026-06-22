@@ -1,0 +1,63 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "schemaVersion": 39,
+  "title": "SmartForge Overview",
+  "tags": ["smartforge"],
+  "time": { "from": "now-1h", "to": "now" },
+  "refresh": "10s",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Machine Health Score",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        { "expr": "smartforge_machine_health_score", "legendFormat": "{{machine_id}}" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Machine Temperature (°C)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        { "expr": "smartforge_machine_temperature_celsius", "legendFormat": "{{machine_id}}" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Open Work Orders",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 8 },
+      "targets": [{ "expr": "smartforge_open_work_orders_total" }]
+    },
+    {
+      "type": "stat",
+      "title": "Unplanned Downtime (min)",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 8 },
+      "targets": [{ "expr": "smartforge_unplanned_downtime_minutes_total" }]
+    },
+    {
+      "type": "stat",
+      "title": "Delayed Customer Orders",
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 8 },
+      "targets": [{ "expr": "smartforge_customer_orders_delayed_total" }]
+    },
+    {
+      "type": "stat",
+      "title": "Inventory Below Threshold",
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 8 },
+      "targets": [{ "expr": "smartforge_inventory_items_below_threshold_total" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "OEE % by Line",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+      "targets": [{ "expr": "smartforge_oee_percent", "legendFormat": "{{line_id}}" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Scrap Rate % by Line",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
+      "targets": [{ "expr": "smartforge_scrap_rate_percent", "legendFormat": "{{line_id}}" }]
+    }
+  ]
+}
