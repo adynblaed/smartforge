@@ -35,7 +35,7 @@ PreSync hook — a failed migration fails the sync before any pod rolls.
 ## Image update flow (CI -> PR -> merge -> sync)
 
 1. A GitHub release triggers the build workflow (see `.github/workflows/`,
-   e.g. `deploy-production.yml` for the current compose-based flow): CI builds
+   e.g. `cd-deploy-production.yml` for the current compose-based flow): CI builds
    `backend` and `frontend` images from the repo root Dockerfiles, tags them
    with the release semver (`v1.1.0`), and pushes to the registry. Remember:
    the frontend image bakes `VITE_API_URL` at build time — one image per

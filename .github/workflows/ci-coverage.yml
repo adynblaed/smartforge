@@ -1,8 +1,8 @@
-name: Smokeshow
+name: CI - Coverage (Smokeshow)
 
 on:
   workflow_run: # zizmor: ignore[dangerous-triggers]
-    workflows: [Test Backend]
+    workflows: [CI - Backend (Postgres)]
     types: [completed]
 
 permissions: {}

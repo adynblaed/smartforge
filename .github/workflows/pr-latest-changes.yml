@@ -1,4 +1,4 @@
-name: Latest Changes
+name: PR - Latest Changes
 
 on:
   pull_request_target: # zizmor: ignore[dangerous-triggers]

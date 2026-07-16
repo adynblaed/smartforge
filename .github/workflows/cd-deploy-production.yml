@@ -1,4 +1,4 @@
-name: Deploy to Production
+name: CD - Deploy Production
 
 on:
   release:

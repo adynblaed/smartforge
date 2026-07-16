@@ -1,4 +1,4 @@
-name: Issue Manager
+name: Chore - Issue Manager
 
 on:
   schedule:

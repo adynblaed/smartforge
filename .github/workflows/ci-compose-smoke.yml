@@ -1,4 +1,4 @@
-name: Test Docker Compose
+name: CI - Compose Smoke
 
 on:
   push:

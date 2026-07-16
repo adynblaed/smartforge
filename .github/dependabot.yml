@@ -58,6 +58,7 @@ updates:
       default-days: 7
     commit-message:
       prefix: ⬆
+    labels: [dependencies, internal, docker]
     groups:
       docker:
         patterns:
@@ -71,6 +72,7 @@ updates:
       default-days: 7
     commit-message:
       prefix: ⬆
+    labels: [dependencies, internal, docker_compose]
     groups:
       docker-compose:
         patterns:

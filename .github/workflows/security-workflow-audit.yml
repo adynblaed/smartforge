@@ -1,4 +1,4 @@
-name: Zizmor
+name: Security - Workflow Audit (zizmor)
 
 on:
   push:

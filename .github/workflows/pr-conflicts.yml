@@ -1,4 +1,4 @@
-name: "Conflict detector"
+name: PR - Conflict Detector
 on:
   push:
   pull_request_target: # zizmor: ignore[dangerous-triggers]

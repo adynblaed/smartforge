@@ -268,10 +268,14 @@ pipeline — six parallel gates (backend lint+types, the 356-test platform
 suite, the 122-test app suite, frontend biome+tsc+94 vitest tests, dbt
 dual-target parse + docs artifact, compose/Helm/preflight contracts)
 feeding a single `pipeline-confidence` required status check; zero
-external databases. Complementary: `test-backend` (template suite vs real
-Postgres), `playwright` (E2E, full stack), `security-scan` (gitleaks +
-pip-audit + osv-scanner, weekly cron), `pre-commit` (ruff, mypy, ty,
-biome), `zizmor` (workflow audit), deploy workflows on `main`/release.
+external databases. Workflow naming convention: `ci-*` verification,
+`cd-*` deploys, `security-*` scanning, `pr-*` PR automation, `chore-*`
+housekeeping. Complementary: `ci-backend-db` (template suite vs real
+Postgres), `ci-e2e` (Playwright, full stack), `ci-compose-smoke`,
+`ci-pre-commit` (ruff, mypy, ty, biome), `ci-coverage` (Smokeshow),
+`security-scan` (gitleaks + pip-audit + osv-scanner, weekly cron),
+`security-workflow-audit` (zizmor), `security-guard-dependencies`, and
+`cd-deploy-{staging,production}` on `main`/release.
 
 ## 10. Conventions
 

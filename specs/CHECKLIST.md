@@ -80,7 +80,7 @@ A production release must not proceed while any unapproved **P0** item remains i
 | API / BI | `backend/app/api/routes/{platform,warehouse,lake}.py`, `backend/tests_dataplatform/test_api_*.py`, `backend/tests_smartforge/test_route_wiring.py` (full-surface auth sweep), frontend `/data-platform` page |
 | DQ / OBS | `backend/app/dataplatform/pipeline/{reconciliation,freshness}.py`, `control.*`/`audit.*` schemas, `dbt/tests/` |
 | PERF / DR / OPS | resource bounds throughout; `runbooks/` (operations, backup_restore, backfill, rollback, schema_drift, incident_stale_data) |
-| CICD | `.github/workflows/` (test-backend, ci-pipeline, playwright, security-scan, pre-commit, zizmor, deploys), pinned lockfiles |
+| CICD | `.github/workflows/` (ci-pipeline, ci-backend-db, ci-e2e, ci-compose-smoke, ci-pre-commit, ci-coverage, security-scan, security-workflow-audit, security-guard-dependencies, cd-deploy-*), pinned lockfiles |
 | GOV / CUT | `docs/data-platform.md` §2, §6–§7, §10–§11; cutover items E7 pending real parallel-run |
 
 ---

@@ -1,4 +1,4 @@
-name: Security Scan
+name: Security - Scans
 
 # Recurring security testing (SEC-008, SEC-016, CICD-005): secret scanning,
 # dependency vulnerability audit over both lockfiles, and a scheduled weekly
