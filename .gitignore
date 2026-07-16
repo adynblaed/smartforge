@@ -13,3 +13,11 @@ node_modules/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Data platform — local lake/catalog data and generated discovery artifacts
+/data/
+config/generated/
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+dbt/.user.yml

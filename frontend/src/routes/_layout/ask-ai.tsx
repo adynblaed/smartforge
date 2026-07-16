@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import { sf } from "@/smartforge/api"
 import { ChatPanel } from "@/smartforge/ChatPanel"
 import { PageHeader } from "@/smartforge/components"
+import { type CubeState, ForgeChatCube } from "@/smartforge/ForgeChatCube"
 import {
   createForgeSession,
   ensureForgeSession,
@@ -14,7 +15,6 @@ import {
   saveForgeIndex,
   setForgeActive,
 } from "@/smartforge/forgeChat"
-import { type CubeState, ForgeChatCube } from "@/smartforge/ForgeChatCube"
 import type { ForgeResponse } from "@/smartforge/types"
 
 export const Route = createFileRoute("/_layout/ask-ai")({
@@ -90,7 +90,9 @@ function ForgeAiPage() {
                 "Are there any active faults?",
                 "Give me a fleet overview",
               ]}
-              ask={(q) => sf.post<ForgeResponse>("/ask-ai/forge", { question: q })}
+              ask={(q) =>
+                sf.post<ForgeResponse>("/ask-ai/forge", { question: q })
+              }
               persistKey={forgeSessionKey(active)}
               onActivity={onActivity}
             />
@@ -125,7 +127,10 @@ function ForgeAiPage() {
                   onClick={() => select(id)}
                   className="flex min-w-0 flex-1 items-center gap-2 text-left"
                 >
-                  <MessageSquare size={14} className="shrink-0 text-muted-foreground" />
+                  <MessageSquare
+                    size={14}
+                    className="shrink-0 text-muted-foreground"
+                  />
                   <span className="truncate">{forgeSessionTitle(id)}</span>
                 </button>
                 <button

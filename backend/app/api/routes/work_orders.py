@@ -39,8 +39,13 @@ def create_work_order(
     session.add(wo)
     session.commit()
     session.refresh(wo)
-    write_audit(session, actor=user, action="work_order.create",
-                entity_type="work_order", entity_id=wo.id)
+    write_audit(
+        session,
+        actor=user,
+        action="work_order.create",
+        entity_type="work_order",
+        entity_id=wo.id,
+    )
     return wo
 
 
@@ -52,8 +57,14 @@ def create_from_alert(
     if not alert:
         raise HTTPException(status_code=404, detail="Alert not found")
     wo = machine_intelligence.draft_work_order_from_alert(session, alert)
-    write_audit(session, actor=user, action="work_order.draft_from_alert",
-                entity_type="work_order", entity_id=wo.id, detail=alert.rule)
+    write_audit(
+        session,
+        actor=user,
+        action="work_order.draft_from_alert",
+        entity_type="work_order",
+        entity_id=wo.id,
+        detail=alert.rule,
+    )
     return wo
 
 
@@ -68,8 +79,13 @@ def approve_work_order(
     session.add(wo)
     session.commit()
     session.refresh(wo)
-    write_audit(session, actor=user, action=f"work_order.{wo.status.value}",
-                entity_type="work_order", entity_id=wo.id)
+    write_audit(
+        session,
+        actor=user,
+        action=f"work_order.{wo.status.value}",
+        entity_type="work_order",
+        entity_id=wo.id,
+    )
     return wo
 
 
@@ -79,6 +95,12 @@ def sync_fiix(wo_id: uuid.UUID, session: SessionDep, user: InternalUser) -> Any:
     if not wo:
         raise HTTPException(status_code=404, detail="Work order not found")
     wo = integrations.sync_fiix(session, wo)
-    write_audit(session, actor=user, action="work_order.sync_fiix",
-                entity_type="work_order", entity_id=wo.id, detail=wo.fiix_id)
+    write_audit(
+        session,
+        actor=user,
+        action="work_order.sync_fiix",
+        entity_type="work_order",
+        entity_id=wo.id,
+        detail=wo.fiix_id,
+    )
     return wo

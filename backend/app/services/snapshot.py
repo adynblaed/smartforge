@@ -11,8 +11,9 @@ from __future__ import annotations
 import csv
 import io
 import json
+from typing import Any
 
-from sqlmodel import Session, delete, select
+from sqlmodel import Session, SQLModel, delete, select
 
 from app.models import (
     Alert,
@@ -46,7 +47,7 @@ from app.models import (
 )
 
 # Parent → child order used for export and for re-insertion on import.
-EXPORT_TABLES: list[tuple[str, type]] = [
+EXPORT_TABLES: list[tuple[str, type[SQLModel]]] = [
     ("factories", Factory),
     ("lines", Line),
     ("suppliers", Supplier),
@@ -133,7 +134,7 @@ def import_csv(session: Session, content: str) -> dict[str, int]:
         raise ValueError("Unexpected CSV header — expected 'table,row'")
 
     # Parse + validate everything BEFORE touching the database.
-    grouped: dict[str, list[dict]] = {}
+    grouped: dict[str, list[dict[str, Any]]] = {}
     for lineno, line in enumerate(reader, start=2):
         if not line or not line[0].strip():
             continue

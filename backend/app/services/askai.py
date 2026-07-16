@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 import uuid
 
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from app.core import llm
 from app.core.vectorstore import vector_store
@@ -14,11 +14,11 @@ from app.models import (
     Customer,
     CustomerOrder,
     ForgeResponse,
-    SimFocus,
     KnowledgeBase,
     KnowledgeDocument,
     Machine,
     PurchaseOrder,
+    SimFocus,
     Sop,
     SopSection,
     SourceRef,
@@ -93,7 +93,7 @@ def retrieve_sops(session: Session, query: str, k: int = 4) -> list[SourceRef]:
     if not sops:
         return []
     sections = list(
-        session.exec(select(SopSection).order_by(SopSection.order_index)).all()
+        session.exec(select(SopSection).order_by(col(SopSection.order_index))).all()
     )
     forced = _mentions_sop(query)
 
@@ -106,12 +106,12 @@ def retrieve_sops(session: Session, query: str, k: int = 4) -> list[SourceRef]:
         body_hit = _overlap(qtokens, f"{sec.title} {sec.body}")
         # Title/identity matches dominate so the right SOP wins; body matches
         # then pick the most relevant chapter within it.
-        score = title_hit * 3 + body_hit
+        score: float = title_hit * 3 + body_hit
         scored.append((float(score), sop, sec))
     scored.sort(key=lambda t: t[0], reverse=True)
 
     # Vector rerank signal (kind="sop"): blend in when the store is available.
-    boost: dict[tuple[str, str | None], float] = {}
+    boost: dict[tuple[str | None, str | None], float] = {}
     for rank, hit in enumerate(vector_store.search(query, kind="sop", top_k=8)):
         boost[(hit.get("code"), hit.get("anchor"))] = 8.0 - rank
     if boost:
@@ -144,7 +144,7 @@ def retrieve_forge_facts(session: Session, query: str, k: int = 4) -> list[Sourc
     """Secondary, user-authored notes that augment (never override) SOPs."""
     hits = vector_store.search(query, kind="forge_fact")
     out: list[SourceRef] = []
-    seen: set[str] = set()
+    seen: set[str | None] = set()
     if hits:
         for h in hits:
             code = h.get("code") or h.get("doc_id") or h.get("name")
@@ -207,7 +207,9 @@ def _rag_block(
 ) -> str:
     parts: list[str] = []
     if sop_sources:
-        parts.append("=== STANDARD OPERATING PROCEDURES (authoritative — cite first) ===")
+        parts.append(
+            "=== STANDARD OPERATING PROCEDURES (authoritative — cite first) ==="
+        )
         parts += [f"[SOP {s.code} — {s.title}]\n{s.snippet}" for s in sop_sources]
     if fact_sources:
         parts.append("=== FORGE FACTS (secondary, additive notes) ===")
@@ -227,7 +229,7 @@ def reindex_rag(session: Session) -> dict[str, int]:
     vector_store.reset()
     secs_by_sop: dict[uuid.UUID, list[tuple[str, str, str]]] = {}
     for sec in session.exec(
-        select(SopSection).order_by(SopSection.order_index)
+        select(SopSection).order_by(col(SopSection.order_index))
     ).all():
         secs_by_sop.setdefault(sec.sop_id, []).append((sec.anchor, sec.title, sec.body))
     sop_chunks = sum(
@@ -283,8 +285,10 @@ async def answer(
     never retrieved or exposed — answers are grounded only in the order/status
     context supplied by the caller.
     """
-    machine = None if customer_safe else (
-        session.get(Machine, machine_id) if machine_id else None
+    machine = (
+        None
+        if customer_safe
+        else (session.get(Machine, machine_id) if machine_id else None)
     )
     ctx = _machine_context(session, machine) if machine else ""
     docs = [] if customer_safe else retrieve(session, question, machine_id=machine_id)
@@ -320,7 +324,9 @@ async def answer(
 
     try:
         text = await llm.complete(
-            system=system, user=user, max_tokens=900,
+            system=system,
+            user=user,
+            max_tokens=900,
             sensitive_terms=sensitive_terms(session),
         )
         confidence = 0.9
@@ -368,17 +374,23 @@ def locate_machines(session: Session, question: str) -> list[Machine]:
 
     # Intent-based selection when no explicit machine was named.
     if not hits:
-        if any(w in q for w in ("risk", "worst", "lowest", "unhealth", "critical", "attention")):
+        if any(
+            w in q
+            for w in ("risk", "worst", "lowest", "unhealth", "critical", "attention")
+        ):
             hits = [min(machines, key=lambda x: x.health_score)]
         elif any(w in q for w in ("fault", "alarm", "error", "down", "broken")):
             hits = [m for m in machines if m.last_fault_code] or []
         elif any(w in q for w in ("hot", "temp", "overheat", "thermal")):
+
             def temp(m: Machine) -> float:
                 h = recent_telemetry(session, m.id, limit=1)
                 return h[0].temperature if h else 0.0
 
             hits = [max(machines, key=temp)]
-        elif any(w in q for w in ("all", "every", "each", "machines", "fleet", "overview")):
+        elif any(
+            w in q for w in ("all", "every", "each", "machines", "fleet", "overview")
+        ):
             hits = machines
 
     return hits
@@ -399,7 +411,9 @@ def sensitive_terms(session: Session) -> list[str]:
 def order_tracker_context(session: Session) -> str:
     """Summarize the active purchase orders (the Order Tracker datasource) so it
     is included with EVERY ForgeAI chat — by order, status, supplier and total."""
-    suppliers = {s.id: s.name for s in session.exec(select(Supplier)).all()}
+    suppliers: dict[uuid.UUID | None, str] = {
+        s.id: s.name for s in session.exec(select(Supplier)).all()
+    }
     orders = {o.id: o for o in session.exec(select(CustomerOrder)).all()}
     pos = list(session.exec(select(PurchaseOrder)).all())
     active = [p for p in pos if p.status.value != "closed"]
@@ -423,16 +437,36 @@ def order_tracker_context(session: Session) -> str:
 
 # Free-text → logistics / inventory intent (drives the simulation camera).
 _LOGISTICS_WORDS = (
-    "po", "p.o", "purchase order", "purchase-order", "order", "delivery",
-    "deliver", "shipment", "ship", "forklift", "supplier", "procurement",
+    "po",
+    "p.o",
+    "purchase order",
+    "purchase-order",
+    "order",
+    "delivery",
+    "deliver",
+    "shipment",
+    "ship",
+    "forklift",
+    "supplier",
+    "procurement",
 )
 _INVENTORY_WORDS = (
-    "inventory", "stock", "receiving", "reorder", "re-order", "material",
-    "warehouse", "dock", "pallet", "sku",
+    "inventory",
+    "stock",
+    "receiving",
+    "reorder",
+    "re-order",
+    "material",
+    "warehouse",
+    "dock",
+    "pallet",
+    "sku",
 )
 
 
-def _sim_focus(question: str, located: list[Machine], machines: list[Machine]) -> SimFocus:
+def _sim_focus(
+    question: str, located: list[Machine], machines: list[Machine]
+) -> SimFocus:
     """Classify a query into a cinematic camera directive for the simulation."""
     q = question.lower()
 
@@ -523,7 +557,9 @@ async def forge_answer(session: Session, question: str) -> ForgeResponse:
 
     try:
         text = await llm.complete(
-            system=system, user=user, max_tokens=900,
+            system=system,
+            user=user,
+            max_tokens=900,
             sensitive_terms=sensitive_terms(session),
         )
         confidence = 0.9

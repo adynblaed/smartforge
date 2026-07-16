@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from "react"
 
 import { cn } from "@/lib/utils"
 import { sf } from "@/smartforge/api"
-import { POLL } from "@/smartforge/constants"
 import {
   HEX,
   KpiTile,
@@ -16,7 +15,13 @@ import {
   PageHeader,
   Panel,
 } from "@/smartforge/components"
-import type { InventoryItem, Page, PurchaseOrder, Supplier } from "@/smartforge/types"
+import { POLL } from "@/smartforge/constants"
+import type {
+  InventoryItem,
+  Page,
+  PurchaseOrder,
+  Supplier,
+} from "@/smartforge/types"
 
 export const Route = createFileRoute("/_layout/order-tracker")({
   validateSearch: (search: Record<string, unknown>): { po?: string } => ({
@@ -72,7 +77,9 @@ function OrderTrackerPage() {
 
   const pos = data?.data ?? []
   const itemById = new Map((inv?.data ?? []).map((i) => [i.id, i]))
-  const supplierById = new Map((suppliers?.data ?? []).map((s) => [s.id, s.name]))
+  const supplierById = new Map(
+    (suppliers?.data ?? []).map((s) => [s.id, s.name]),
+  )
 
   const total = pos.reduce((a, p) => a + p.amount, 0)
   const count = (s: string) => pos.filter((p) => p.status === s).length
@@ -89,19 +96,43 @@ function OrderTrackerPage() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Link to="/supply-chain" className={STAT_CLS}>
-          <KpiTile label="Purchase Orders" value={pos.length} {...metricTrend("pocount")} />
+          <KpiTile
+            label="Purchase Orders"
+            value={pos.length}
+            {...metricTrend("pocount")}
+          />
         </Link>
         <Link to="/supply-chain" className={STAT_CLS}>
-          <KpiTile label="Total Value" value={`$${Math.round(total).toLocaleString()}`} accent={HEX.info} {...metricTrend("povalue")} />
+          <KpiTile
+            label="Total Value"
+            value={`$${Math.round(total).toLocaleString()}`}
+            accent={HEX.info}
+            {...metricTrend("povalue")}
+          />
         </Link>
         <Link to="/supply-chain" className={STAT_CLS}>
-          <KpiTile label="Open" value={count("open")} accent={HEX.info} {...metricTrend("poopen")} />
+          <KpiTile
+            label="Open"
+            value={count("open")}
+            accent={HEX.info}
+            {...metricTrend("poopen")}
+          />
         </Link>
         <Link to="/supply-chain" className={STAT_CLS}>
-          <KpiTile label="Received" value={count("received")} accent={HEX.success} {...metricTrend("poreceived")} />
+          <KpiTile
+            label="Received"
+            value={count("received")}
+            accent={HEX.success}
+            {...metricTrend("poreceived")}
+          />
         </Link>
         <Link to="/supply-chain" className={STAT_CLS}>
-          <KpiTile label="Shop-floor Ready" value={ready} accent={HEX.warning} {...metricTrend("poready")} />
+          <KpiTile
+            label="Shop-floor Ready"
+            value={ready}
+            accent={HEX.warning}
+            {...metricTrend("poready")}
+          />
         </Link>
       </div>
 
@@ -114,8 +145,14 @@ function OrderTrackerPage() {
             <PORow
               key={po.id}
               po={po}
-              item={po.inventory_item_id ? itemById.get(po.inventory_item_id) : undefined}
-              supplierName={po.supplier_id ? supplierById.get(po.supplier_id) : undefined}
+              item={
+                po.inventory_item_id
+                  ? itemById.get(po.inventory_item_id)
+                  : undefined
+              }
+              supplierName={
+                po.supplier_id ? supplierById.get(po.supplier_id) : undefined
+              }
               focused={po.id === focusPo}
             />
           ))}
@@ -166,7 +203,11 @@ function PORow({
         className="flex w-full flex-wrap items-center justify-between gap-3 p-4 text-left hover:bg-accent/40"
       >
         <div className="flex items-center gap-3">
-          {open ? <ChevronDown size={16} className="text-muted-foreground" /> : <ChevronRight size={16} className="text-muted-foreground" />}
+          {open ? (
+            <ChevronDown size={16} className="text-muted-foreground" />
+          ) : (
+            <ChevronRight size={16} className="text-muted-foreground" />
+          )}
           <span
             className="flex size-9 items-center justify-center rounded-lg"
             style={{ background: `${color}22`, color }}
@@ -198,11 +239,16 @@ function PORow({
           {/* lifecycle stepper */}
           <div className="flex items-center">
             {STAGES.map((stage, i) => (
-              <div key={stage} className="flex flex-1 items-center last:flex-none">
+              <div
+                key={stage}
+                className="flex flex-1 items-center last:flex-none"
+              >
                 <div className="flex flex-col items-center">
                   <div
                     className="flex size-6 items-center justify-center rounded-full text-[10px] font-bold text-white"
-                    style={{ background: i <= stageIdx ? color : "var(--muted)" }}
+                    style={{
+                      background: i <= stageIdx ? color : "var(--muted)",
+                    }}
                   >
                     {i + 1}
                   </div>
@@ -213,7 +259,9 @@ function PORow({
                 {i < STAGES.length - 1 && (
                   <div
                     className="mx-1 h-0.5 flex-1"
-                    style={{ background: i < stageIdx ? color : "var(--border)" }}
+                    style={{
+                      background: i < stageIdx ? color : "var(--border)",
+                    }}
                   />
                 )}
               </div>
@@ -242,7 +290,9 @@ function PORow({
               />
               <RefTile
                 label="Customer Order"
-                value={po.customer_order_id ? po.customer_order_id.slice(0, 8) : "—"}
+                value={
+                  po.customer_order_id ? po.customer_order_id.slice(0, 8) : "—"
+                }
                 enabled={Boolean(po.customer_order_id)}
                 active={cat === "order"}
                 onClick={() => toggleCat("order")}
@@ -262,7 +312,10 @@ function PORow({
                 {cat === "material" && (
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     <Field label="SKU" value={item?.sku ?? "—"} />
-                    <Field label="Material" value={item?.name ?? "Linked material"} />
+                    <Field
+                      label="Material"
+                      value={item?.name ?? "Linked material"}
+                    />
                     <Field
                       label="On hand"
                       value={item ? `${item.quantity} ${"units"}` : "—"}
@@ -287,7 +340,9 @@ function PORow({
                     <Field label="Linked" value="Production job" />
                     <Field
                       label="PO status"
-                      value={po.shop_floor_ready ? "Shop-floor ready" : "In progress"}
+                      value={
+                        po.shop_floor_ready ? "Shop-floor ready" : "In progress"
+                      }
                     />
                     <div className="sm:col-span-3">
                       <Link
@@ -301,9 +356,15 @@ function PORow({
                 )}
                 {cat === "order" && (
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    <Field label="Customer Order ID" value={po.customer_order_id ?? "—"} />
+                    <Field
+                      label="Customer Order ID"
+                      value={po.customer_order_id ?? "—"}
+                    />
                     <Field label="Linked" value="Customer order" />
-                    <Field label="PO value" value={`$${po.amount.toLocaleString()}`} />
+                    <Field
+                      label="PO value"
+                      value={`$${po.amount.toLocaleString()}`}
+                    />
                     <div className="sm:col-span-3">
                       <Link
                         to="/quotes"
@@ -367,7 +428,9 @@ function POReceipt({
       : po.status === "open"
         ? "PURCHASE ORDER"
         : "DRAFT PURCHASE ORDER"
-  const date = po.created_at ? new Date(po.created_at).toLocaleDateString() : "—"
+  const date = po.created_at
+    ? new Date(po.created_at).toLocaleDateString()
+    : "—"
   // Simulate a believable bill-of-materials line from the linked material.
   const qty = Math.max(1, Math.round(po.amount / 480))
   const unitPrice = po.amount / qty
@@ -383,7 +446,9 @@ function POReceipt({
       <div className="flex flex-wrap items-start justify-between gap-2 border-b pb-3 dark:border-white/20">
         <div>
           <div className="text-sm font-bold tracking-wide">{docType}</div>
-          <div className="text-muted-foreground">SmartForge Manufacturing · Plant 1</div>
+          <div className="text-muted-foreground">
+            SmartForge Manufacturing · Plant 1
+          </div>
         </div>
         <div className="text-right">
           <div className="font-mono text-sm font-semibold">{po.po_number}</div>
@@ -412,8 +477,12 @@ function POReceipt({
             <td className="py-1.5 pr-2 font-mono">{item?.sku ?? "MISC-001"}</td>
             <td className="py-1.5 pr-2">{item?.name ?? "Procured material"}</td>
             <td className="py-1.5 pr-2 text-right tabular-nums">{qty}</td>
-            <td className="py-1.5 pr-2 text-right tabular-nums">${unitPrice.toFixed(2)}</td>
-            <td className="py-1.5 text-right tabular-nums">${po.amount.toLocaleString()}</td>
+            <td className="py-1.5 pr-2 text-right tabular-nums">
+              ${unitPrice.toFixed(2)}
+            </td>
+            <td className="py-1.5 text-right tabular-nums">
+              ${po.amount.toLocaleString()}
+            </td>
           </tr>
         </tbody>
       </table>
@@ -435,7 +504,9 @@ function POReceipt({
         </div>
       </div>
 
-      <p className="mt-3 border-t pt-2 text-[11px] text-muted-foreground dark:border-white/10">{note}</p>
+      <p className="mt-3 border-t pt-2 text-[11px] text-muted-foreground dark:border-white/10">
+        {note}
+      </p>
     </div>
   )
 }
@@ -443,7 +514,9 @@ function POReceipt({
 function ReceiptField({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+        {label}
+      </div>
       <div className="mt-0.5 font-medium capitalize">{value}</div>
     </div>
   )
@@ -485,7 +558,8 @@ function RefTile({
       </div>
     </>
   )
-  if (!enabled) return <div className="rounded-md border bg-muted/30 p-2">{body}</div>
+  if (!enabled)
+    return <div className="rounded-md border bg-muted/30 p-2">{body}</div>
   return (
     <button
       type="button"

@@ -1,0 +1,82 @@
+version: 2
+
+models:
+  - name: dim_machines
+    description: Conformed machine dimension (SCD Type 1 — current state).
+    columns:
+      - name: machine_id
+        data_tests: [unique, not_null]
+  - name: dim_suppliers
+    description: Supplier dimension (SCD Type 1).
+    columns:
+      - name: supplier_id
+        data_tests: [unique, not_null]
+  - name: dim_customers
+    description: Customer dimension (SCD Type 1; classification confidential).
+    columns:
+      - name: customer_id
+        data_tests: [unique, not_null]
+  - name: dim_status
+    description: Status lookup dimension (full replace).
+    columns:
+      - name: status_code
+        data_tests: [unique, not_null]
+  - name: fct_production_runs
+    description: "Grain: one production run."
+    columns:
+      - name: run_id
+        data_tests: [unique, not_null]
+      - name: machine_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_machines')
+                field: machine_id
+  - name: fct_work_orders
+    description: "Grain: one work order, with surrogate identity + genealogy."
+    columns:
+      - name: work_order_uid
+        description: Deterministic UUIDv5 surrogate key (DCT-011).
+        data_tests: [unique, not_null]
+      - name: work_order_id
+        data_tests: [unique, not_null]
+      - name: parent_work_order_uid
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('fct_work_orders')
+                field: work_order_uid
+      - name: root_work_order_uid
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('fct_work_orders')
+                field: work_order_uid
+      - name: machine_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_machines')
+                field: machine_id
+  - name: fct_quality_inspections
+    description: "Grain: one inspection."
+    columns:
+      - name: inspection_id
+        data_tests: [unique, not_null]
+  - name: fct_purchase_orders
+    description: "Grain: one purchase order, with line rollups."
+    columns:
+      - name: po_id
+        data_tests: [unique, not_null]
+      - name: supplier_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_suppliers')
+                field: supplier_id
+  - name: fct_telemetry_events
+    description: "Grain: one telemetry event (incremental)."
+    columns:
+      - name: event_id
+        data_tests: [unique, not_null]

@@ -19,9 +19,27 @@ password_hash = PasswordHash(
 ALGORITHM = "HS256"
 
 
-def create_access_token(subject: str | Any, expires_delta: timedelta) -> str:
+def create_access_token(
+    subject: str | Any,
+    expires_delta: timedelta,
+    *,
+    role: str | None = None,
+    is_superuser: bool | None = None,
+) -> str:
+    """Mint a signed access token for ``subject``.
+
+    ``role`` / ``is_superuser`` are embedded as claims so the rate-limit
+    middleware can resolve a caller's tier without a DB hit (API-017/SEC-012).
+    Both are optional for backward compatibility; tokens without the claims
+    stay valid and are treated as the lowest authenticated tier (customer)
+    by app/core/ratelimit.py.
+    """
     expire = datetime.now(timezone.utc) + expires_delta
-    to_encode = {"exp": expire, "sub": str(subject)}
+    to_encode: dict[str, Any] = {"exp": expire, "sub": str(subject)}
+    if role is not None:
+        to_encode["role"] = role
+    if is_superuser is not None:
+        to_encode["is_superuser"] = is_superuser
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 

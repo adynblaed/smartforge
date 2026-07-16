@@ -1,0 +1,112 @@
+# Platform worker — data-platform scheduler (Oracle -> Parquet lake -> DuckDB
+# catalog -> PostgreSQL warehouse).
+#
+# INVARIANTS:
+#   * SINGLE WRITER: DuckDB is a single-writer engine (DDB-002) and this pod is
+#     the ONLY writer of /srv/data (lake + catalog). replicas is hardcoded to 1
+#     (no values knob); a Postgres advisory lock additionally enforces
+#     single-flight. strategy Recreate guarantees the old writer has released
+#     the DuckDB file before the new one starts.
+#   * SHARED VOLUME: mounts the same lake PVC as the backend (which reads it
+#     read-only). With a ReadWriteOnce PVC the chart's podAffinity co-schedules
+#     this pod with the backend on one node; use ReadWriteMany to lift that
+#     constraint (see lake.storage in values.yaml).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "smartforge.fullname" . }}-platform-worker
+  labels:
+    {{- include "smartforge.labels" . | nindent 4 }}
+    app.kubernetes.io/component: platform-worker
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "smartforge.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: platform-worker
+  template:
+    metadata:
+      labels:
+        {{- include "smartforge.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: platform-worker
+        smartforge.futureform.com/lake-attached: "true"
+      annotations:
+        checksum/config: {{ include "smartforge.configData" . | sha256sum }}
+        {{- with .Values.platformWorker.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "smartforge.serviceAccountName" . }}
+      automountServiceAccountToken: false
+      # 60s (compose parity): let a running lake snapshot/load finish cleanly.
+      terminationGracePeriodSeconds: {{ .Values.platformWorker.terminationGracePeriodSeconds }}
+      {{- include "smartforge.lakeAffinity" . | nindent 6 }}
+      {{- include "smartforge.pythonPodSecurityContext" . | nindent 6 }}
+      containers:
+        - name: platform-worker
+          image: {{ include "smartforge.backendImage" . | quote }}
+          imagePullPolicy: {{ .Values.image.backend.pullPolicy }}
+          command: ["python", "-m", "app.dataplatform.scheduler"]
+          envFrom:
+            - configMapRef:
+                name: {{ include "smartforge.fullname" . }}-config
+          env:
+            # HOME on the writable emptyDir (DuckDB extension cache lives
+            # under ~/.duckdb with readOnlyRootFilesystem).
+            - name: HOME
+              value: /tmp
+            # dbt writes target/ + logs/ under the project dir (/app/dbt,
+            # read-only in this image) — redirect them to the emptyDir.
+            - name: DBT_TARGET_PATH
+              value: /tmp/dbt-target
+            - name: DBT_LOG_PATH
+              value: /tmp/dbt-logs
+            {{- include "smartforge.postgresSecretEnv" . | nindent 12 }}
+            # Role-separated warehouse identities (loader writes, dbt models,
+            # api reads) — this is the only workload holding loader/dbt creds.
+            - name: WAREHOUSE_LOADER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "smartforge.warehouseSecretName" . }}
+                  key: WAREHOUSE_LOADER_PASSWORD
+                  optional: true
+            - name: WAREHOUSE_DBT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "smartforge.warehouseSecretName" . }}
+                  key: WAREHOUSE_DBT_PASSWORD
+                  optional: true
+            - name: WAREHOUSE_API_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "smartforge.warehouseSecretName" . }}
+                  key: WAREHOUSE_API_PASSWORD
+                  optional: true
+            # Read-only Omega Oracle extraction identity.
+            - name: OMEGA_ORACLE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "smartforge.oracleSecretName" . }}
+                  key: OMEGA_ORACLE_PASSWORD
+                  optional: true
+          {{- include "smartforge.pythonContainerSecurityContext" . | nindent 10 }}
+          resources:
+            {{- toYaml .Values.platformWorker.resources | nindent 12 }}
+          volumeMounts:
+            # SOLE WRITER of the shared lake volume.
+            - name: lake-data
+              mountPath: /srv/data
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: lake-data
+          persistentVolumeClaim:
+            claimName: {{ include "smartforge.lakeClaimName" . }}
+        - name: tmp
+          emptyDir: {}

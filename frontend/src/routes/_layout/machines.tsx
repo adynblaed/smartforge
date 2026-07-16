@@ -1,10 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { Activity, Bot, Boxes, ChevronRight, ScrollText, Thermometer, Ticket, Zap } from "lucide-react"
+import {
+  Activity,
+  Bot,
+  Boxes,
+  ChevronRight,
+  ScrollText,
+  Thermometer,
+  Ticket,
+  Zap,
+} from "lucide-react"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
 import {
   Dialog,
   DialogContent,
@@ -12,9 +20,19 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { cn } from "@/lib/utils"
 import { sf } from "@/smartforge/api"
-import { POLL } from "@/smartforge/constants"
 import { ChatPanel } from "@/smartforge/ChatPanel"
+import {
+  healthColor,
+  healthHex,
+  Loading,
+  MiniArea,
+  PageHeader,
+  Panel,
+  StatusBadge,
+} from "@/smartforge/components"
+import { POLL } from "@/smartforge/constants"
 import {
   createForgeSession,
   deleteForgeSession,
@@ -22,15 +40,6 @@ import {
   forgeSessionKey,
 } from "@/smartforge/forgeChat"
 import { MachineMiniView } from "@/smartforge/MachineMiniView"
-import {
-  Loading,
-  MiniArea,
-  PageHeader,
-  Panel,
-  StatusBadge,
-  healthColor,
-  healthHex,
-} from "@/smartforge/components"
 import type {
   Alert,
   AskResponse,
@@ -38,7 +47,10 @@ import type {
   Page,
   TelemetryEvent,
 } from "@/smartforge/types"
-import { type TelemetryTick, useTelemetryStream } from "@/smartforge/useRealtime"
+import {
+  type TelemetryTick,
+  useTelemetryStream,
+} from "@/smartforge/useRealtime"
 
 export const Route = createFileRoute("/_layout/machines")({
   component: MachinesPage,
@@ -73,7 +85,12 @@ function MachinesPage() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {machines?.data.map((m) => (
-          <MachineCard key={m.id} machine={m} tick={ticks[m.id]} live={connected} />
+          <MachineCard
+            key={m.id}
+            machine={m}
+            tick={ticks[m.id]}
+            live={connected}
+          />
         ))}
       </div>
 
@@ -130,10 +147,18 @@ function Leaderboard({
                 <span className="h-1.5 w-16 overflow-hidden rounded-full bg-muted sm:w-24">
                   <span
                     className="block h-full rounded-full"
-                    style={{ width: `${Math.round(health)}%`, background: healthHex(health) }}
+                    style={{
+                      width: `${Math.round(health)}%`,
+                      background: healthHex(health),
+                    }}
                   />
                 </span>
-                <span className={cn("w-7 text-right font-semibold", healthColor(health))}>
+                <span
+                  className={cn(
+                    "w-7 text-right font-semibold",
+                    healthColor(health),
+                  )}
+                >
                   {Math.round(health)}
                 </span>
                 <ChevronRight size={15} className="text-muted-foreground" />
@@ -202,14 +227,27 @@ function MachineCard({
           </div>
         )}
         <div className="grid grid-cols-3 gap-2 text-xs">
-          <Metric icon={<Thermometer size={14} />} label="Temp"
-            value={temp != null ? `${temp.toFixed(0)}°C` : "—"} />
-          <Metric icon={<Activity size={14} />} label="Vib"
-            value={vib != null ? vib.toFixed(2) : "—"} />
-          <Metric icon={<Zap size={14} />} label="Runtime"
-            value={`${m.runtime_hours.toFixed(0)}h`} />
+          <Metric
+            icon={<Thermometer size={14} />}
+            label="Temp"
+            value={temp != null ? `${temp.toFixed(0)}°C` : "—"}
+          />
+          <Metric
+            icon={<Activity size={14} />}
+            label="Vib"
+            value={vib != null ? vib.toFixed(2) : "—"}
+          />
+          <Metric
+            icon={<Zap size={14} />}
+            label="Runtime"
+            value={`${m.runtime_hours.toFixed(0)}h`}
+          />
         </div>
-        <MachineTerminal code={m.code} rows={telemetry?.data ?? []} fault={m.last_fault_code} />
+        <MachineTerminal
+          code={m.code}
+          rows={telemetry?.data ?? []}
+          fault={m.last_fault_code}
+        />
         <MachineAsk machine={m} />
         <div className="grid grid-cols-2 gap-2">
           <Button asChild variant="outline" size="sm">
@@ -269,7 +307,9 @@ function MachineTerminal({
           <span className="size-1.5 rounded-full bg-emerald-500/70" />
         </span>
         <span className="ml-1">{code} · console</span>
-        {fault && <span className="ml-auto text-rose-400">● fault {fault}</span>}
+        {fault && (
+          <span className="ml-auto text-rose-400">● fault {fault}</span>
+        )}
       </div>
       <div className="h-36 overflow-auto px-2 pb-2 font-mono text-[10px] leading-relaxed">
         {lines.length === 0 && (
@@ -291,10 +331,21 @@ function MachineTerminal({
   )
 }
 
-function Metric({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function Metric({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode
+  label: string
+  value: string
+}) {
   return (
     <div className="rounded-md border p-2">
-      <div className="flex items-center gap-1 text-muted-foreground">{icon}{label}</div>
+      <div className="flex items-center gap-1 text-muted-foreground">
+        {icon}
+        {label}
+      </div>
       <div className="mt-1 font-medium tabular-nums">{value}</div>
     </div>
   )
@@ -347,7 +398,9 @@ function MachineAsk({ machine }: { machine: Machine }) {
                 "When should this machine be serviced?",
               ]}
               ask={(q) =>
-                sf.post<AskResponse>(`/machines/${machine.id}/ask`, { question: q })
+                sf.post<AskResponse>(`/machines/${machine.id}/ask`, {
+                  question: q,
+                })
               }
               persistKey={forgeSessionKey(sessionId)}
             />
@@ -374,7 +427,8 @@ function AlertCenter() {
   // "Ticket" generates a full serialized maintenance ticket from the alert and
   // opens it in the ticketing center.
   const ticket = useMutation({
-    mutationFn: (id: string) => sf.post<{ id: string }>(`/tickets/from-alert/${id}`),
+    mutationFn: (id: string) =>
+      sf.post<{ id: string }>(`/tickets/from-alert/${id}`),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["alerts"] })
       qc.invalidateQueries({ queryKey: ["tickets"] })
@@ -396,16 +450,24 @@ function AlertCenter() {
     >
       <ul className="divide-y">
         {data?.data.length === 0 && (
-          <li className="py-3 text-sm text-muted-foreground">No active alerts.</li>
+          <li className="py-3 text-sm text-muted-foreground">
+            No active alerts.
+          </li>
         )}
         {data?.data.map((a) => (
-          <li key={a.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+          <li
+            key={a.id}
+            className="flex flex-wrap items-center justify-between gap-3 py-3"
+          >
             {/* Clicking the alert (not the action buttons) jumps to its source
                 machine in the Factory Simulation. */}
             <button
               type="button"
               onClick={() =>
-                navigate({ to: "/factory-map", search: { machine: a.machine_id } })
+                navigate({
+                  to: "/factory-map",
+                  search: { machine: a.machine_id },
+                })
               }
               aria-label={`Go to the source machine for alert: ${a.message}`}
               className="group -mx-2 flex min-w-0 flex-1 items-start gap-2 rounded-md px-2 py-1 text-left transition-colors hover:bg-accent"
@@ -428,12 +490,19 @@ function AlertCenter() {
               />
             </button>
             <div className="flex gap-2">
-              <Button size="sm" disabled={ticket.isPending}
-                onClick={() => ticket.mutate(a.id)}>
+              <Button
+                size="sm"
+                disabled={ticket.isPending}
+                onClick={() => ticket.mutate(a.id)}
+              >
                 <Ticket size={14} /> Ticket
               </Button>
-              <Button size="sm" variant="outline" disabled={clear.isPending}
-                onClick={() => clear.mutate(a.id)}>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={clear.isPending}
+                onClick={() => clear.mutate(a.id)}
+              >
                 Clear
               </Button>
             </div>

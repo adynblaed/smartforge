@@ -1,0 +1,74 @@
+# SmartForge — staging overlay. Apply on top of values.yaml:
+#   helm upgrade --install smartforge ./smartforge -n smartforge-staging \
+#     -f smartforge/values.yaml -f smartforge/values-staging.yaml
+
+domain: staging.smartforge.futureform.com
+environment: staging
+
+image:
+  backend:
+    repository: ghcr.io/futureform/smartforge-backend
+    tag: v1.0.0
+  frontend:
+    # Built with VITE_API_URL=https://api.staging.smartforge.futureform.com
+    repository: ghcr.io/futureform/smartforge-frontend
+    tag: v1.0.0
+
+imagePullSecrets:
+  - name: ghcr-pull
+
+backend:
+  replicas: 1
+  pdb:
+    enabled: false   # single replica — a PDB would block node drains
+
+frontend:
+  replicas: 1
+  pdb:
+    enabled: false
+
+postgres:
+  host: smartforge-staging-db.internal   # managed Postgres endpoint
+  db: app
+  user: smartforge
+  existingSecret: smartforge-postgres
+
+warehouse:
+  existingSecret: smartforge-warehouse
+
+oracle:
+  host: omega-db-staging.internal
+  serviceName: OMEGAPDB1
+  existingSecret: smartforge-oracle
+
+secrets:
+  allowInlineDev: false
+  app:
+    existingSecret: smartforge-app
+  anthropic:
+    existingSecret: smartforge-anthropic
+
+platform:
+  env: staging
+
+lake:
+  storage:
+    size: 20Gi
+    # RWO is acceptable in staging: backend + platform-worker are co-scheduled
+    # onto one node by the chart's podAffinity.
+    accessMode: ReadWriteOnce
+
+ingress:
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-staging
+
+monitoring:
+  serviceMonitor:
+    enabled: true
+    additionalLabels:
+      release: kube-prometheus-stack
+
+networkPolicy:
+  enabled: true
+  ingressControllerNamespace: ingress-nginx

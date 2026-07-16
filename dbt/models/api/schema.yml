@@ -1,0 +1,67 @@
+version: 2
+
+models:
+  - name: api_machine_health
+    description: >
+      Certified data product served at /api/v1/warehouse/datasets/api.api_machine_health.
+      Contract is stable; breaking changes require a versioned replacement
+      (DBT-007/API-002).
+    columns:
+      - name: machine_id
+        data_tests: [unique, not_null]
+  - name: api_production_summary
+    description: Daily production rollup per machine (UTC bucketing).
+  - name: api_quality_summary
+    description: Daily quality rollup per machine (UTC bucketing).
+  - name: api_supply_chain_status
+    description: PO pipeline by supplier and status.
+  - name: api_replication_freshness
+    description: Per-table freshness/provenance (warehouse target only).
+  - name: api_work_orders
+    description: >
+      Certified work-order explorer contract served at
+      /api/v1/warehouse/datasets/api.api_work_orders (the Data Platform
+      page's query builder). Genealogy-enriched: UUID surrogate keys,
+      parent/root links, depth, and path. Contract is stable; breaking
+      changes require a versioned replacement (DBT-007/API-002/API-016).
+    columns:
+      - name: work_order_uid
+        data_tests: [unique, not_null]
+  - name: api_open_order_backlog
+    description: >
+      Certified open-order backlog: sales-order lines with customer name
+      and producing work-order genealogy (legacy OPEN_ORDERS_BACKLOG
+      replacement). Classification confidential (customer identity).
+    columns:
+      - name: sales_order_line_uid
+        data_tests: [unique, not_null]
+  - name: api_trailing_windows
+    description: >
+      Standardized trailing-window KPI library: one row per analysis window
+      (3, 6, 12 trailing months) with cross-domain production, quality,
+      work-order, purchasing, and telemetry aggregates. The batteries-
+      included entry point for EDA on both engines — filter window_months
+      instead of hand-writing date arithmetic.
+    columns:
+      - name: window_months
+        data_tests:
+          - unique
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [3, 6, 12]
+                quote: false
+  - name: api_mrp_supply_plan
+    description: >
+      Certified time-phased MRP supply plan: one row per item per plan
+      date, demand/supply pegging rollups, projected running balance, and
+      safety-stock classification (shortage | below_safety | covered).
+      Serves the MRP page (legacy INV_ALLOCATION_SUMMARY replacement).
+    columns:
+      - name: plan_row_key
+        data_tests: [unique, not_null]
+      - name: plan_status
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['shortage', 'below_safety', 'covered']

@@ -63,7 +63,7 @@ export function ChatPanel({
   useEffect(() => {
     const el = scrollRef.current
     if (el) el.scrollTop = el.scrollHeight
-  }, [turns, busy])
+  }, [])
 
   // Persist the thread when a key is provided.
   useEffect(() => {
@@ -237,7 +237,8 @@ const KIND_LABEL: Record<string, string> = {
 
 function kindIcon(kind: string) {
   if (kind === "sop") return <ScrollText size={12} className="text-sky-400" />
-  if (kind === "forge_fact") return <BookOpen size={12} className="text-emerald-400" />
+  if (kind === "forge_fact")
+    return <BookOpen size={12} className="text-emerald-400" />
   return <FileText size={12} className="text-muted-foreground" />
 }
 
@@ -254,7 +255,10 @@ function SourceList({ sources }: { sources: SourceRef[] }) {
         Sources · {ordered.length}
       </div>
       {ordered.map((s, i) => (
-        <SourceItem key={`${s.document_id}-${s.anchor ?? ""}-${i}`} source={s} />
+        <SourceItem
+          key={`${s.document_id}-${s.anchor ?? ""}-${i}`}
+          source={s}
+        />
       ))}
     </div>
   )

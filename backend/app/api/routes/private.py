@@ -1,3 +1,9 @@
+"""Private test-support APIs.
+
+Mounted only when ENVIRONMENT == "local" (see app.api.main) — these
+endpoints never exist in staging or production deployments.
+"""
+
 from typing import Any
 
 from fastapi import APIRouter
@@ -14,6 +20,8 @@ router = APIRouter(tags=["private"], prefix="/private")
 
 
 class PrivateUserCreate(BaseModel):
+    """Payload for the local-environment-only user factory endpoint."""
+
     email: str
     password: str
     full_name: str

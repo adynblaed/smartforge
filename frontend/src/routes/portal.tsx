@@ -4,12 +4,16 @@ import {
   Outlet,
   redirect,
   useNavigate,
+  useRouter,
 } from "@tanstack/react-router"
 import { Factory, LogOut } from "lucide-react"
+import { ErrorBoundary } from "react-error-boundary"
 
 import { Appearance } from "@/components/Common/Appearance"
+import { ErrorFallbackCard } from "@/components/Common/ErrorComponent"
 import { Button } from "@/components/ui/button"
 import { isLoggedIn } from "@/hooks/useAuth"
+import { logClientError } from "@/smartforge/clientLog"
 
 export const Route = createFileRoute("/portal")({
   component: PortalLayout,
@@ -20,6 +24,7 @@ export const Route = createFileRoute("/portal")({
 
 function PortalLayout() {
   const navigate = useNavigate()
+  const router = useRouter()
   const logout = () => {
     localStorage.removeItem("access_token")
     navigate({ to: "/login" })
@@ -50,7 +55,15 @@ function PortalLayout() {
         </nav>
       </header>
       <main className="mx-auto max-w-5xl p-6 md:p-8">
-        <Outlet />
+        {/* Render throws in portal pages keep the portal chrome and offer a
+            reset instead of blanking the screen. */}
+        <ErrorBoundary
+          FallbackComponent={ErrorFallbackCard}
+          onError={(error) => logClientError("portal", error)}
+          onReset={() => router.invalidate()}
+        >
+          <Outlet />
+        </ErrorBoundary>
       </main>
     </div>
   )

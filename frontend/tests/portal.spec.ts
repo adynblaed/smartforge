@@ -40,9 +40,11 @@ test("customer assistant answers and can escalate", async ({ page }) => {
   const input = page.getByPlaceholder(/When will my order be done/)
   await input.fill("When will my order be done?")
   await input.press("Enter")
-  await expect(page.getByText(/order|support|production/i).first()).toBeVisible({
-    timeout: 20000,
-  })
+  await expect(page.getByText(/order|support|production/i).first()).toBeVisible(
+    {
+      timeout: 20000,
+    },
+  )
 })
 
 test("customer cannot reach internal pages", async ({ page }) => {

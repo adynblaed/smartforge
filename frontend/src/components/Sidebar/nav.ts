@@ -3,12 +3,14 @@ import {
   BookOpen,
   Bot,
   Boxes,
+  CalendarRange,
+  Database,
   Factory,
   FileText,
   Gauge,
   LayoutDashboard,
-  type LucideIcon,
   LifeBuoy,
+  type LucideIcon,
   PackageCheck,
   PlugZap,
   ScrollText,
@@ -43,7 +45,11 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Smart Forge",
     items: [
-      { icon: LayoutDashboard, title: "Command Center", path: "/command-center" },
+      {
+        icon: LayoutDashboard,
+        title: "Command Center",
+        path: "/command-center",
+      },
       { icon: Factory, title: "Factory Simulation", path: "/factory-map" },
       { icon: Bot, title: "ForgeAI", path: "/ask-ai" },
     ],
@@ -60,7 +66,11 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Factory Intelligence",
     items: [
       { icon: ShieldCheck, title: "Quality", path: "/quality" },
-      { icon: SlidersHorizontal, title: "Optimizations", path: "/optimization" },
+      {
+        icon: SlidersHorizontal,
+        title: "Optimizations",
+        path: "/optimization",
+      },
     ],
   },
   {
@@ -95,6 +105,8 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Datasources",
     items: [
       { icon: Table2, title: "Database Tables", path: "/datasources" },
+      { icon: Database, title: "Data Platform", path: "/data-platform" },
+      { icon: CalendarRange, title: "MRP", path: "/mrp" },
       { icon: BookOpen, title: "Forge Facts", path: "/knowledge-bases" },
       { icon: ScrollText, title: "SOPs", path: "/sops" },
     ],
@@ -134,6 +146,8 @@ export function breadcrumbsFor(pathname: string): Crumb[] {
   const extra = EXTRA_CRUMBS[pathname]
   if (extra) return [root, { title: extra }]
   const seg = pathname.split("/").filter(Boolean).pop() ?? "Home"
-  const title = seg.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+  const title = seg
+    .replace(/[-_]/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase())
   return [root, { title }]
 }

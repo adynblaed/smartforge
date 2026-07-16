@@ -63,5 +63,13 @@ INVENTORY_BELOW_THRESHOLD = Gauge(
 
 
 def render_metrics() -> bytes:
-    """Render the registry in Prometheus text exposition format."""
-    return generate_latest(REGISTRY)
+    """Render both registries in Prometheus text exposition format.
+
+    The pipeline registry rides along so API-triggered platform operations
+    (background seeds/syncs via POST /platform/*) are observable from this
+    process too; the platform-worker exposes its own copy on
+    PLATFORM_METRICS_PORT (each process reports its own work).
+    """
+    from app.dataplatform.metrics import PIPELINE_REGISTRY
+
+    return generate_latest(REGISTRY) + generate_latest(PIPELINE_REGISTRY)

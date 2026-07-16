@@ -6,11 +6,18 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { sf } from "@/smartforge/api"
-import { KpiTile, metricTrend, PageHeader, Panel, StatusBadge } from "@/smartforge/components"
+import {
+  KpiTile,
+  metricTrend,
+  PageHeader,
+  Panel,
+  StatusBadge,
+} from "@/smartforge/components"
 
 // Routable KPI tile wrapper.
 const STAT_CLS =
   "block rounded-xl outline-none transition hover:brightness-110 focus-visible:ring-2 focus-visible:ring-ring"
+
 import type { Incident, Page, RcaRecord } from "@/smartforge/types"
 
 export const Route = createFileRoute("/_layout/incidents")({
@@ -78,10 +85,20 @@ function IncidentsPage() {
           />
         </Link>
         <Link to="/analytics" className={STAT_CLS}>
-          <KpiTile label="Downtime (min)" value={totalDowntime} accent="var(--warning)" {...metricTrend("downtime")} />
+          <KpiTile
+            label="Downtime (min)"
+            value={totalDowntime}
+            accent="var(--warning)"
+            {...metricTrend("downtime")}
+          />
         </Link>
         <Link to="/analytics" className={STAT_CLS}>
-          <KpiTile label="Est. Cost Impact" value={`$${totalCost.toFixed(0)}`} accent="var(--danger)" {...metricTrend("costimpact")} />
+          <KpiTile
+            label="Est. Cost Impact"
+            value={`$${totalCost.toFixed(0)}`}
+            accent="var(--danger)"
+            {...metricTrend("costimpact")}
+          />
         </Link>
       </div>
 
@@ -99,8 +116,11 @@ function IncidentsPage() {
                   <span>{i.downtime_minutes} min</span>
                   <span>${i.estimated_cost.toFixed(0)}</span>
                   <span>{i.delayed_orders} delayed orders</span>
-                  <Button size="sm" variant="ghost"
-                    onClick={() => setSelected(selected === i.id ? null : i.id)}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setSelected(selected === i.id ? null : i.id)}
+                  >
                     RCA
                   </Button>
                   <Button
@@ -118,12 +138,17 @@ function IncidentsPage() {
             </li>
           ))}
           {data?.data.length === 0 && (
-            <li className="py-3 text-sm text-muted-foreground">No incidents logged.</li>
+            <li className="py-3 text-sm text-muted-foreground">
+              No incidents logged.
+            </li>
           )}
         </ul>
       </Panel>
 
-      <LogIncident onCreate={(t) => create.mutate(t)} pending={create.isPending} />
+      <LogIncident
+        onCreate={(t) => create.mutate(t)}
+        pending={create.isPending}
+      />
     </div>
   )
 }
@@ -140,12 +165,19 @@ function Rca({ incidentId }: { incidentId: string }) {
       )}
       {data?.data.map((r) => (
         <div key={r.id} className="space-y-1">
-          <p><span className="font-medium">Root cause:</span> {r.root_cause}</p>
+          <p>
+            <span className="font-medium">Root cause:</span> {r.root_cause}
+          </p>
           {r.corrective_actions && (
-            <p><span className="font-medium">Corrective:</span> {r.corrective_actions}</p>
+            <p>
+              <span className="font-medium">Corrective:</span>{" "}
+              {r.corrective_actions}
+            </p>
           )}
           {r.timeline_note && (
-            <p className="text-xs text-muted-foreground">Timeline: {r.timeline_note}</p>
+            <p className="text-xs text-muted-foreground">
+              Timeline: {r.timeline_note}
+            </p>
           )}
         </div>
       ))}
@@ -178,7 +210,9 @@ function LogIncident({
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Describe the outage event…"
         />
-        <Button type="submit" disabled={pending}>Log</Button>
+        <Button type="submit" disabled={pending}>
+          Log
+        </Button>
       </form>
     </Panel>
   )

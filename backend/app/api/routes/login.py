@@ -1,3 +1,9 @@
+"""Authentication APIs: OAuth2 password login, token test, password recovery.
+
+Only active accounts receive access tokens, tokens are time-limited JWTs,
+and password resets require a verified single-purpose reset token.
+"""
+
 from datetime import timedelta
 from typing import Annotated, Any
 
@@ -37,7 +43,12 @@ def login_access_token(
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     return Token(
         access_token=security.create_access_token(
-            user.id, expires_delta=access_token_expires
+            user.id,
+            expires_delta=access_token_expires,
+            # Role claims let the rate limiter tier requests without a DB
+            # hit (API-017/SEC-012); authorization still checks the DB row.
+            role=user.role.value,
+            is_superuser=user.is_superuser,
         )
     )
 

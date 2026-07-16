@@ -51,11 +51,16 @@ def submit_inspection(
     session.commit()
     session.refresh(insp)
     if insp.defect_detected:
-        session.add(Defect(
-            inspection_id=insp.id, line_id=insp.line_id,
-            defect_type=insp.defect_type or "unknown", part_id=insp.part_id,
-            scrap_cost=fi.SCRAP_UNIT_COST, is_scrap=True,
-        ))
+        session.add(
+            Defect(
+                inspection_id=insp.id,
+                line_id=insp.line_id,
+                defect_type=insp.defect_type or "unknown",
+                part_id=insp.part_id,
+                scrap_cost=fi.SCRAP_UNIT_COST,
+                is_scrap=True,
+            )
+        )
         session.commit()
     return insp
 
@@ -105,8 +110,13 @@ def correlate_defect(
         session.add(incident)
         session.commit()
         session.refresh(incident)
-        write_audit(session, actor=user, action="defect.correlate",
-                    entity_type="incident", entity_id=incident.id)
+        write_audit(
+            session,
+            actor=user,
+            action="defect.correlate",
+            entity_type="incident",
+            entity_id=incident.id,
+        )
     ticket = ticket_from_incident(incident.id, session, user)
     return {
         "incident_id": str(incident.id),
@@ -173,29 +183,41 @@ def approve_config(
     session.add(cfg)
     session.commit()
     session.refresh(cfg)
-    write_audit(session, actor=user, action="machine_config.approve",
-                entity_type="machine_configuration", entity_id=cfg.id)
+    write_audit(
+        session,
+        actor=user,
+        action="machine_config.approve",
+        entity_type="machine_configuration",
+        entity_id=cfg.id,
+    )
     return cfg
 
 
 # ---- 2D Recommendations (closed-loop) ----
 @router.get("/recommendations", response_model=RecommendationsPublic)
 def read_recommendations(session: SessionDep, _user: InternalUser) -> Any:
-    rows = list(session.exec(
-        select(Recommendation).order_by(desc(Recommendation.created_at))
-    ).all())
+    rows = list(
+        session.exec(
+            select(Recommendation).order_by(desc(Recommendation.created_at))
+        ).all()
+    )
     return RecommendationsPublic(data=rows, count=len(rows))
 
 
 @router.post("/recommendations/{rec_id}/decision", response_model=RecommendationPublic)
 def decide_recommendation(
-    rec_id: uuid.UUID, session: SessionDep, user: InternalUser,
-    accept: bool, outcome_impact: float | None = None,
+    rec_id: uuid.UUID,
+    session: SessionDep,
+    user: InternalUser,
+    accept: bool,
+    outcome_impact: float | None = None,
 ) -> Any:
     rec = session.get(Recommendation, rec_id)
     if not rec:
         raise HTTPException(status_code=404, detail="Recommendation not found")
-    rec.status = RecommendationStatus.accepted if accept else RecommendationStatus.rejected
+    rec.status = (
+        RecommendationStatus.accepted if accept else RecommendationStatus.rejected
+    )
     rec.outcome_impact = outcome_impact
     # Closed-loop: nudge confidence by the recorded outcome.
     if accept and outcome_impact is not None:
@@ -205,6 +227,11 @@ def decide_recommendation(
     session.add(rec)
     session.commit()
     session.refresh(rec)
-    write_audit(session, actor=user, action=f"recommendation.{rec.status.value}",
-                entity_type="recommendation", entity_id=rec.id)
+    write_audit(
+        session,
+        actor=user,
+        action=f"recommendation.{rec.status.value}",
+        entity_type="recommendation",
+        entity_id=rec.id,
+    )
     return rec

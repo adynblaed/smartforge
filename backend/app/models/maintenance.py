@@ -75,9 +75,7 @@ class WorkOrderBase(SQLModel):
     recommended_task: str = Field(max_length=512)
     required_skill: str | None = Field(default=None, max_length=128)
     suggested_due_date: datetime | None = Field(default=None)
-    source_alert_id: uuid.UUID | None = Field(
-        default=None, foreign_key="alerts.id"
-    )
+    source_alert_id: uuid.UUID | None = Field(default=None, foreign_key="alerts.id")
     priority: int = Field(default=3)  # 1 (highest) .. 5 (lowest)
 
 

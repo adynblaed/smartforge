@@ -1,0 +1,384 @@
+# =============================================================================
+# SmartForge — default chart values.
+#
+# Environment overlays: values-staging.yaml / values-production.yaml.
+#
+# SECURITY: this file must NEVER contain real secret material. Every credential
+# is consumed from a Kubernetes Secret (see `secrets`, `postgres.existingSecret`,
+# `warehouse.existingSecret`, `oracle.existingSecret`). Inline dev secrets are
+# for throwaway/dev clusters only and are gated behind `secrets.allowInlineDev`.
+# In staging/production, provision Secrets out-of-band (kubectl, External
+# Secrets Operator, Vault Agent Injector — see infra/vault/ and
+# infra/helm/README.md) and reference them via *existingSecret.
+# =============================================================================
+
+nameOverride: ""
+fullnameOverride: ""
+
+# Public apex domain. Ingress hosts default to api.<domain> and
+# dashboard.<domain> (override under `ingress` if needed).
+domain: smartforge.local
+
+# Application environment: local | staging | production.
+environment: local
+
+image:
+  backend:
+    repository: ghcr.io/futureform/smartforge-backend
+    # Empty tag falls back to Chart.appVersion ("1.0.0"). CI bumps this via a
+    # values PR (GitOps) — never `latest` in staging/production.
+    tag: ""
+    pullPolicy: IfNotPresent
+  frontend:
+    # NOTE: VITE_API_URL is baked into the frontend bundle at *image build*
+    # time (frontend/Dockerfile build arg). A frontend image is only valid for
+    # the environment whose API URL it was built with.
+    repository: ghcr.io/futureform/smartforge-frontend
+    tag: ""
+    pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+#  - name: ghcr-pull
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+# -----------------------------------------------------------------------------
+# Backend API (FastAPI, port 8000). Stateless — scales horizontally; WebSocket
+# fan-out goes through Redis pub/sub so replicas share telemetry streams.
+# -----------------------------------------------------------------------------
+backend:
+  replicas: 2
+  terminationGracePeriodSeconds: 30   # drain in-flight requests (compose parity)
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  hpa:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 75
+  pdb:
+    enabled: true
+    minAvailable: 1
+  podAnnotations: {}
+
+# -----------------------------------------------------------------------------
+# Frontend (nginx serving the compiled dashboard, port 80).
+# -----------------------------------------------------------------------------
+frontend:
+  replicas: 2
+  terminationGracePeriodSeconds: 30
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 128Mi
+  pdb:
+    enabled: true
+    minAvailable: 1
+  podAnnotations: {}
+
+# -----------------------------------------------------------------------------
+# Telemetry worker (python -m app.workers.telemetry_simulator).
+#
+# SINGLE REPLICA ONLY — this is the single canonical telemetry producer.
+# Running two replicas double-writes telemetry/orders. The Deployment hardcodes
+# replicas: 1 and uses strategy: Recreate so an upgrade never has old+new pods
+# producing at the same time. There is intentionally no `replicas` knob here.
+# -----------------------------------------------------------------------------
+worker:
+  terminationGracePeriodSeconds: 30
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  podAnnotations: {}
+
+# -----------------------------------------------------------------------------
+# Platform worker (python -m app.dataplatform.scheduler).
+#
+# SINGLE REPLICA ONLY — sole writer of the Parquet lake and the DuckDB catalog
+# (DuckDB is single-writer; single-flight is additionally enforced via a
+# Postgres advisory lock). replicas: 1 is hardcoded and strategy: Recreate
+# guarantees the old writer is gone before the new one starts. It shares the
+# lake PVC (/srv/data) with the backend — see `lake.storage` for the
+# RWO-vs-RWX constraint.
+# -----------------------------------------------------------------------------
+platformWorker:
+  terminationGracePeriodSeconds: 60   # let a running lake snapshot finish
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      # Keep above DUCKDB_MEMORY_LIMIT (platform.duckdb.memoryLimit) + headroom.
+      memory: 3Gi
+  podAnnotations: {}
+
+# -----------------------------------------------------------------------------
+# Shared lake volume (/srv/data): Parquet lake + DuckDB catalog.
+# Written ONLY by platform-worker; the backend mounts it for read-only DuckDB
+# queries.
+#
+# accessMode:
+#   - ReadWriteOnce (default): the PVC can only attach to ONE node, so the
+#     chart automatically adds required podAffinity that co-schedules backend
+#     and platform-worker pods onto the same node. Fine for small clusters;
+#     it couples backend scheduling to a single node.
+#   - ReadWriteMany: preferred for production (EFS/Filestore/CephFS/NFS class).
+#     Removes the co-scheduling constraint. The single-WRITER invariant is
+#     unchanged either way: only platform-worker writes.
+# -----------------------------------------------------------------------------
+lake:
+  storage:
+    size: 20Gi
+    accessMode: ReadWriteOnce
+    # Set to a RWX-capable class (e.g. efs-sc, filestore) when using
+    # ReadWriteMany. Empty = cluster default class.
+    className: ""
+    # Bring your own PVC (must match accessMode above so the co-scheduling
+    # affinity logic stays correct).
+    existingClaim: ""
+
+# -----------------------------------------------------------------------------
+# PostgreSQL (application database). The chart does NOT deploy Postgres — use a
+# managed service (RDS, Cloud SQL) or an operator (CloudNativePG). See
+# infra/helm/README.md.
+# Secret contract (postgres.existingSecret): key POSTGRES_PASSWORD.
+# -----------------------------------------------------------------------------
+postgres:
+  # Set to your managed endpoint (e.g. smartforge-db.abc123.eu-west-1.rds.amazonaws.com).
+  # The dev default assumes a `postgres` Service in the release namespace.
+  host: postgres
+  port: "5432"
+  db: app
+  user: postgres
+  # Name of an existing Secret with key POSTGRES_PASSWORD.
+  existingSecret: ""
+  # DEV ONLY (requires secrets.allowInlineDev). Never set in committed values.
+  inline: {}
+
+# -----------------------------------------------------------------------------
+# PostgreSQL warehouse — a SEPARATE logical database (usually on the same
+# managed instance) with role-separated identities:
+#   loader (writes),  dbt/transformer (models),  api reader (read-only).
+# Secret contract (warehouse.existingSecret): keys WAREHOUSE_LOADER_PASSWORD,
+# WAREHOUSE_DBT_PASSWORD, WAREHOUSE_API_PASSWORD.
+# -----------------------------------------------------------------------------
+warehouse:
+  db: warehouse
+  loaderUser: warehouse_loader
+  dbtUser: warehouse_transformer
+  apiUser: warehouse_api_reader
+  existingSecret: ""
+  inline: {}   # DEV ONLY
+
+# -----------------------------------------------------------------------------
+# Omega Oracle source (read-only extraction identity: CREATE SESSION + SELECT
+# only — never an application-owner/APEX account).
+# Secret contract (oracle.existingSecret): key OMEGA_ORACLE_PASSWORD.
+# -----------------------------------------------------------------------------
+oracle:
+  user: omega_analytics_reader
+  host: ""
+  port: "1521"
+  # Service name preferred; SID only for legacy connects (SID wins if set).
+  serviceName: ""
+  sid: ""
+  schemas: OMEGA
+  tlsEnabled: "false"
+  poolMin: "1"
+  poolMax: "4"          # small pool: we are a tenant on the transactional system
+  callTimeoutSeconds: "900"
+  fetchArraysize: "50000"
+  existingSecret: ""
+  inline: {}   # DEV ONLY
+
+# -----------------------------------------------------------------------------
+# Remaining secret domains.
+#
+# Secret contracts:
+#   secrets.app.existingSecret:
+#     SECRET_KEY               (required)
+#     FIRST_SUPERUSER_PASSWORD (required)
+#     SMTP_PASSWORD            (optional)
+#     FIIX_API_KEY             (optional)
+#     QDRANT_API_KEY           (optional — usually empty for in-cluster Qdrant)
+#   secrets.anthropic.existingSecret:
+#     ANTHROPIC_API_KEY        (optional — empty selects the deterministic
+#                               offline AskAI fallback)
+#
+# allowInlineDev=true lets the chart render Secrets from the `inline` maps for
+# local/dev clusters. Staging/production MUST set allowInlineDev=false and
+# provide existingSecret names; templating then fails fast if any name is
+# missing.
+# -----------------------------------------------------------------------------
+secrets:
+  allowInlineDev: true
+  app:
+    existingSecret: ""
+    inline: {}   # DEV ONLY, e.g. {SECRET_KEY: "...", FIRST_SUPERUSER_PASSWORD: "..."}
+  anthropic:
+    existingSecret: ""
+    inline: {}   # DEV ONLY
+
+# -----------------------------------------------------------------------------
+# Non-secret application configuration (rendered into a ConfigMap).
+# -----------------------------------------------------------------------------
+config:
+  projectName: SmartForge
+  # Defaults to https://dashboard.<domain> when empty.
+  frontendHost: ""
+  # Comma-separated. Defaults to https://dashboard.<domain> when empty.
+  corsOrigins: ""
+  firstSuperuser: admin@futureform.com
+  emailsFromEmail: admin@futureform.com
+  smtp:
+    host: ""
+    user: ""
+    port: "587"
+    tls: "True"
+    ssl: "False"
+  sentryDsn: ""
+  anthropicModel: claude-opus-4-8
+  fiixBaseUrl: https://mock.fiix.local/api
+  simulatorIntervalSeconds: "3"
+  # Escape hatch: extra literal env vars merged into the shared ConfigMap.
+  extra: {}
+
+# Data-platform pipeline behaviour.
+platform:
+  env: production            # PLATFORM_ENV
+  # Always true in production: seeding requires an operator-confirmed plan.
+  seedRequireConfirmation: "true"
+  duckdb:
+    memoryLimit: 2GB
+    threads: "4"
+  parquetCompression: zstd
+  retainedSnapshots: "3"
+  freshness:
+    hourlyWarnMinutes: "75"
+    hourlyErrorMinutes: "120"
+    dailyWarnMinutes: "1560"
+    dailyErrorMinutes: "1800"
+
+# -----------------------------------------------------------------------------
+# Redis (pub/sub + cache). The in-chart StatefulSet is deliberately minimal —
+# single replica, AOF off, no auth (protected by the NetworkPolicy). For
+# production prefer a managed Redis (ElastiCache/Memorystore) or the Bitnami
+# redis chart, set redis.enabled=false and point redis.externalHost at it.
+# -----------------------------------------------------------------------------
+redis:
+  enabled: true
+  image:
+    repository: redis
+    tag: 7-alpine
+    pullPolicy: IfNotPresent
+  storage:
+    size: 1Gi
+    className: ""
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+  # Used when enabled=false (managed Redis endpoint).
+  externalHost: ""
+  externalPort: "6379"
+
+# -----------------------------------------------------------------------------
+# Qdrant vector store.
+# -----------------------------------------------------------------------------
+qdrant:
+  enabled: true
+  image:
+    repository: qdrant/qdrant
+    # Pinned deliberately (compose uses :latest — not production-safe).
+    tag: v1.12.1
+    pullPolicy: IfNotPresent
+  storage:
+    size: 10Gi
+    className: ""
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 2Gi
+  # Used when enabled=false (managed/Qdrant-Cloud endpoint, full URL).
+  externalUrl: ""
+
+# -----------------------------------------------------------------------------
+# Prestart hook Job — runs `bash scripts/prestart.sh` (wait-for-DB, alembic
+# upgrade head, initial data) as a Helm pre-install/pre-upgrade hook. Argo CD
+# maps this to a PreSync hook, so migrations always land before the new pods.
+# -----------------------------------------------------------------------------
+prestart:
+  backoffLimit: 2
+  activeDeadlineSeconds: 600
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# -----------------------------------------------------------------------------
+# Ingress: api.<domain> -> backend:8000, dashboard.<domain> -> frontend:80.
+# TLS via cert-manager: set the cluster-issuer annotation in the overlay.
+# -----------------------------------------------------------------------------
+ingress:
+  enabled: true
+  className: nginx
+  annotations: {}
+  #  cert-manager.io/cluster-issuer: letsencrypt-prod
+  apiHost: ""         # default api.<domain>
+  dashboardHost: ""   # default dashboard.<domain>
+  tls:
+    enabled: true
+    secretName: ""    # default <fullname>-tls (cert-manager fills it)
+
+# -----------------------------------------------------------------------------
+# Monitoring. This chart intentionally does NOT template Prometheus/Grafana —
+# in Kubernetes install kube-prometheus-stack (Prometheus Operator) instead of
+# porting the compose prometheus/grafana services, then enable the
+# ServiceMonitor below to scrape the backend at /api/v1/metrics. Grafana
+# dashboards live in infra/grafana/dashboards and can be loaded via the
+# kube-prometheus-stack sidecar.
+# -----------------------------------------------------------------------------
+monitoring:
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+    scrapeTimeout: 10s
+    # e.g. {release: kube-prometheus-stack} so the operator picks it up.
+    additionalLabels: {}
+
+# -----------------------------------------------------------------------------
+# NetworkPolicy: default-deny ingress in the namespace + allow intra-namespace
+# + allow the ingress controller to reach backend/frontend. Assumes SmartForge
+# has a dedicated namespace. Egress is intentionally left open (Oracle source,
+# managed Postgres, SMTP, Anthropic API live outside the cluster).
+# -----------------------------------------------------------------------------
+networkPolicy:
+  enabled: false
+  # Namespace of the ingress controller (matched via
+  # kubernetes.io/metadata.name).
+  ingressControllerNamespace: ingress-nginx

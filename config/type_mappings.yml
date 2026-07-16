@@ -1,0 +1,158 @@
+# =============================================================================
+# Explicit Oracle -> PostgreSQL / Arrow-Parquet / DuckDB type mappings
+# =============================================================================
+# Required by Checklist DCT-002/DCT-003: no high-risk type may rely on
+# accidental driver inference, and numeric precision must never be silently
+# converted to floating point. Consumed by app.dataplatform.oracle.metadata
+# when inferring target schemas and generating DDL proposals.
+#
+# Rules are evaluated top-down; the first match wins. `postgres` and `arrow`
+# templates may reference {precision} and {scale} captured from
+# ALL_TAB_COLUMNS. Anything unmatched fails schema inference loudly
+# (fail-closed, DCT-008) instead of guessing.
+# =============================================================================
+
+rules:
+  # --- Numbers: exact decimal, never binary float (money-safe) ---------------
+  - oracle: NUMBER
+    when: "scale == 0 and precision is not None and precision <= 18"
+    postgres: BIGINT
+    arrow: int64
+    duckdb: BIGINT
+    notes: Integer-range NUMBER; verified by range analysis during discovery.
+  - oracle: NUMBER
+    when: "scale == 0 and precision is not None"
+    postgres: "NUMERIC({precision},0)"
+    arrow: "decimal128({precision},0)"
+    duckdb: "DECIMAL({precision},0)"
+  - oracle: NUMBER
+    when: "precision is not None and scale is not None"
+    postgres: "NUMERIC({precision},{scale})"
+    arrow: "decimal128({precision},{scale})"
+    duckdb: "DECIMAL({precision},{scale})"
+  - oracle: NUMBER
+    when: "precision is None"
+    postgres: NUMERIC
+    arrow: "decimal128(38,10)"
+    duckdb: "DECIMAL(38,10)"
+    notes: Unbounded NUMBER; fail over to string if values exceed 38 digits.
+  - oracle: FLOAT
+    postgres: DOUBLE PRECISION
+    arrow: float64
+    duckdb: DOUBLE
+  - oracle: BINARY_FLOAT
+    postgres: REAL
+    arrow: float32
+    duckdb: FLOAT
+  - oracle: BINARY_DOUBLE
+    postgres: DOUBLE PRECISION
+    arrow: float64
+    duckdb: DOUBLE
+
+  # --- Character data (UTF-8 forced on read; empty string == NULL in Oracle) -
+  - oracle: VARCHAR2
+    postgres: TEXT
+    arrow: string
+    duckdb: VARCHAR
+  - oracle: NVARCHAR2
+    postgres: TEXT
+    arrow: string
+    duckdb: VARCHAR
+  - oracle: CHAR
+    postgres: TEXT
+    arrow: string
+    duckdb: VARCHAR
+    notes: Trailing spaces preserved in raw; trimmed in dbt staging.
+  - oracle: NCHAR
+    postgres: TEXT
+    arrow: string
+    duckdb: VARCHAR
+
+  # --- Temporal (Oracle DATE carries time-of-day; normalize TZ to UTC) -------
+  - oracle: DATE
+    postgres: TIMESTAMP WITHOUT TIME ZONE
+    arrow: "timestamp(us)"
+    duckdb: TIMESTAMP
+    notes: Never map to date-only; Oracle DATE has seconds precision.
+  - oracle: TIMESTAMP
+    postgres: TIMESTAMP WITHOUT TIME ZONE
+    arrow: "timestamp(us)"
+    duckdb: TIMESTAMP
+  - oracle: TIMESTAMP WITH TIME ZONE
+    postgres: TIMESTAMPTZ
+    arrow: "timestamp(us, tz=UTC)"
+    duckdb: TIMESTAMPTZ
+    notes: Normalized to UTC on landing (DCT-004).
+  - oracle: TIMESTAMP WITH LOCAL TIME ZONE
+    postgres: TIMESTAMPTZ
+    arrow: "timestamp(us, tz=UTC)"
+    duckdb: TIMESTAMPTZ
+  - oracle: INTERVAL DAY TO SECOND
+    postgres: INTERVAL
+    arrow: "duration(us)"
+    duckdb: INTERVAL
+  - oracle: INTERVAL YEAR TO MONTH
+    postgres: INTERVAL
+    arrow: string
+    duckdb: INTERVAL
+
+  # --- LOBs / binary (explicit policy per DCT-005) ----------------------------
+  - oracle: CLOB
+    postgres: TEXT
+    arrow: large_string
+    duckdb: VARCHAR
+    max_bytes: 16777216
+    on_oversize: quarantine
+  - oracle: NCLOB
+    postgres: TEXT
+    arrow: large_string
+    duckdb: VARCHAR
+    max_bytes: 16777216
+    on_oversize: quarantine
+  - oracle: BLOB
+    postgres: BYTEA
+    arrow: large_binary
+    duckdb: BLOB
+    max_bytes: 16777216
+    on_oversize: quarantine
+  - oracle: RAW
+    postgres: BYTEA
+    arrow: binary
+    duckdb: BLOB
+  - oracle: LONG
+    postgres: TEXT
+    arrow: large_string
+    duckdb: VARCHAR
+    notes: Deprecated Oracle type; flag for exclusion review during discovery.
+
+  # --- Misc -------------------------------------------------------------------
+  - oracle: JSON
+    postgres: JSONB
+    arrow: string
+    duckdb: JSON
+    notes: Validate JSON before casting; fall back to TEXT on invalid payloads.
+  - oracle: ROWID
+    postgres: TEXT
+    arrow: string
+    duckdb: VARCHAR
+    notes: Never treated as a stable business key.
+  - oracle: UROWID
+    postgres: TEXT
+    arrow: string
+    duckdb: VARCHAR
+
+# Types that fail discovery closed until a human maps them explicitly:
+unsupported:
+  - SDO_GEOMETRY
+  - XMLTYPE
+  - ANYDATA
+  - BFILE
+  - "LONG RAW"
+
+# Semantics policies (Checklist SRC-011/SRC-012, Specs §11.1)
+policies:
+  empty_string: preserve_oracle_null   # '' from Oracle lands as NULL; documented
+  identifier_case: lowercase_snake     # OMEGA.WORK_ORDERS -> work_orders
+  timezone_normalization: utc
+  reporting_timezone: UTC
+  character_encoding: utf-8

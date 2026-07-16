@@ -1,0 +1,18 @@
+version: 2
+
+models:
+  - name: int_purchase_order_totals
+    description: Line rollups per purchase order (header/line reconciliation).
+  - name: int_work_order_genealogy
+    description: >
+      Work-order genealogy resolved from extraction-stamped UUIDs (DCT-011):
+      every order's root, depth (0=root, 1=child, 2=grandchild), path, and
+      child count. Orphaned parents are treated as their own roots so no
+      order is silently dropped.
+    columns:
+      - name: work_order_uid
+        data_tests: [unique, not_null]
+      - name: root_work_order_uid
+        data_tests: [not_null]
+      - name: genealogy_depth
+        data_tests: [not_null]

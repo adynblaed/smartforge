@@ -28,11 +28,15 @@ test("factory simulation grid can be toggled", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Hide Grid" })).toBeVisible()
 })
 
-test("analytics dashboards render with a refresh selector", async ({ page }) => {
+test("analytics dashboards render with a refresh selector", async ({
+  page,
+}) => {
   await page.goto("/analytics")
   await expect(page.getByRole("heading", { name: "Analytics" })).toBeVisible()
   await expect(page.getByText("Overall OEE")).toBeVisible()
-  await expect(page.getByRole("button", { name: "1m", exact: true })).toBeVisible()
+  await expect(
+    page.getByRole("button", { name: "1m", exact: true }),
+  ).toBeVisible()
 })
 
 test("command center embeds the global operations globe", async ({ page }) => {
@@ -40,7 +44,9 @@ test("command center embeds the global operations globe", async ({ page }) => {
   await expect(page.locator("canvas")).toBeVisible()
   // Selecting a lane from the legend opens its purchase-order panel.
   await page.getByRole("button", { name: /Reno → Los Angeles/ }).click()
-  await expect(page.getByRole("heading", { name: /Reno → Los Angeles/ })).toBeVisible()
+  await expect(
+    page.getByRole("heading", { name: /Reno → Los Angeles/ }),
+  ).toBeVisible()
 })
 
 test("datasources global dashboard renders live tables", async ({ page }) => {
@@ -52,8 +58,12 @@ test("datasources global dashboard renders live tables", async ({ page }) => {
   await expect(page.locator("table").first()).toBeVisible()
   // Switching to Database Tables shows the per-source spreadsheet.
   // `exact` avoids matching the sidebar "Add … to favorites" star actions.
-  await page.getByRole("button", { name: "Database Tables", exact: true }).click()
-  await expect(page.getByRole("button", { name: "Machines", exact: true })).toBeVisible()
+  await page
+    .getByRole("button", { name: "Database Tables", exact: true })
+    .click()
+  await expect(
+    page.getByRole("button", { name: "Machines", exact: true }),
+  ).toBeVisible()
   await expect(page.locator("table").first()).toBeVisible()
 })
 
@@ -64,12 +74,16 @@ test("knowledge base can be created", async ({ page }) => {
   await page.locator("textarea").fill("The coolant spec is 12 bar.")
   await page.getByRole("button", { name: "Save", exact: true }).click()
   // (prior runs may have left KBs; just confirm ours is listed)
-  await expect(page.getByRole("button", { name: /E2E KB/ }).first()).toBeVisible()
+  await expect(
+    page.getByRole("button", { name: /E2E KB/ }).first(),
+  ).toBeVisible()
 })
 
 test("order tracker lists purchase orders", async ({ page }) => {
   await page.goto("/order-tracker")
-  await expect(page.getByRole("heading", { name: "Order Tracker" })).toBeVisible()
+  await expect(
+    page.getByRole("heading", { name: "Order Tracker" }),
+  ).toBeVisible()
   await expect(page.getByText(/PO-20/).first()).toBeVisible()
 })
 
@@ -124,11 +138,14 @@ test("forgeai chat returns an answer", async ({ page }) => {
   await input.fill("How do I fix high vibration on the CNC mill?")
   await input.press("Enter")
   // Either a real Claude answer or the offline fallback renders.
-  await expect(page.getByText(/documentation|offline mode|vibration|machine/i).first())
-    .toBeVisible({ timeout: 20000 })
+  await expect(
+    page.getByText(/documentation|offline mode|vibration|machine/i).first(),
+  ).toBeVisible({ timeout: 20000 })
 })
 
-test("optimizations: capacity what-if produces a proposed schedule", async ({ page }) => {
+test("optimizations: capacity what-if produces a proposed schedule", async ({
+  page,
+}) => {
   await page.goto("/optimization")
   await page.getByRole("button", { name: "Run what-if schedule" }).click()
   await expect(page.getByText("Proposed Schedule")).toBeVisible()

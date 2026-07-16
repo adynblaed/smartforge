@@ -1,0 +1,38 @@
+name: smartforge_analytics
+version: "1.0.0"
+config-version: 2
+
+profile: smartforge_analytics
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  smartforge_analytics:
+    +persist_docs:
+      relation: true
+      columns: true
+    staging:
+      +schema: staging
+      +materialized: view
+    intermediate:
+      +schema: intermediate
+      +materialized: view
+    marts:
+      +schema: marts
+      +materialized: table
+    api:
+      +schema: api
+      +materialized: view
+
+sources:
+  smartforge_analytics:
+    omega_raw:
+      # Freshness thresholds per cadence (Specs §21.3) are set per table
+      # in models/sources.yml; loads publish _extracted_at on every row.
+      +enabled: true

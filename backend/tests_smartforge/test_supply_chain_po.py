@@ -24,9 +24,15 @@ def test_suppliers_and_risks(internal_client):
 
 
 def test_quote_generation_and_listing(internal_client):
-    r = internal_client.post("/api/v1/quotes/generate", json={
-        "customer": "Acme", "part_type": "bracket", "quantity": 250, "rush": True,
-    })
+    r = internal_client.post(
+        "/api/v1/quotes/generate",
+        json={
+            "customer": "Acme",
+            "part_type": "bracket",
+            "quantity": 250,
+            "rush": True,
+        },
+    )
     assert r.status_code == 200
     q = r.json()
     assert q["estimated_price"] > 0
@@ -52,7 +58,7 @@ def test_full_po_lifecycle(internal_client):
     """intake (parse) → approve job → quote → POs linked + readiness visible."""
     # 1. AI-assisted job intake (offline fallback parses into a job).
     intake = internal_client.post(
-        "/api/v1/jobs/intake?raw_text=" "Acme needs 300 steel brackets next week"
+        "/api/v1/jobs/intake?raw_text=Acme needs 300 steel brackets next week"
     )
     assert intake.status_code == 200
     job = intake.json()
@@ -64,10 +70,14 @@ def test_full_po_lifecycle(internal_client):
     assert ap.status_code == 200 and ap.json()["status"] == "approved"
 
     # 3. Generate a quote for it.
-    quote = internal_client.post("/api/v1/quotes/generate", json={
-        "customer": job["customer"], "part_type": job["part_type"],
-        "quantity": job["quantity"],
-    })
+    quote = internal_client.post(
+        "/api/v1/quotes/generate",
+        json={
+            "customer": job["customer"],
+            "part_type": job["part_type"],
+            "quantity": job["quantity"],
+        },
+    )
     assert quote.status_code == 200 and quote.json()["estimated_price"] > 0
 
     # 4. POs exist and are linked to jobs/materials with shop-floor readiness.
@@ -77,9 +87,14 @@ def test_full_po_lifecycle(internal_client):
 
 
 def test_manual_job_create_flags_missing_info(internal_client):
-    r = internal_client.post("/api/v1/jobs", json={
-        "customer": "Acme", "part_type": "bracket", "quantity": 10,
-    })
+    r = internal_client.post(
+        "/api/v1/jobs",
+        json={
+            "customer": "Acme",
+            "part_type": "bracket",
+            "quantity": 10,
+        },
+    )
     assert r.status_code == 200
     # due_date omitted → flagged as missing
     assert r.json()["missing_info"] and "due_date" in r.json()["missing_info"]

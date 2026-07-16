@@ -69,8 +69,13 @@ def test_alert_acknowledge_and_resolve(internal_client):
     mid = machine["id"]
     internal_client.post(
         f"/api/v1/machines/{mid}/telemetry",
-        json={"machine_id": mid, "temperature": 96.0, "vibration": 0.95,
-              "fault_code": "E1", "line_status": "down"},
+        json={
+            "machine_id": mid,
+            "temperature": 96.0,
+            "vibration": 0.95,
+            "fault_code": "E1",
+            "line_status": "down",
+        },
     )
     alerts = internal_client.get("/api/v1/alerts/?status=active").json()["data"]
     assert alerts
@@ -82,20 +87,27 @@ def test_alert_acknowledge_and_resolve(internal_client):
 
 
 def test_alert_actions_404(internal_client):
-    assert internal_client.post(
-        f"/api/v1/alerts/{uuid.uuid4()}/acknowledge"
-    ).status_code == 404
+    assert (
+        internal_client.post(f"/api/v1/alerts/{uuid.uuid4()}/acknowledge").status_code
+        == 404
+    )
 
 
 def test_work_order_full_lifecycle(internal_client):
     machine = _first_machine(internal_client)
     mid = machine["id"]
     # Manual create
-    r = internal_client.post("/api/v1/work-orders/", json={
-        "machine_id": mid, "fault_type": "bearing", "severity": "high",
-        "recommended_task": "Replace bearing", "required_skill": "mechanical",
-        "priority": 2,
-    })
+    r = internal_client.post(
+        "/api/v1/work-orders/",
+        json={
+            "machine_id": mid,
+            "fault_type": "bearing",
+            "severity": "high",
+            "recommended_task": "Replace bearing",
+            "required_skill": "mechanical",
+            "priority": 2,
+        },
+    )
     assert r.status_code == 200
     wo = r.json()
     assert wo["status"] == "draft" and wo["fiix_sync_state"] == "not_synced"
@@ -114,19 +126,25 @@ def test_work_order_full_lifecycle(internal_client):
 
 def test_work_order_reject(internal_client):
     machine = _first_machine(internal_client)
-    r = internal_client.post("/api/v1/work-orders/", json={
-        "machine_id": machine["id"], "fault_type": "x", "severity": "low",
-        "recommended_task": "t",
-    })
+    r = internal_client.post(
+        "/api/v1/work-orders/",
+        json={
+            "machine_id": machine["id"],
+            "fault_type": "x",
+            "severity": "low",
+            "recommended_task": "t",
+        },
+    )
     wid = r.json()["id"]
     rej = internal_client.post(f"/api/v1/work-orders/{wid}/approve?approve=false")
     assert rej.json()["status"] == "rejected"
 
 
 def test_work_order_approve_404(internal_client):
-    assert internal_client.post(
-        f"/api/v1/work-orders/{uuid.uuid4()}/approve"
-    ).status_code == 404
+    assert (
+        internal_client.post(f"/api/v1/work-orders/{uuid.uuid4()}/approve").status_code
+        == 404
+    )
 
 
 def test_machine_ask_returns_answer(internal_client):

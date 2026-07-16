@@ -96,7 +96,8 @@ function SopsPage() {
   const startEdit = () => {
     if (!detail) return
     const sections: Draft["sections"] = {}
-    for (const s of detail.sections) sections[s.anchor] = { title: s.title, body: s.body }
+    for (const s of detail.sections)
+      sections[s.anchor] = { title: s.title, body: s.body }
     setDraft({ title: detail.title, summary: detail.summary, sections })
     setEditing(true)
   }
@@ -107,11 +108,27 @@ function SopsPage() {
 
   const setBody = (anchor: string, body: string) =>
     setDraft((d) =>
-      d ? { ...d, sections: { ...d.sections, [anchor]: { ...d.sections[anchor], body } } } : d,
+      d
+        ? {
+            ...d,
+            sections: {
+              ...d.sections,
+              [anchor]: { ...d.sections[anchor], body },
+            },
+          }
+        : d,
     )
   const setTitle = (anchor: string, title: string) =>
     setDraft((d) =>
-      d ? { ...d, sections: { ...d.sections, [anchor]: { ...d.sections[anchor], title } } } : d,
+      d
+        ? {
+            ...d,
+            sections: {
+              ...d.sections,
+              [anchor]: { ...d.sections[anchor], title },
+            },
+          }
+        : d,
     )
 
   // Markdown toolbar — operates on the currently-focused section textarea.
@@ -166,7 +183,15 @@ function SopsPage() {
           </span>
           <button
             type="button"
-            onClick={() => navigate({ search: { sop: undefined, section: undefined, machine: undefined } })}
+            onClick={() =>
+              navigate({
+                search: {
+                  sop: undefined,
+                  section: undefined,
+                  machine: undefined,
+                },
+              })
+            }
             className="ml-auto text-xs font-medium text-primary hover:underline"
           >
             Show all SOPs
@@ -183,7 +208,9 @@ function SopsPage() {
               type="button"
               onClick={() => {
                 cancelEdit()
-                navigate({ search: { sop: s.code, section: undefined, machine } })
+                navigate({
+                  search: { sop: s.code, section: undefined, machine },
+                })
               }}
               className={cn(
                 "w-full rounded-lg p-3 text-left transition-colors hover:bg-accent",
@@ -191,15 +218,22 @@ function SopsPage() {
               )}
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="font-mono text-xs text-muted-foreground">{s.code}</span>
+                <span className="font-mono text-xs text-muted-foreground">
+                  {s.code}
+                </span>
                 <Badge
                   variant="outline"
-                  className={cn("text-[10px] capitalize", CATEGORY_STYLE[s.category])}
+                  className={cn(
+                    "text-[10px] capitalize",
+                    CATEGORY_STYLE[s.category],
+                  )}
                 >
                   {s.category}
                 </Badge>
               </div>
-              <p className="mt-1 text-sm font-medium leading-tight">{s.title}</p>
+              <p className="mt-1 text-sm font-medium leading-tight">
+                {s.title}
+              </p>
             </button>
           ))}
           {!list && <Loading />}
@@ -229,7 +263,9 @@ function SopsPage() {
                             : "text-muted-foreground",
                         )}
                       >
-                        <span className="tabular-nums opacity-60">{i + 1}.</span>
+                        <span className="tabular-nums opacity-60">
+                          {i + 1}.
+                        </span>
                         <span>{sec.title}</span>
                       </button>
                     </li>
@@ -246,7 +282,10 @@ function SopsPage() {
                     </span>
                     <Badge
                       variant="outline"
-                      className={cn("capitalize", CATEGORY_STYLE[detail.category])}
+                      className={cn(
+                        "capitalize",
+                        CATEGORY_STYLE[detail.category],
+                      )}
                     >
                       {detail.category}
                     </Badge>
@@ -261,11 +300,20 @@ function SopsPage() {
                     <div className="ml-auto flex items-center gap-2">
                       {editing ? (
                         <>
-                          <Button size="sm" variant="outline" onClick={cancelEdit}>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={cancelEdit}
+                          >
                             <X size={14} /> Cancel
                           </Button>
-                          <Button size="sm" onClick={() => save.mutate()} disabled={save.isPending}>
-                            <Save size={14} /> {save.isPending ? "Saving…" : "Save"}
+                          <Button
+                            size="sm"
+                            onClick={() => save.mutate()}
+                            disabled={save.isPending}
+                          >
+                            <Save size={14} />{" "}
+                            {save.isPending ? "Saving…" : "Save"}
                           </Button>
                         </>
                       ) : (
@@ -280,19 +328,30 @@ function SopsPage() {
                     <div className="mt-3 space-y-2">
                       <Input
                         value={draft.title}
-                        onChange={(e) => setDraft((d) => (d ? { ...d, title: e.target.value } : d))}
+                        onChange={(e) =>
+                          setDraft((d) =>
+                            d ? { ...d, title: e.target.value } : d,
+                          )
+                        }
                         className="text-base font-semibold"
                       />
                       <textarea
                         value={draft.summary}
-                        onChange={(e) => setDraft((d) => (d ? { ...d, summary: e.target.value } : d))}
+                        onChange={(e) =>
+                          setDraft((d) =>
+                            d ? { ...d, summary: e.target.value } : d,
+                          )
+                        }
                         rows={2}
                         placeholder="Summary"
                         className="w-full resize-y rounded-md bg-muted/50 p-2 text-sm outline-none focus:ring-1 focus:ring-primary"
                       />
                       {/* WYSIWYG toolbar (acts on the focused chapter) */}
                       <div className="flex flex-wrap items-center gap-1 rounded-md bg-muted/40 p-1">
-                        <ToolBtn label="Heading" onClick={() => prefixLine("## ")}>
+                        <ToolBtn
+                          label="Heading"
+                          onClick={() => prefixLine("## ")}
+                        >
                           <Heading2 size={15} />
                         </ToolBtn>
                         <ToolBtn label="Bold" onClick={() => surround("**")}>
@@ -304,17 +363,25 @@ function SopsPage() {
                         <ToolBtn label="Code" onClick={() => surround("`")}>
                           <Code size={15} />
                         </ToolBtn>
-                        <ToolBtn label="Bulleted list" onClick={() => prefixLine("- ")}>
+                        <ToolBtn
+                          label="Bulleted list"
+                          onClick={() => prefixLine("- ")}
+                        >
                           <List size={15} />
                         </ToolBtn>
-                        <ToolBtn label="Numbered list" onClick={() => prefixLine("1. ")}>
+                        <ToolBtn
+                          label="Numbered list"
+                          onClick={() => prefixLine("1. ")}
+                        >
                           <ListOrdered size={15} />
                         </ToolBtn>
                       </div>
                     </div>
                   ) : (
                     <>
-                      <h2 className="mt-2 text-2xl font-semibold tracking-tight">{detail.title}</h2>
+                      <h2 className="mt-2 text-2xl font-semibold tracking-tight">
+                        {detail.title}
+                      </h2>
                       <p className="mt-1.5 max-w-2xl text-[0.95rem] leading-relaxed text-muted-foreground">
                         {detail.summary}
                       </p>
@@ -344,11 +411,21 @@ function SopsPage() {
                       />
                     </div>
                   ) : (
-                    // biome-ignore lint/a11y/useKeyWithClickEvents: chapter card selects on click
+                    // Card body holds a heading + block markdown, so a real
+                    // <button> would be invalid HTML — ARIA button instead.
+                    // biome-ignore lint/a11y/useSemanticElements: see above
                     <div
                       key={sec.id}
                       id={`sop-sec-${sec.anchor}`}
+                      role="button"
+                      tabIndex={0}
                       onClick={() => goSection(sec.anchor)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault()
+                          goSection(sec.anchor)
+                        }
+                      }}
                       className={cn(
                         "scroll-mt-24 cursor-pointer rounded-lg p-5 transition-colors",
                         sec.anchor === section
@@ -362,7 +439,10 @@ function SopsPage() {
                         </span>
                         {sec.title}
                       </h3>
-                      <Markdown content={sec.body} className="text-[0.95rem] leading-relaxed" />
+                      <Markdown
+                        content={sec.body}
+                        className="text-[0.95rem] leading-relaxed"
+                      />
                     </div>
                   ),
                 )}

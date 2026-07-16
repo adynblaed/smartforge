@@ -23,6 +23,9 @@ from app.main import app
 
 # Never start the in-process telemetry simulator during tests.
 settings.SIMULATOR_ENABLED = False
+# Rate limiting stays off by default so suites are never throttled;
+# test_rate_limiting.py re-enables it explicitly via monkeypatch.
+settings.RATE_LIMIT_ENABLED = False
 
 
 @pytest.fixture(name="engine")

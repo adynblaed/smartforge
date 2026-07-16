@@ -7,6 +7,7 @@ from datetime import timedelta
 
 from sqlmodel import Session, col, desc, select
 
+from app.core.config import settings
 from app.models import (
     Alert,
     AlertStatus,
@@ -18,7 +19,6 @@ from app.models import (
     WorkOrder,
     WorkOrderStatus,
 )
-from app.core.config import settings
 from app.models.base import get_datetime_utc
 
 # Thresholds for the rule engine (spec §1B) — env-overridable via settings.
@@ -66,7 +66,9 @@ def compute_health_score(
     )
 
 
-def _has_recent_active_alert(session: Session, machine_id: uuid.UUID, rule: str) -> bool:
+def _has_recent_active_alert(
+    session: Session, machine_id: uuid.UUID, rule: str
+) -> bool:
     stmt = select(Alert).where(
         Alert.machine_id == machine_id,
         Alert.rule == rule,
@@ -81,7 +83,9 @@ def evaluate_alerts(
     """Apply alert rules to fresh telemetry; create alerts (de-duplicated)."""
     new_alerts: list[Alert] = []
 
-    def maybe(rule: str, severity: Severity, message: str, action: str, window: str):
+    def maybe(
+        rule: str, severity: Severity, message: str, action: str, window: str
+    ) -> None:
         if _has_recent_active_alert(session, machine.id, rule):
             return
         alert = Alert(

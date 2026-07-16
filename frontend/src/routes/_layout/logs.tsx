@@ -5,8 +5,8 @@ import { useEffect, useRef, useState } from "react"
 
 import { cn } from "@/lib/utils"
 import { sf } from "@/smartforge/api"
-import { POLL } from "@/smartforge/constants"
 import { Loading, PageHeader } from "@/smartforge/components"
+import { POLL } from "@/smartforge/constants"
 
 export const Route = createFileRoute("/_layout/logs")({
   validateSearch: (search: Record<string, unknown>): { service?: string } => ({
@@ -43,7 +43,8 @@ function LogsPage() {
 
   const { data: logs } = useQuery({
     queryKey: ["logs", active],
-    queryFn: () => sf.get<{ service: string; data: LogLine[] }>(`/logs/${active}`),
+    queryFn: () =>
+      sf.get<{ service: string; data: LogLine[] }>(`/logs/${active}`),
     enabled: !!active,
     refetchInterval: POLL.medium,
   })
@@ -52,7 +53,7 @@ function LogsPage() {
   const endRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end" })
-  }, [logs])
+  }, [])
 
   return (
     <div className="flex flex-col gap-6">
@@ -73,7 +74,9 @@ function LogsPage() {
               onClick={() => setService(s)}
               className={cn(
                 "flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-accent",
-                s === active ? "bg-accent font-medium" : "text-muted-foreground",
+                s === active
+                  ? "bg-accent font-medium"
+                  : "text-muted-foreground",
               )}
             >
               <span
@@ -95,7 +98,9 @@ function LogsPage() {
               <span className="size-2.5 rounded-full bg-amber-500/70" />
               <span className="size-2.5 rounded-full bg-emerald-500/70" />
             </span>
-            <span className="ml-2">{active ? `${active} · journald` : "—"}</span>
+            <span className="ml-2">
+              {active ? `${active} · journald` : "—"}
+            </span>
           </div>
           <div className="h-[60vh] overflow-auto p-3 font-mono text-xs leading-relaxed">
             {logs?.data.map((l, i) => (
@@ -103,7 +108,12 @@ function LogsPage() {
                 <span className="shrink-0 text-zinc-400/70">
                   {l.ts.slice(11, 19)}
                 </span>
-                <span className={cn("w-12 shrink-0 font-semibold", LEVEL_STYLE[l.level])}>
+                <span
+                  className={cn(
+                    "w-12 shrink-0 font-semibold",
+                    LEVEL_STYLE[l.level],
+                  )}
+                >
                   {l.level}
                 </span>
                 <span className="text-zinc-100/90">{l.message}</span>

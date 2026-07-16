@@ -18,7 +18,12 @@ import {
   useFBX,
 } from "@react-three/drei"
 import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber"
-import { Bloom, EffectComposer, SMAA, Vignette } from "@react-three/postprocessing"
+import {
+  Bloom,
+  EffectComposer,
+  SMAA,
+  Vignette,
+} from "@react-three/postprocessing"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import {
@@ -34,21 +39,26 @@ import {
   Sparkles,
   X,
 } from "lucide-react"
-import { Suspense, useEffect, useMemo, useRef, useState } from "react"
 import type { ReactNode } from "react"
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 import { ErrorBoundary } from "react-error-boundary"
-import { Color, QuadraticBezierCurve3, Vector3 } from "three"
 import type { Group, Mesh, MeshStandardMaterial } from "three"
+import { Color, QuadraticBezierCurve3, Vector3 } from "three"
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js"
-
-import { Button } from "@/components/ui/button"
 import { useTheme } from "@/components/theme-provider"
+import { Button } from "@/components/ui/button"
 import { sf } from "@/smartforge/api"
-import { type ForgeFocus, useForgeAgent } from "@/smartforge/ForgeAgent"
+import { HEX, healthHex, PageHeader } from "@/smartforge/components"
 import { POLL } from "@/smartforge/constants"
-import { HEX, PageHeader, healthHex } from "@/smartforge/components"
+import { type ForgeFocus, useForgeAgent } from "@/smartforge/ForgeAgent"
 import { ProceduralModel, StationCore } from "@/smartforge/machineModels"
-import { Gauge, Heartbeat } from "@/smartforge/widgets"
 import type {
   InventoryItem,
   Machine,
@@ -57,6 +67,7 @@ import type {
   TelemetryEvent,
 } from "@/smartforge/types"
 import { useTelemetryStream } from "@/smartforge/useRealtime"
+import { Gauge, Heartbeat } from "@/smartforge/widgets"
 
 export const Route = createFileRoute("/_layout/factory-map")({
   validateSearch: (search: Record<string, unknown>): { machine?: string } => ({
@@ -104,10 +115,28 @@ interface ScenePalette {
   dark: boolean
 }
 const SCENE_THEME: Record<SceneKey, ScenePalette> = {
-  light: { bg: "#e8edf3", floor: "#dfe5ec", cell: "#c2cad6", section: "#7c93b8", dark: false },
-  dark: { bg: "#070a0f", floor: "#090c11", cell: "#1b2230", section: "#2563eb", dark: true },
+  light: {
+    bg: "#e8edf3",
+    floor: "#dfe5ec",
+    cell: "#c2cad6",
+    section: "#7c93b8",
+    dark: false,
+  },
+  dark: {
+    bg: "#070a0f",
+    floor: "#090c11",
+    cell: "#1b2230",
+    section: "#2563eb",
+    dark: true,
+  },
   // "Future" — a true-black stage with on-brand indigo grid accents.
-  future: { bg: "#04050a", floor: "#06070e", cell: "#1c1c33", section: "#6366f1", dark: true },
+  future: {
+    bg: "#04050a",
+    floor: "#06070e",
+    cell: "#1c1c33",
+    section: "#6366f1",
+    dark: true,
+  },
 }
 
 /**
@@ -150,7 +179,6 @@ function ImportedModel({ url, color }: { url: string; color: string }) {
   )
 }
 
-
 /* ------------------------------------------------------ live entity stats */
 
 type PanelKind = "machine" | "plc" | "server"
@@ -178,12 +206,22 @@ function hashUnit(id: string): number {
 function machineStats(m: LiveMachine): PanelStats {
   const running = m.liveStatus === "running"
   const base =
-    m.machine_type === "hydraulic_press" ? 11 : m.machine_type === "cnc_mill" ? 7.5 : 4.2
+    m.machine_type === "hydraulic_press"
+      ? 11
+      : m.machine_type === "cnc_mill"
+        ? 7.5
+        : 4.2
   const power = running ? base * (0.78 + (m.liveTemp ?? 55) / 220) : base * 0.18
   const tputMax =
-    m.machine_type === "robotic_arm" ? 720 : m.machine_type === "cnc_mill" ? 520 : 380
+    m.machine_type === "robotic_arm"
+      ? 720
+      : m.machine_type === "cnc_mill"
+        ? 520
+        : 380
   const throughput = Math.round(tputMax * (running ? m.liveHealth / 100 : 0.04))
-  const defects = Math.round(((100 - m.liveHealth) / 100) * 24 + hashUnit(m.id) * 5)
+  const defects = Math.round(
+    ((100 - m.liveHealth) / 100) * 24 + hashUnit(m.id) * 5,
+  )
   const energy = Math.round(power * 17)
   const bpm = running ? Math.round(58 + (100 - m.liveHealth) * 0.7) : 42
   return {
@@ -198,8 +236,14 @@ function machineStats(m: LiveMachine): PanelStats {
     energyMax: Math.round(base * 17 * 1.35),
     rows: [
       { label: "Health", value: `${Math.round(m.liveHealth)}` },
-      { label: "Temp", value: m.liveTemp != null ? `${m.liveTemp.toFixed(0)}°C` : "—" },
-      { label: "Vib", value: m.liveVibration != null ? m.liveVibration.toFixed(2) : "—" },
+      {
+        label: "Temp",
+        value: m.liveTemp != null ? `${m.liveTemp.toFixed(0)}°C` : "—",
+      },
+      {
+        label: "Vib",
+        value: m.liveVibration != null ? m.liveVibration.toFixed(2) : "—",
+      },
     ],
   }
 }
@@ -259,11 +303,18 @@ function plcStats(machines: LiveMachine[]): PanelStats {
 
 function PowerSpark({ value, color }: { value: number; color: string }) {
   const [series, setSeries] = useState<number[]>(() =>
-    Array.from({ length: 26 }, (_, i) => value * (0.85 + 0.25 * Math.sin(i / 2.2))),
+    Array.from(
+      { length: 26 },
+      (_, i) => value * (0.85 + 0.25 * Math.sin(i / 2.2)),
+    ),
   )
   useEffect(() => {
     const t = setInterval(
-      () => setSeries((s) => [...s.slice(1), Math.max(0.1, value * (0.88 + Math.random() * 0.22))]),
+      () =>
+        setSeries((s) => [
+          ...s.slice(1),
+          Math.max(0.1, value * (0.88 + Math.random() * 0.22)),
+        ]),
       1600,
     )
     return () => clearInterval(t)
@@ -272,12 +323,27 @@ function PowerSpark({ value, color }: { value: number; color: string }) {
   const min = Math.min(...series)
   const span = Math.max(0.1, max - min)
   const pts = series
-    .map((v, i) => `${(i / (series.length - 1)) * 100},${28 - ((v - min) / span) * 22 - 3}`)
+    .map(
+      (v, i) =>
+        `${(i / (series.length - 1)) * 100},${28 - ((v - min) / span) * 22 - 3}`,
+    )
     .join(" ")
   return (
-    <svg viewBox="0 0 100 28" preserveAspectRatio="none" className="mt-1 h-8 w-full">
+    // decorative — the panel stats beside it carry the live values
+    <svg
+      viewBox="0 0 100 28"
+      preserveAspectRatio="none"
+      aria-hidden="true"
+      className="mt-1 h-8 w-full"
+    >
       <polygon points={`0,28 ${pts} 100,28`} fill={color} opacity={0.15} />
-      <polyline points={pts} fill="none" stroke={color} strokeWidth={1.4} vectorEffect="non-scaling-stroke" />
+      <polyline
+        points={pts}
+        fill="none"
+        stroke={color}
+        strokeWidth={1.4}
+        vectorEffect="non-scaling-stroke"
+      />
     </svg>
   )
 }
@@ -304,7 +370,11 @@ function EntityPanel({
   onClose: () => void
 }) {
   const color =
-    stats.status === "running" ? HEX.success : stats.status === "idle" ? HEX.warning : HEX.danger
+    stats.status === "running"
+      ? HEX.success
+      : stats.status === "idle"
+        ? HEX.warning
+        : HEX.danger
   return (
     <div className="w-64 -translate-x-1/2 rounded-2xl border border-border bg-background/95 p-3 shadow-2xl backdrop-blur-md">
       <div className="flex items-start justify-between">
@@ -334,15 +404,32 @@ function EntityPanel({
       <div className="mt-2 rounded-md border bg-muted/30 p-2">
         <div className="flex items-center justify-between text-[10px] text-muted-foreground">
           <span>Active power draw</span>
-          <span className="font-semibold text-foreground tabular-nums">{stats.power.toFixed(1)} kW</span>
+          <span className="font-semibold text-foreground tabular-nums">
+            {stats.power.toFixed(1)} kW
+          </span>
         </div>
         <PowerSpark value={stats.power} color={color} />
       </div>
 
       <div className="mt-2 grid grid-cols-3 gap-1.5">
-        <Gauge value={stats.throughput} max={stats.throughputMax} label="Units/day" color={HEX.info} />
-        <Gauge value={stats.defects} max={stats.defectsMax} label="Defects/day" color={HEX.danger} />
-        <Gauge value={stats.energy} max={stats.energyMax} label="kWh/day" color={HEX.warning} />
+        <Gauge
+          value={stats.throughput}
+          max={stats.throughputMax}
+          label="Units/day"
+          color={HEX.info}
+        />
+        <Gauge
+          value={stats.defects}
+          max={stats.defectsMax}
+          label="Defects/day"
+          color={HEX.danger}
+        />
+        <Gauge
+          value={stats.energy}
+          max={stats.energyMax}
+          label="kWh/day"
+          color={HEX.warning}
+        />
       </div>
 
       <div className="mt-2 grid grid-cols-3 gap-1 text-center text-[10px]">
@@ -355,7 +442,9 @@ function EntityPanel({
       </div>
 
       {fault && (
-        <p className="mt-2 rounded-md bg-danger/10 px-2 py-1 text-[11px] text-danger">Fault: {fault}</p>
+        <p className="mt-2 rounded-md bg-danger/10 px-2 py-1 text-[11px] text-danger">
+          Fault: {fault}
+        </p>
       )}
 
       {kind === "machine" && (
@@ -366,7 +455,12 @@ function EntityPanel({
           <Button asChild size="sm" className="h-7 flex-1 text-[11px]">
             <a href="/machines">Console</a>
           </Button>
-          <Button asChild size="sm" variant="outline" className="h-7 flex-1 text-[11px]">
+          <Button
+            asChild
+            size="sm"
+            variant="outline"
+            className="h-7 flex-1 text-[11px]"
+          >
             <a href="/ask-ai">Ask AI</a>
           </Button>
         </div>
@@ -397,11 +491,15 @@ function MachineStation({
   const modelUrl = MODEL_REGISTRY[machine.machine_type]
 
   // Never leave the document cursor stuck as a pointer if this unmounts.
-  useEffect(() => () => {
-    document.body.style.cursor = "auto"
-  }, [])
+  useEffect(
+    () => () => {
+      document.body.style.cursor = "auto"
+    },
+    [],
+  )
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: react-three-fiber scene node, not a DOM element
     <group
       position={[machine.pos_x, 0, 0]}
       onPointerOver={(e) => {
@@ -418,10 +516,26 @@ function MachineStation({
         onToggle()
       }}
     >
-      <StationCore type={machine.machine_type} running={running} color={color} active={active}>
+      <StationCore
+        type={machine.machine_type}
+        running={running}
+        color={color}
+        active={active}
+      >
         {modelUrl ? (
-          <ErrorBoundary fallback={<ProceduralModel type={machine.machine_type} running={running} />}>
-            <Suspense fallback={<ProceduralModel type={machine.machine_type} running={running} />}>
+          <ErrorBoundary
+            fallback={
+              <ProceduralModel type={machine.machine_type} running={running} />
+            }
+          >
+            <Suspense
+              fallback={
+                <ProceduralModel
+                  type={machine.machine_type}
+                  running={running}
+                />
+              }
+            >
               <ImportedModel url={modelUrl} color={CHROME} />
             </Suspense>
           </ErrorBoundary>
@@ -432,13 +546,23 @@ function MachineStation({
       {highlighted && !open && (
         <mesh position={[0, 0.16, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <ringGeometry args={[1.7, 1.95, 56]} />
-          <meshBasicMaterial color={ACCENT} transparent opacity={0.9} toneMapped={false} />
+          <meshBasicMaterial
+            color={ACCENT}
+            transparent
+            opacity={0.9}
+            toneMapped={false}
+          />
         </mesh>
       )}
 
       {/* hover / highlight label */}
       {(hovered || highlighted) && !open && (
-        <Html position={[0, 3, 0]} center distanceFactor={16} zIndexRange={[10, 0]}>
+        <Html
+          position={[0, 3, 0]}
+          center
+          distanceFactor={16}
+          zIndexRange={[10, 0]}
+        >
           <div className="pointer-events-none whitespace-nowrap rounded-md border border-border bg-black/80 px-2 py-1 text-[11px] text-white shadow-xl backdrop-blur">
             <span className="font-semibold">{machine.code}</span> ·{" "}
             <span style={{ color }}>{Math.round(machine.liveHealth)}</span>
@@ -448,7 +572,13 @@ function MachineStation({
 
       {/* pinnable live panel floats above the machine in 3D space */}
       {open && (
-        <Html position={[0, 3.6, 0]} center distanceFactor={10} zIndexRange={[30, 0]} occlude={false}>
+        <Html
+          position={[0, 3.6, 0]}
+          center
+          distanceFactor={10}
+          zIndexRange={[30, 0]}
+          occlude={false}
+        >
           <EntityPanel
             kind="machine"
             code={machine.code}
@@ -491,11 +621,15 @@ function LineFixture({
   const [hovered, setHovered] = useState(false)
   const active = hovered || open
 
-  useEffect(() => () => {
-    document.body.style.cursor = "auto"
-  }, [])
+  useEffect(
+    () => () => {
+      document.body.style.cursor = "auto"
+    },
+    [],
+  )
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: react-three-fiber scene node, not a DOM element
     <group
       position={position}
       onPointerOver={(e) => {
@@ -517,7 +651,12 @@ function LineFixture({
       </StationCore>
 
       {hovered && !open && (
-        <Html position={[0, 3, 0]} center distanceFactor={16} zIndexRange={[10, 0]}>
+        <Html
+          position={[0, 3, 0]}
+          center
+          distanceFactor={16}
+          zIndexRange={[10, 0]}
+        >
           <div className="pointer-events-none whitespace-nowrap rounded-md border border-border bg-black/80 px-2 py-1 text-[11px] text-white shadow-xl backdrop-blur">
             <span className="font-semibold">{code}</span>
           </div>
@@ -525,8 +664,20 @@ function LineFixture({
       )}
 
       {open && (
-        <Html position={[0, 3.6, 0]} center distanceFactor={10} zIndexRange={[30, 0]} occlude={false}>
-          <EntityPanel kind={kind} code={code} name={name} stats={stats} onClose={onClose} />
+        <Html
+          position={[0, 3.6, 0]}
+          center
+          distanceFactor={10}
+          zIndexRange={[30, 0]}
+          occlude={false}
+        >
+          <EntityPanel
+            kind={kind}
+            code={code}
+            name={name}
+            stats={stats}
+            onClose={onClose}
+          />
         </Html>
       )}
     </group>
@@ -536,7 +687,14 @@ function LineFixture({
 function ServerRackModel() {
   return (
     <group>
-      <RoundedBox args={[1.4, 2.2, 1.1]} radius={0.05} smoothness={3} position={[0, 1.1, 0]} castShadow receiveShadow>
+      <RoundedBox
+        args={[1.4, 2.2, 1.1]}
+        radius={0.05}
+        smoothness={3}
+        position={[0, 1.1, 0]}
+        castShadow
+        receiveShadow
+      >
         <meshStandardMaterial color="#14171f" metalness={0.7} roughness={0.4} />
         <Edges threshold={15} color="#2a2f3a" />
       </RoundedBox>
@@ -544,7 +702,11 @@ function ServerRackModel() {
         <group key={i} position={[0, 0.45 + i * 0.25, 0.57]}>
           <mesh>
             <boxGeometry args={[1.2, 0.18, 0.04]} />
-            <meshStandardMaterial color="#0d0f13" metalness={0.4} roughness={0.6} />
+            <meshStandardMaterial
+              color="#0d0f13"
+              metalness={0.4}
+              roughness={0.6}
+            />
           </mesh>
           {[-0.45, -0.3].map((x) => (
             <mesh key={x} position={[x, 0, 0.03]}>
@@ -566,31 +728,60 @@ function ServerRackModel() {
 function PlcCabinetModel() {
   return (
     <group>
-      <RoundedBox args={[1.5, 2, 1]} radius={0.06} smoothness={3} position={[0, 1, 0]} castShadow receiveShadow>
-        <meshStandardMaterial color="#1f2733" metalness={0.6} roughness={0.45} />
+      <RoundedBox
+        args={[1.5, 2, 1]}
+        radius={0.06}
+        smoothness={3}
+        position={[0, 1, 0]}
+        castShadow
+        receiveShadow
+      >
+        <meshStandardMaterial
+          color="#1f2733"
+          metalness={0.6}
+          roughness={0.45}
+        />
         <Edges threshold={15} color="#2a3340" />
       </RoundedBox>
       {/* HMI touch screen */}
       <mesh position={[0, 1.35, 0.51]}>
         <boxGeometry args={[0.8, 0.55, 0.02]} />
-        <meshStandardMaterial color="#0a1622" emissive={ACCENT} emissiveIntensity={1.5} toneMapped={false} />
+        <meshStandardMaterial
+          color="#0a1622"
+          emissive={ACCENT}
+          emissiveIntensity={1.5}
+          toneMapped={false}
+        />
       </mesh>
       {/* stacked indicator lights */}
       {(["#22c55e", "#f59e0b", "#ef4444"] as const).map((c, i) => (
         <mesh key={c} position={[0.55, 0.55 + i * 0.18, 0.51]}>
           <sphereGeometry args={[0.05, 12, 12]} />
-          <meshStandardMaterial color={c} emissive={c} emissiveIntensity={2.5} toneMapped={false} />
+          <meshStandardMaterial
+            color={c}
+            emissive={c}
+            emissiveIntensity={2.5}
+            toneMapped={false}
+          />
         </mesh>
       ))}
       {/* recessed vent panel with a few chunky louvers (avoids fine-grate moiré) */}
       <mesh position={[-0.45, 0.6, 0.5]}>
         <boxGeometry args={[0.62, 0.52, 0.04]} />
-        <meshStandardMaterial color="#0b0d11" metalness={0.3} roughness={0.75} />
+        <meshStandardMaterial
+          color="#0b0d11"
+          metalness={0.3}
+          roughness={0.75}
+        />
       </mesh>
       {[0.74, 0.6, 0.46].map((y) => (
         <mesh key={y} position={[-0.45, y, 0.54]}>
           <boxGeometry args={[0.56, 0.07, 0.03]} />
-          <meshStandardMaterial color="#3a4150" metalness={0.6} roughness={0.4} />
+          <meshStandardMaterial
+            color="#3a4150"
+            metalness={0.6}
+            roughness={0.4}
+          />
         </mesh>
       ))}
     </group>
@@ -602,16 +793,36 @@ function PlcCabinetModel() {
 function Conveyor() {
   return (
     <group>
-      <RoundedBox args={[26, 0.36, 1.15]} radius={0.05} smoothness={3} position={[0, 0.2, 0]} castShadow receiveShadow>
-        <meshStandardMaterial color="#21252d" metalness={0.7} roughness={0.45} />
+      <RoundedBox
+        args={[26, 0.36, 1.15]}
+        radius={0.05}
+        smoothness={3}
+        position={[0, 0.2, 0]}
+        castShadow
+        receiveShadow
+      >
+        <meshStandardMaterial
+          color="#21252d"
+          metalness={0.7}
+          roughness={0.45}
+        />
       </RoundedBox>
       <mesh position={[0, 0.4, 0]}>
         <boxGeometry args={[26, 0.02, 0.92]} />
-        <meshStandardMaterial color="#0d0f13" metalness={0.2} roughness={0.85} />
+        <meshStandardMaterial
+          color="#0d0f13"
+          metalness={0.2}
+          roughness={0.85}
+        />
       </mesh>
       <mesh position={[0, 0.42, 0]}>
         <boxGeometry args={[26, 0.012, 0.07]} />
-        <meshStandardMaterial color={ACCENT} emissive={ACCENT} emissiveIntensity={2.6} toneMapped={false} />
+        <meshStandardMaterial
+          color={ACCENT}
+          emissive={ACCENT}
+          emissiveIntensity={2.6}
+          toneMapped={false}
+        />
       </mesh>
     </group>
   )
@@ -624,7 +835,11 @@ function Building() {
   return (
     <group>
       {/* reflective interior floor (premium) */}
-      <mesh position={[0, 0.02, BLD.cz]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+      <mesh
+        position={[0, 0.02, BLD.cz]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        receiveShadow
+      >
         <planeGeometry args={[BLD.w - 0.6, BLD.d - 0.6]} />
         <MeshReflectorMaterial
           resolution={256}
@@ -641,13 +856,32 @@ function Building() {
       </mesh>
 
       {/* back wall */}
-      <RoundedBox args={[BLD.w, BLD.h, 0.3]} radius={0.05} smoothness={2} position={[0, BLD.h / 2, BLD.backZ]} castShadow receiveShadow>
+      <RoundedBox
+        args={[BLD.w, BLD.h, 0.3]}
+        radius={0.05}
+        smoothness={2}
+        position={[0, BLD.h / 2, BLD.backZ]}
+        castShadow
+        receiveShadow
+      >
         <meshStandardMaterial color="#1a1e26" metalness={0.4} roughness={0.6} />
       </RoundedBox>
       {/* side walls */}
       {[-BLD.side, BLD.side].map((x) => (
-        <RoundedBox key={x} args={[0.3, BLD.h, BLD.d]} radius={0.05} smoothness={2} position={[x, BLD.h / 2, BLD.cz]} castShadow receiveShadow>
-          <meshStandardMaterial color="#1a1e26" metalness={0.4} roughness={0.6} />
+        <RoundedBox
+          key={x}
+          args={[0.3, BLD.h, BLD.d]}
+          radius={0.05}
+          smoothness={2}
+          position={[x, BLD.h / 2, BLD.cz]}
+          castShadow
+          receiveShadow
+        >
+          <meshStandardMaterial
+            color="#1a1e26"
+            metalness={0.4}
+            roughness={0.6}
+          />
         </RoundedBox>
       ))}
 
@@ -655,23 +889,42 @@ function Building() {
       {Array.from({ length: 15 }, (_, i) => -21 + i * 3).map((x) => (
         <mesh key={x} position={[x, BLD.h, BLD.cz]} castShadow>
           <boxGeometry args={[0.24, 0.24, BLD.d]} />
-          <meshStandardMaterial color={STEEL} metalness={0.8} roughness={0.35} />
+          <meshStandardMaterial
+            color={STEEL}
+            metalness={0.8}
+            roughness={0.35}
+          />
         </mesh>
       ))}
 
       {/* glass front */}
       <mesh position={[0, BLD.h / 2, BLD.frontZ]}>
         <boxGeometry args={[BLD.w, BLD.h, 0.06]} />
-        <meshStandardMaterial color={ACCENT} transparent opacity={0.05} metalness={0.1} roughness={0.05} />
+        <meshStandardMaterial
+          color={ACCENT}
+          transparent
+          opacity={0.05}
+          metalness={0.1}
+          roughness={0.05}
+        />
         <Edges threshold={15} color="#2b3340" />
       </mesh>
 
       {/* sign */}
       <mesh position={[0, BLD.h - 0.7, BLD.frontZ]}>
         <boxGeometry args={[14, 0.18, 0.05]} />
-        <meshStandardMaterial color={ACCENT} emissive={ACCENT} emissiveIntensity={2.6} toneMapped={false} />
+        <meshStandardMaterial
+          color={ACCENT}
+          emissive={ACCENT}
+          emissiveIntensity={2.6}
+          toneMapped={false}
+        />
       </mesh>
-      <Html position={[0, BLD.h - 0.7, BLD.frontZ + 0.1]} center distanceFactor={34}>
+      <Html
+        position={[0, BLD.h - 0.7, BLD.frontZ + 0.1]}
+        center
+        distanceFactor={34}
+      >
         <div className="pointer-events-none select-none whitespace-nowrap text-sm font-semibold tracking-[0.35em] text-sky-300">
           SMARTFORGE
         </div>
@@ -684,7 +937,13 @@ function Building() {
 
 const PALLET_COLORS = ["#b08968", "#cbd5e1", "#3b82f6", "#e2e8f0", "#94a3b8"]
 
-function RackUnit({ width = 7, levels = 3 }: { width?: number; levels?: number }) {
+function RackUnit({
+  width = 7,
+  levels = 3,
+}: {
+  width?: number
+  levels?: number
+}) {
   const H = 5.4
   const D = 1.4
   const Upright = ({ x, z }: { x: number; z: number }) => (
@@ -707,12 +966,20 @@ function RackUnit({ width = 7, levels = 3 }: { width?: number; levels?: number }
             {[-D / 2, D / 2].map((z) => (
               <mesh key={z} position={[0, 0, z]} castShadow>
                 <boxGeometry args={[width, 0.12, 0.12]} />
-                <meshStandardMaterial color="#ea7a09" metalness={0.5} roughness={0.5} />
+                <meshStandardMaterial
+                  color="#ea7a09"
+                  metalness={0.5}
+                  roughness={0.5}
+                />
               </mesh>
             ))}
             <mesh position={[0, -0.04, 0]} receiveShadow>
               <boxGeometry args={[width, 0.05, D]} />
-              <meshStandardMaterial color="#2b303a" metalness={0.3} roughness={0.7} />
+              <meshStandardMaterial
+                color="#2b303a"
+                metalness={0.3}
+                roughness={0.7}
+              />
             </mesh>
             {Array.from({ length: palletsPerLevel }, (_, p) => {
               const px = -width / 2 + 1.2 + p * 2.3
@@ -743,10 +1010,22 @@ function RackUnit({ width = 7, levels = 3 }: { width?: number; levels?: number }
 function PalletStack({ x, z }: { x: number; z: number }) {
   return (
     <group position={[x, 0, z]}>
-      <RoundedBox args={[1.5, 0.95, 1.1]} radius={0.04} smoothness={2} position={[0, 0.48, 0]} castShadow>
+      <RoundedBox
+        args={[1.5, 0.95, 1.1]}
+        radius={0.04}
+        smoothness={2}
+        position={[0, 0.48, 0]}
+        castShadow
+      >
         <meshStandardMaterial color="#b08968" roughness={0.8} />
       </RoundedBox>
-      <RoundedBox args={[1.35, 0.85, 1]} radius={0.04} smoothness={2} position={[0, 1.35, 0]} castShadow>
+      <RoundedBox
+        args={[1.35, 0.85, 1]}
+        radius={0.04}
+        smoothness={2}
+        position={[0, 1.35, 0]}
+        castShadow
+      >
         <meshStandardMaterial color="#cbd5e1" roughness={0.7} />
         <Edges threshold={15} color="#94a3b8" />
       </RoundedBox>
@@ -758,7 +1037,13 @@ function PalletStack({ x, z }: { x: number; z: number }) {
 function ForkliftModel({ color = "#eab308" }: { color?: string }) {
   return (
     <group>
-      <RoundedBox args={[1.5, 1, 2.1]} radius={0.12} smoothness={3} position={[0, 0.75, 0]} castShadow>
+      <RoundedBox
+        args={[1.5, 1, 2.1]}
+        radius={0.12}
+        smoothness={3}
+        position={[0, 0.75, 0]}
+        castShadow
+      >
         <meshStandardMaterial color={color} metalness={0.5} roughness={0.4} />
       </RoundedBox>
       {/* operator cage roof + posts */}
@@ -785,13 +1070,22 @@ function ForkliftModel({ color = "#eab308" }: { color?: string }) {
       {[-0.35, 0.35].map((x) => (
         <mesh key={x} position={[x, 0.2, 1.7]} castShadow>
           <boxGeometry args={[0.16, 0.1, 1.1]} />
-          <meshStandardMaterial color={CHROME} metalness={0.9} roughness={0.3} />
+          <meshStandardMaterial
+            color={CHROME}
+            metalness={0.9}
+            roughness={0.3}
+          />
         </mesh>
       ))}
       {/* amber warning beacon */}
       <mesh position={[0, 1.85, -0.4]}>
         <sphereGeometry args={[0.08, 12, 12]} />
-        <meshStandardMaterial color="#f59e0b" emissive="#f59e0b" emissiveIntensity={2.5} toneMapped={false} />
+        <meshStandardMaterial
+          color="#f59e0b"
+          emissive="#f59e0b"
+          emissiveIntensity={2.5}
+          toneMapped={false}
+        />
       </mesh>
     </group>
   )
@@ -803,10 +1097,20 @@ function GridPad({ x, z, label }: { x: number; z: number; label: string }) {
     <group position={[x, 0, z]}>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.05, 0]}>
         <planeGeometry args={[2.4, 2.4]} />
-        <meshBasicMaterial color={ACCENT} transparent opacity={0.12} toneMapped={false} />
+        <meshBasicMaterial
+          color={ACCENT}
+          transparent
+          opacity={0.12}
+          toneMapped={false}
+        />
         <Edges threshold={15} color={ACCENT} />
       </mesh>
-      <Html position={[0, 0.5, 0]} center distanceFactor={26} zIndexRange={[8, 0]}>
+      <Html
+        position={[0, 0.5, 0]}
+        center
+        distanceFactor={26}
+        zIndexRange={[8, 0]}
+      >
         <div className="pointer-events-none select-none whitespace-nowrap rounded bg-black/55 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-sky-200 backdrop-blur">
           {label}
         </div>
@@ -826,10 +1130,14 @@ function ManifestPallet({
   scale?: number
 }) {
   const [hovered, setHovered] = useState(false)
-  useEffect(() => () => {
-    document.body.style.cursor = "auto"
-  }, [])
+  useEffect(
+    () => () => {
+      document.body.style.cursor = "auto"
+    },
+    [],
+  )
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: react-three-fiber scene node, not a DOM element
     <group
       scale={scale}
       onClick={(e) => {
@@ -846,20 +1154,40 @@ function ManifestPallet({
         document.body.style.cursor = "auto"
       }}
     >
-      <RoundedBox args={[1.1, 0.18, 1.0]} radius={0.03} smoothness={2} position={[0, 0.09, 0]} castShadow>
+      <RoundedBox
+        args={[1.1, 0.18, 1.0]}
+        radius={0.03}
+        smoothness={2}
+        position={[0, 0.09, 0]}
+        castShadow
+      >
         <meshStandardMaterial color="#b08968" roughness={0.85} />
       </RoundedBox>
-      <RoundedBox args={[0.9, 0.62, 0.8]} radius={0.04} smoothness={2} position={[0, 0.5, 0]} castShadow>
+      <RoundedBox
+        args={[0.9, 0.62, 0.8]}
+        radius={0.04}
+        smoothness={2}
+        position={[0, 0.5, 0]}
+        castShadow
+      >
         <meshStandardMaterial
           color={hovered ? ACCENT : "#cbd5e1"}
           emissive={hovered ? ACCENT : "#000000"}
           emissiveIntensity={hovered ? 0.5 : 0}
           roughness={0.7}
         />
-        <Edges threshold={15} color={manifest.belowThreshold ? "#ef4444" : "#94a3b8"} />
+        <Edges
+          threshold={15}
+          color={manifest.belowThreshold ? "#ef4444" : "#94a3b8"}
+        />
       </RoundedBox>
       {hovered && (
-        <Html position={[0, 1.15, 0]} center distanceFactor={14} zIndexRange={[12, 0]}>
+        <Html
+          position={[0, 1.15, 0]}
+          center
+          distanceFactor={14}
+          zIndexRange={[12, 0]}
+        >
           <div className="pointer-events-none whitespace-nowrap rounded bg-black/80 px-1.5 py-0.5 text-[9px] font-semibold text-white backdrop-blur">
             {manifest.sku}
           </div>
@@ -879,7 +1207,13 @@ function ManifestRow({ label, value }: { label: string; value: string }) {
 }
 
 // Screen-space panel showing the clicked pallet's manifest (shipping/receiving).
-function ManifestPanel({ manifest, onClose }: { manifest: Manifest; onClose: () => void }) {
+function ManifestPanel({
+  manifest,
+  onClose,
+}: {
+  manifest: Manifest
+  onClose: () => void
+}) {
   const status =
     manifest.poStatus === "received"
       ? "Received"
@@ -889,7 +1223,11 @@ function ManifestPanel({ manifest, onClose }: { manifest: Manifest; onClose: () 
           ? "Staged"
           : "Inbound"
   const color =
-    status === "Received" ? HEX.success : status === "In transit" ? HEX.info : HEX.warning
+    status === "Received"
+      ? HEX.success
+      : status === "In transit"
+        ? HEX.info
+        : HEX.warning
   return (
     <div className="absolute bottom-4 left-4 z-20 w-[300px] rounded-xl border border-border bg-background/95 p-4 shadow-2xl backdrop-blur-md">
       <div className="flex items-start justify-between">
@@ -898,7 +1236,9 @@ function ManifestPanel({ manifest, onClose }: { manifest: Manifest; onClose: () 
             <Boxes size={15} />
           </span>
           <div>
-            <h2 className="text-sm font-semibold leading-tight">Shipment Manifest</h2>
+            <h2 className="text-sm font-semibold leading-tight">
+              Shipment Manifest
+            </h2>
             <p className="text-[11px] text-muted-foreground">{manifest.sku}</p>
           </div>
         </div>
@@ -913,10 +1253,16 @@ function ManifestPanel({ manifest, onClose }: { manifest: Manifest; onClose: () 
       </div>
       <div className="mt-3 space-y-1.5 text-[12px]">
         <ManifestRow label="Item" value={manifest.name} />
-        <ManifestRow label="Quantity" value={`${manifest.quantity.toLocaleString()} units`} />
+        <ManifestRow
+          label="Quantity"
+          value={`${manifest.quantity.toLocaleString()} units`}
+        />
         <ManifestRow label="Purchase order" value={manifest.poNumber ?? "—"} />
         {manifest.amount != null && (
-          <ManifestRow label="Value" value={`$${manifest.amount.toLocaleString()}`} />
+          <ManifestRow
+            label="Value"
+            value={`$${manifest.amount.toLocaleString()}`}
+          />
         )}
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground">Status</span>
@@ -934,7 +1280,12 @@ function ManifestPanel({ manifest, onClose }: { manifest: Manifest; onClose: () 
         )}
       </div>
       {manifest.poId && (
-        <Button asChild size="sm" variant="outline" className="mt-3 h-8 w-full text-xs">
+        <Button
+          asChild
+          size="sm"
+          variant="outline"
+          className="mt-3 h-8 w-full text-xs"
+        >
           <Link to="/order-tracker" search={{ po: manifest.poId }}>
             View in Order Tracker
           </Link>
@@ -978,14 +1329,28 @@ function MovingForklift({
   const boxMat = useRef<MeshStandardMaterial>(null)
 
   const segs = useMemo(() => {
-    const out: { ax: number; az: number; ux: number; uz: number; len: number; heading: number }[] = []
+    const out: {
+      ax: number
+      az: number
+      ux: number
+      uz: number
+      len: number
+      heading: number
+    }[] = []
     for (let i = 0; i < points.length - 1; i++) {
       const [ax, az] = points[i]
       const [bx, bz] = points[i + 1]
       const dx = bx - ax
       const dz = bz - az
       const len = Math.hypot(dx, dz) || 1
-      out.push({ ax, az, ux: dx / len, uz: dz / len, len, heading: Math.atan2(dx, dz) })
+      out.push({
+        ax,
+        az,
+        ux: dx / len,
+        uz: dz / len,
+        len,
+        heading: Math.atan2(dx, dz),
+      })
     }
     return out
   }, [points])
@@ -1040,8 +1405,10 @@ function MovingForklift({
     if (palletRef.current) palletRef.current.visible = loaded
     // Publish cargo position + state so ForgeAI can draw a tracking arc to it.
     // `drop` (green) marks a successful drop/transaction at the rack.
-    if (cargoRefs && index !== undefined) cargoRefs.current[index] = palletRef.current
-    if (carryingRefs && index !== undefined) carryingRefs.current[index] = loaded
+    if (cargoRefs && index !== undefined)
+      cargoRefs.current[index] = palletRef.current
+    if (carryingRefs && index !== undefined)
+      carryingRefs.current[index] = loaded
     if (dropRefs && index !== undefined) dropRefs.current[index] = atEnd
     if (followRef) followRef.current = g
     if (boxMat.current) {
@@ -1059,6 +1426,7 @@ function MovingForklift({
       <ForkliftModel color={color} />
       <group ref={palletRef} position={[0, 0.3, 1.55]}>
         {manifest && (
+          // biome-ignore lint/a11y/noStaticElementInteractions: react-three-fiber scene node, not a DOM element
           <group
             scale={0.85}
             onClick={(e) => {
@@ -1073,11 +1441,27 @@ function MovingForklift({
               document.body.style.cursor = "auto"
             }}
           >
-            <RoundedBox args={[1.1, 0.18, 1.0]} radius={0.03} smoothness={2} position={[0, 0.09, 0]} castShadow>
+            <RoundedBox
+              args={[1.1, 0.18, 1.0]}
+              radius={0.03}
+              smoothness={2}
+              position={[0, 0.09, 0]}
+              castShadow
+            >
               <meshStandardMaterial color="#b08968" roughness={0.85} />
             </RoundedBox>
-            <RoundedBox args={[0.9, 0.62, 0.8]} radius={0.04} smoothness={2} position={[0, 0.5, 0]} castShadow>
-              <meshStandardMaterial ref={boxMat} color="#3b82f6" roughness={0.6} />
+            <RoundedBox
+              args={[0.9, 0.62, 0.8]}
+              radius={0.04}
+              smoothness={2}
+              position={[0, 0.5, 0]}
+              castShadow
+            >
+              <meshStandardMaterial
+                ref={boxMat}
+                color="#3b82f6"
+                roughness={0.6}
+              />
               <Edges threshold={15} color="#0f172a" />
             </RoundedBox>
           </group>
@@ -1096,9 +1480,39 @@ const FORK_ROUTES: {
   phase: number
   drop: string
 }[] = [
-  { points: [[-12, -9], [-15, -9], [-15, 18]], color: "#eab308", speed: 2.8, phase: 0, drop: "Drop A" },
-  { points: [[-12, -7], [15, -7], [15, 17]], color: "#ea7a09", speed: 2.4, phase: 0.4, drop: "Drop B" },
-  { points: [[-12, -5], [-17, -5], [-17, 9]], color: "#eab308", speed: 2.6, phase: 0.75, drop: "Drop C" },
+  {
+    points: [
+      [-12, -9],
+      [-15, -9],
+      [-15, 18],
+    ],
+    color: "#eab308",
+    speed: 2.8,
+    phase: 0,
+    drop: "Drop A",
+  },
+  {
+    points: [
+      [-12, -7],
+      [15, -7],
+      [15, 17],
+    ],
+    color: "#ea7a09",
+    speed: 2.4,
+    phase: 0.4,
+    drop: "Drop B",
+  },
+  {
+    points: [
+      [-12, -5],
+      [-17, -5],
+      [-17, 9],
+    ],
+    color: "#eab308",
+    speed: 2.6,
+    phase: 0.75,
+    drop: "Drop C",
+  },
 ]
 
 const STAGE_SPOTS: [number, number][] = [
@@ -1150,7 +1564,11 @@ function ForkliftFleet({
             {/* delivered shipment dropped beside the rack */}
             {m && (
               <group position={[end[0], 0, end[1] + 1.6]}>
-                <ManifestPallet manifest={m} onSelect={onManifest} scale={0.8} />
+                <ManifestPallet
+                  manifest={m}
+                  onSelect={onManifest}
+                  scale={0.8}
+                />
               </group>
             )}
             <MovingForklift
@@ -1198,12 +1616,20 @@ function Warehouse() {
       ))}
       {/* side-wall racking (rotated to run along the depth) */}
       {[6, 13].map((z) => (
-        <group key={`r${z}`} position={[BLD.side - 1.6, 0, z]} rotation={[0, Math.PI / 2, 0]}>
+        <group
+          key={`r${z}`}
+          position={[BLD.side - 1.6, 0, z]}
+          rotation={[0, Math.PI / 2, 0]}
+        >
           <RackUnit width={6} levels={3} />
         </group>
       ))}
       {[13].map((z) => (
-        <group key={`l${z}`} position={[-BLD.side + 1.6, 0, z]} rotation={[0, Math.PI / 2, 0]}>
+        <group
+          key={`l${z}`}
+          position={[-BLD.side + 1.6, 0, z]}
+          rotation={[0, Math.PI / 2, 0]}
+        >
           <RackUnit width={6} levels={3} />
         </group>
       ))}
@@ -1219,22 +1645,56 @@ function Warehouse() {
 function ReceivingBay() {
   return (
     <group position={[-12, 0, BLD.frontZ - 0.4]}>
-      <RoundedBox args={[5, 0.8, 2.4]} radius={0.05} smoothness={3} position={[0, 0.4, 0.8]} castShadow receiveShadow>
+      <RoundedBox
+        args={[5, 0.8, 2.4]}
+        radius={0.05}
+        smoothness={3}
+        position={[0, 0.4, 0.8]}
+        castShadow
+        receiveShadow
+      >
         <meshStandardMaterial color="#20242c" metalness={0.4} roughness={0.6} />
       </RoundedBox>
       {[-1.3, 1.3].map((x) => (
-        <RoundedBox key={x} args={[2.2, 3.6, 0.14]} radius={0.04} smoothness={3} position={[x, 2.4, 0.1]} castShadow>
+        <RoundedBox
+          key={x}
+          args={[2.2, 3.6, 0.14]}
+          radius={0.04}
+          smoothness={3}
+          position={[x, 2.4, 0.1]}
+          castShadow
+        >
           <meshStandardMaterial color={WHITE} metalness={0.1} roughness={0.5} />
           <Edges threshold={15} color="#c7cdd7" />
         </RoundedBox>
       ))}
       {/* truck */}
       <group position={[0, 0, -3.2]}>
-        <RoundedBox args={[3, 2.2, 4.2]} radius={0.12} smoothness={4} position={[0, 1.4, 0]} castShadow>
-          <meshStandardMaterial color="#e6eaf0" metalness={0.3} roughness={0.4} />
+        <RoundedBox
+          args={[3, 2.2, 4.2]}
+          radius={0.12}
+          smoothness={4}
+          position={[0, 1.4, 0]}
+          castShadow
+        >
+          <meshStandardMaterial
+            color="#e6eaf0"
+            metalness={0.3}
+            roughness={0.4}
+          />
         </RoundedBox>
-        <RoundedBox args={[2.8, 1.6, 1.2]} radius={0.12} smoothness={4} position={[0, 1.1, -2.6]} castShadow>
-          <meshStandardMaterial color={ACCENT} metalness={0.4} roughness={0.35} />
+        <RoundedBox
+          args={[2.8, 1.6, 1.2]}
+          radius={0.12}
+          smoothness={4}
+          position={[0, 1.1, -2.6]}
+          castShadow
+        >
+          <meshStandardMaterial
+            color={ACCENT}
+            metalness={0.4}
+            roughness={0.35}
+          />
         </RoundedBox>
         {[
           [-1.2, -1.4],
@@ -1252,15 +1712,27 @@ function ReceivingBay() {
   )
 }
 
+const CAR_COLORS = [
+  "#3b82f6",
+  "#ef4444",
+  "#22c55e",
+  "#eab308",
+  "#a855f7",
+  "#e2e8f0",
+]
+
 function ParkingLot() {
-  const carColors = ["#3b82f6", "#ef4444", "#22c55e", "#eab308", "#a855f7", "#e2e8f0"]
   // Parking is set well back from the building, across a driveway apron.
   const cars = useMemo(() => {
     const out: { x: number; z: number; c: string }[] = []
     ;[-34, -29].forEach((z, r) => {
       for (let i = 0; i < 10; i++) {
         if ((i + r) % 3 === 0) continue
-        out.push({ x: -18 + i * 4, z, c: carColors[(i + r) % carColors.length] })
+        out.push({
+          x: -18 + i * 4,
+          z,
+          c: CAR_COLORS[(i + r) % CAR_COLORS.length],
+        })
       }
     })
     return out
@@ -1269,7 +1741,11 @@ function ParkingLot() {
   return (
     <group>
       {/* driveway apron between the building front and the lot */}
-      <mesh position={[0, 0.004, -16]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+      <mesh
+        position={[0, 0.004, -16]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        receiveShadow
+      >
         <planeGeometry args={[46, 12]} />
         <meshStandardMaterial color="#1b1e24" roughness={0.9} />
       </mesh>
@@ -1282,7 +1758,11 @@ function ParkingLot() {
         ))}
       </Instances>
       {/* asphalt lot */}
-      <mesh position={[0, 0.005, -30]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+      <mesh
+        position={[0, 0.005, -30]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        receiveShadow
+      >
         <planeGeometry args={[46, 18]} />
         <meshStandardMaterial color="#14161b" roughness={0.95} />
       </mesh>
@@ -1297,11 +1777,31 @@ function ParkingLot() {
       </Instances>
       {cars.map((c, i) => (
         <group key={i} position={[c.x, 0, c.z]}>
-          <RoundedBox args={[1.7, 0.6, 3.2]} radius={0.18} smoothness={3} position={[0, 0.45, 0]}>
-            <meshStandardMaterial color={c.c} metalness={0.7} roughness={0.3} envMapIntensity={1.2} />
+          <RoundedBox
+            args={[1.7, 0.6, 3.2]}
+            radius={0.18}
+            smoothness={3}
+            position={[0, 0.45, 0]}
+          >
+            <meshStandardMaterial
+              color={c.c}
+              metalness={0.7}
+              roughness={0.3}
+              envMapIntensity={1.2}
+            />
           </RoundedBox>
-          <RoundedBox args={[1.5, 0.55, 1.7]} radius={0.2} smoothness={3} position={[0, 0.95, -0.2]}>
-            <meshStandardMaterial color="#0e1116" metalness={0.6} roughness={0.15} envMapIntensity={1.5} />
+          <RoundedBox
+            args={[1.5, 0.55, 1.7]}
+            radius={0.2}
+            smoothness={3}
+            position={[0, 0.95, -0.2]}
+          >
+            <meshStandardMaterial
+              color="#0e1116"
+              metalness={0.6}
+              roughness={0.15}
+              envMapIntensity={1.5}
+            />
           </RoundedBox>
         </group>
       ))}
@@ -1334,7 +1834,12 @@ function DecorCubes() {
           position={c.p as [number, number, number]}
           receiveShadow
         >
-          <meshStandardMaterial color={WHITE} metalness={0.05} roughness={0.5} envMapIntensity={0.8} />
+          <meshStandardMaterial
+            color={WHITE}
+            metalness={0.05}
+            roughness={0.5}
+            envMapIntensity={0.8}
+          />
           <Edges threshold={15} color="#d4dae3" />
         </RoundedBox>
       ))}
@@ -1352,9 +1857,12 @@ function ForgeBeacon({ open, onOpen }: { open: boolean; onOpen: () => void }) {
   const [hovered, setHovered] = useState(false)
   const ref = useRef<Mesh>(null)
 
-  useEffect(() => () => {
-    document.body.style.cursor = "auto"
-  }, [])
+  useEffect(
+    () => () => {
+      document.body.style.cursor = "auto"
+    },
+    [],
+  )
 
   // Smoothly grow when the agent is open/hovered, and add a slow bob while
   // open (selected) so the cube reads as "active".
@@ -1372,6 +1880,7 @@ function ForgeBeacon({ open, onOpen }: { open: boolean; onOpen: () => void }) {
   return (
     <group position={[0, 7, 0]}>
       <Float speed={1.2} rotationIntensity={0.5} floatIntensity={0.4}>
+        {/* biome-ignore lint/a11y/noStaticElementInteractions: react-three-fiber scene node, not a DOM element */}
         <mesh
           ref={ref}
           onClick={(e) => {
@@ -1398,7 +1907,12 @@ function ForgeBeacon({ open, onOpen }: { open: boolean; onOpen: () => void }) {
             toneMapped={false}
           />
         </mesh>
-        <Html position={[0, 1, 0]} center distanceFactor={14} zIndexRange={[20, 0]}>
+        <Html
+          position={[0, 1, 0]}
+          center
+          distanceFactor={14}
+          zIndexRange={[20, 0]}
+        >
           <div className="pointer-events-none flex select-none items-center gap-1 whitespace-nowrap rounded-full border border-sky-400/40 bg-black/70 px-2.5 py-0.5 text-[10px] font-semibold tracking-wide text-sky-200 backdrop-blur">
             ForgeAI{!open && <span className="text-sky-400/70">· ask</span>}
           </div>
@@ -1420,13 +1934,40 @@ function ForgeLinks({ xs }: { xs: number[] }) {
   const minX = Math.min(...xs, 0)
   const maxX = Math.max(...xs, 0)
   const line = (pts: [number, number, number][], key: string) => (
-    <Line key={key} points={pts} color={ACCENT} lineWidth={2} transparent opacity={0.85} />
+    <Line
+      key={key}
+      points={pts}
+      color={ACCENT}
+      lineWidth={2}
+      transparent
+      opacity={0.85}
+    />
   )
   return (
     <group>
-      {line([[0, cubeY, 0], [0, busY, 0]], "trunk")}
-      {line([[minX, busY, 0], [maxX, busY, 0]], "bus")}
-      {xs.map((x, i) => line([[x, busY, 0], [x, topY, 0]], `b${i}`))}
+      {line(
+        [
+          [0, cubeY, 0],
+          [0, busY, 0],
+        ],
+        "trunk",
+      )}
+      {line(
+        [
+          [minX, busY, 0],
+          [maxX, busY, 0],
+        ],
+        "bus",
+      )}
+      {xs.map((x, i) =>
+        line(
+          [
+            [x, busY, 0],
+            [x, topY, 0],
+          ],
+          `b${i}`,
+        ),
+      )}
       {/* small nodes where branches meet the bus */}
       {xs.map((x, i) => (
         <mesh key={`n${i}`} position={[x, busY, 0]}>
@@ -1485,18 +2026,23 @@ function ForgeLogistics({
   dropRefs: React.MutableRefObject<boolean[]>
   staging: [number, number][]
 }) {
-  // biome-ignore lint/suspicious/noExplicitAny: drei Line2 ref (geometry.setPositions)
+  // drei Line2 ref (geometry.setPositions)
   const lineRefs = useRef<any[]>([])
   const tmp = useMemo(() => new Vector3(), [])
   const buf = useMemo(() => new Array(ARC_SEG * 3).fill(0), [])
   const placeholder = useMemo(
-    () => forgeArc(new Vector3(...CUBE_WORLD)).map((p) => [p.x, p.y, p.z] as [number, number, number]),
+    () =>
+      forgeArc(new Vector3(...CUBE_WORLD)).map(
+        (p) => [p.x, p.y, p.z] as [number, number, number],
+      ),
     [],
   )
   const stagingArcs = useMemo(
     () =>
       staging.map(([x, z]) =>
-        forgeArc(new Vector3(x, 0.8, z)).map((p) => [p.x, p.y, p.z] as [number, number, number]),
+        forgeArc(new Vector3(x, 0.8, z)).map(
+          (p) => [p.x, p.y, p.z] as [number, number, number],
+        ),
       ),
     [staging],
   )
@@ -1534,7 +2080,14 @@ function ForgeLogistics({
       </mesh>
       {/* static arcs to staged receiving shipments (in transit → blue) */}
       {stagingArcs.map((pts, i) => (
-        <Line key={`stage${i}`} points={pts} color={LOGI_BLUE} lineWidth={1.5} transparent opacity={0.85} />
+        <Line
+          key={`stage${i}`}
+          points={pts}
+          color={LOGI_BLUE}
+          lineWidth={1.5}
+          transparent
+          opacity={0.85}
+        />
       ))}
       {/* dynamic arcs to forklift-carried cargo (updated each frame). Default
           blue; lerps to green when that forklift's box turns green (drop). */}
@@ -1572,7 +2125,12 @@ function WasdPan({
   useEffect(() => {
     const typing = (t: EventTarget | null) => {
       const el = t as HTMLElement | null
-      return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)
+      return (
+        !!el &&
+        (el.tagName === "INPUT" ||
+          el.tagName === "TEXTAREA" ||
+          el.isContentEditable)
+      )
     }
     const down = (e: KeyboardEvent) => {
       const k = e.key.length === 1 ? e.key.toLowerCase() : ""
@@ -1644,13 +2202,27 @@ function HighwayCar({
   })
   const tail = dir === 1 ? "#f87171" : "#fde047"
   return (
-    <group ref={ref} position={[lane, y, z0]} rotation={[0, dir === 1 ? 0 : Math.PI, 0]}>
-      <RoundedBox args={[0.9, 0.5, 1.9]} radius={0.12} smoothness={2} position={[0, 0.3, 0]}>
+    <group
+      ref={ref}
+      position={[lane, y, z0]}
+      rotation={[0, dir === 1 ? 0 : Math.PI, 0]}
+    >
+      <RoundedBox
+        args={[0.9, 0.5, 1.9]}
+        radius={0.12}
+        smoothness={2}
+        position={[0, 0.3, 0]}
+      >
         <meshStandardMaterial color="#e3e9f1" metalness={0.5} roughness={0.4} />
       </RoundedBox>
       <mesh position={[0, 0.28, -0.97]}>
         <boxGeometry args={[0.7, 0.16, 0.04]} />
-        <meshStandardMaterial color={tail} emissive={tail} emissiveIntensity={2.4} toneMapped={false} />
+        <meshStandardMaterial
+          color={tail}
+          emissive={tail}
+          emissiveIntensity={2.4}
+          toneMapped={false}
+        />
       </mesh>
     </group>
   )
@@ -1663,14 +2235,24 @@ function ElevatedHighway() {
   const Y = 7
   const LEN = 380 // runs far into the distance
   const DECK = Y + 0.3 // deck top surface — cars ride here
-  const pillars = useMemo(() => Array.from({ length: 24 }, (_, i) => -184 + i * 16), [])
-  const dashes = useMemo(() => Array.from({ length: 63 }, (_, i) => -186 + i * 6), [])
+  const pillars = useMemo(
+    () => Array.from({ length: 24 }, (_, i) => -184 + i * 16),
+    [],
+  )
+  const dashes = useMemo(
+    () => Array.from({ length: 63 }, (_, i) => -186 + i * 6),
+    [],
+  )
   return (
     <group position={[X, 0, BLD.cz]}>
       {pillars.map((z) => (
         <mesh key={z} position={[0, Y / 2, z]} castShadow>
           <boxGeometry args={[2.2, Y, 2.2]} />
-          <meshStandardMaterial color="#39414f" metalness={0.3} roughness={0.7} />
+          <meshStandardMaterial
+            color="#39414f"
+            metalness={0.3}
+            roughness={0.7}
+          />
         </mesh>
       ))}
       <mesh position={[0, Y, 0]} receiveShadow>
@@ -1680,18 +2262,32 @@ function ElevatedHighway() {
       {[-5.8, 5.8].map((x) => (
         <mesh key={x} position={[x, Y + 0.45, 0]}>
           <boxGeometry args={[0.18, 0.6, LEN]} />
-          <meshStandardMaterial color="#11151c" metalness={0.4} roughness={0.5} />
+          <meshStandardMaterial
+            color="#11151c"
+            metalness={0.4}
+            roughness={0.5}
+          />
         </mesh>
       ))}
       <mesh position={[0, Y + 0.34, 0]}>
         <boxGeometry args={[0.14, 0.06, LEN]} />
-        <meshStandardMaterial color={ACCENT} emissive={ACCENT} emissiveIntensity={1.8} toneMapped={false} />
+        <meshStandardMaterial
+          color={ACCENT}
+          emissive={ACCENT}
+          emissiveIntensity={1.8}
+          toneMapped={false}
+        />
       </mesh>
       {dashes.flatMap((z) =>
         [-3, 3].map((x) => (
           <mesh key={`${x}_${z}`} position={[x, Y + 0.32, z]}>
             <boxGeometry args={[0.12, 0.02, 1.6]} />
-            <meshStandardMaterial color="#cbd5e1" emissive="#cbd5e1" emissiveIntensity={0.5} toneMapped={false} />
+            <meshStandardMaterial
+              color="#cbd5e1"
+              emissive="#cbd5e1"
+              emissiveIntensity={0.5}
+              toneMapped={false}
+            />
           </mesh>
         )),
       )}
@@ -1742,7 +2338,10 @@ function FreightTrain({ len }: { len: number }) {
 function Railroad() {
   const X = -46
   const LEN = 380 // runs far into the distance
-  const ties = useMemo(() => Array.from({ length: 152 }, (_, i) => -189 + i * 2.5), [])
+  const ties = useMemo(
+    () => Array.from({ length: 152 }, (_, i) => -189 + i * 2.5),
+    [],
+  )
   return (
     <group position={[X, 0, BLD.cz]}>
       {/* ballast bed */}
@@ -1761,7 +2360,11 @@ function Railroad() {
       {[-0.75, 0.75].map((x) => (
         <mesh key={x} position={[x, 0.3, 0]}>
           <boxGeometry args={[0.12, 0.14, LEN]} />
-          <meshStandardMaterial color="#9aa3b0" metalness={0.9} roughness={0.35} />
+          <meshStandardMaterial
+            color="#9aa3b0"
+            metalness={0.9}
+            roughness={0.35}
+          />
         </mesh>
       ))}
       <FreightTrain len={LEN} />
@@ -1784,12 +2387,12 @@ function AttachedOffice() {
   // Interior partition planes between sections.
   const partitions = useMemo(
     () => Array.from({ length: ROOMS - 1 }, (_, i) => -D / 2 + (i + 1) * roomD),
-    [D, roomD],
+    [roomD],
   )
   // One desk centered in each room.
   const desks = useMemo(
     () => Array.from({ length: ROOMS }, (_, i) => -D / 2 + (i + 0.5) * roomD),
-    [D, roomD],
+    [roomD],
   )
   return (
     <group position={[X, 0, Z]}>
@@ -1803,7 +2406,13 @@ function AttachedOffice() {
       {/* outer (+x) */}
       <mesh position={[W / 2, H / 2, 0]}>
         <boxGeometry args={[0.16, H, D]} />
-        <meshStandardMaterial color={ACCENT} transparent opacity={0.18} metalness={0.1} roughness={0.05} />
+        <meshStandardMaterial
+          color={ACCENT}
+          transparent
+          opacity={0.18}
+          metalness={0.1}
+          roughness={0.05}
+        />
       </mesh>
       {/* inner (-x), flush with the building */}
       <mesh position={[-W / 2, H / 2, 0]}>
@@ -1814,7 +2423,13 @@ function AttachedOffice() {
       {[-D / 2, D / 2].map((z) => (
         <mesh key={z} position={[0, H / 2, z]}>
           <boxGeometry args={[W, H, 0.16]} />
-          <meshStandardMaterial color={ACCENT} transparent opacity={0.18} metalness={0.1} roughness={0.05} />
+          <meshStandardMaterial
+            color={ACCENT}
+            transparent
+            opacity={0.18}
+            metalness={0.1}
+            roughness={0.05}
+          />
         </mesh>
       ))}
       {/* base plinth band around the whole wing */}
@@ -1827,7 +2442,11 @@ function AttachedOffice() {
       {partitions.map((z) => (
         <mesh key={z} position={[0, H * 0.4, z]} castShadow>
           <boxGeometry args={[W - 0.4, H * 0.8, 0.12]} />
-          <meshStandardMaterial color="#2b3340" metalness={0.4} roughness={0.55} />
+          <meshStandardMaterial
+            color="#2b3340"
+            metalness={0.4}
+            roughness={0.55}
+          />
         </mesh>
       ))}
 
@@ -1836,12 +2455,21 @@ function AttachedOffice() {
         <group key={z} position={[1.4, 0.2, z]}>
           <mesh position={[0, 0.55, 0]} castShadow>
             <boxGeometry args={[2.2, 0.1, 1.1]} />
-            <meshStandardMaterial color="#3a4150" metalness={0.3} roughness={0.6} />
+            <meshStandardMaterial
+              color="#3a4150"
+              metalness={0.3}
+              roughness={0.6}
+            />
           </mesh>
           {/* monitor */}
           <mesh position={[0, 1.0, -0.35]}>
             <boxGeometry args={[0.9, 0.55, 0.06]} />
-            <meshStandardMaterial color="#0a1622" emissive={ACCENT} emissiveIntensity={1.1} toneMapped={false} />
+            <meshStandardMaterial
+              color="#0a1622"
+              emissive={ACCENT}
+              emissiveIntensity={1.1}
+              toneMapped={false}
+            />
           </mesh>
         </group>
       ))}
@@ -1857,11 +2485,24 @@ function AttachedOffice() {
       </mesh>
 
       {/* signage on the outer wall */}
-      <mesh position={[W / 2 + 0.05, H - 0.4, -D / 2 + 4]} rotation={[0, Math.PI / 2, 0]}>
+      <mesh
+        position={[W / 2 + 0.05, H - 0.4, -D / 2 + 4]}
+        rotation={[0, Math.PI / 2, 0]}
+      >
         <boxGeometry args={[6, 0.5, 0.06]} />
-        <meshStandardMaterial color={ACCENT} emissive={ACCENT} emissiveIntensity={2} toneMapped={false} />
+        <meshStandardMaterial
+          color={ACCENT}
+          emissive={ACCENT}
+          emissiveIntensity={2}
+          toneMapped={false}
+        />
       </mesh>
-      <Html position={[W / 2 + 0.16, H - 0.4, -D / 2 + 4]} center distanceFactor={26} rotation={[0, Math.PI / 2, 0]}>
+      <Html
+        position={[W / 2 + 0.16, H - 0.4, -D / 2 + 4]}
+        center
+        distanceFactor={26}
+        rotation={[0, Math.PI / 2, 0]}
+      >
         <div className="pointer-events-none select-none whitespace-nowrap text-xs font-semibold tracking-[0.3em] text-sky-200">
           OFFICES
         </div>
@@ -1885,12 +2526,37 @@ function Lights({ dark }: { dark: boolean }) {
         shadow-camera-bottom={-28}
         shadow-bias={-0.0004}
       />
-      <pointLight position={[-10, 8, -6]} intensity={dark ? 45 : 22} color="#38bdf8" distance={44} />
-      <pointLight position={[10, 6, 8]} intensity={dark ? 32 : 16} color="#a855f7" distance={44} />
+      <pointLight
+        position={[-10, 8, -6]}
+        intensity={dark ? 45 : 22}
+        color="#38bdf8"
+        distance={44}
+      />
+      <pointLight
+        position={[10, 6, 8]}
+        intensity={dark ? 32 : 16}
+        color="#a855f7"
+        distance={44}
+      />
       <Environment resolution={256}>
-        <Lightformer intensity={2} position={[0, 9, -2]} scale={[14, 5, 1]} color="#cfe0ff" />
-        <Lightformer intensity={1.6} position={[8, 6, 8]} scale={[6, 6, 1]} color="#ffffff" />
-        <Lightformer intensity={1.2} position={[-8, 5, 6]} scale={[5, 5, 1]} color="#bcd3ff" />
+        <Lightformer
+          intensity={2}
+          position={[0, 9, -2]}
+          scale={[14, 5, 1]}
+          color="#cfe0ff"
+        />
+        <Lightformer
+          intensity={1.6}
+          position={[8, 6, 8]}
+          scale={[6, 6, 1]}
+          color="#ffffff"
+        />
+        <Lightformer
+          intensity={1.2}
+          position={[-8, 5, 6]}
+          scale={[5, 5, 1]}
+          color="#bcd3ff"
+        />
       </Environment>
     </>
   )
@@ -1968,7 +2634,9 @@ function CameraDirector({
         target.set(0, 2, 6)
         off = new Vector3(7, 9, -34)
       } else if (f.machine_ids.length) {
-        const ms = machinesRef.current.filter((m) => f.machine_ids.includes(m.id))
+        const ms = machinesRef.current.filter((m) =>
+          f.machine_ids.includes(m.id),
+        )
         if (ms.length) {
           const ax = ms.reduce((a, m) => a + m.pos_x, 0) / ms.length
           target.set(ax, 1.6, 2)
@@ -1981,7 +2649,9 @@ function CameraDirector({
         camPos: target.clone().add(off),
         // Forklift-follow runs continually (until the user grabs the controls);
         // fixed shots settle after a couple seconds.
-        until: follow ? Number.POSITIVE_INFINITY : state.clock.elapsedTime + 2.4,
+        until: follow
+          ? Number.POSITIVE_INFINITY
+          : state.clock.elapsedTime + 2.4,
       }
     }
 
@@ -2066,7 +2736,11 @@ function Scene({
         <Lights dark={dark} />
 
         {/* Base ground sits below every other floor surface to avoid z-fighting. */}
-        <mesh position={[0, -0.05, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <mesh
+          position={[0, -0.05, 0]}
+          rotation={[-Math.PI / 2, 0, 0]}
+          receiveShadow
+        >
           <planeGeometry args={[420, 420]} />
           <meshStandardMaterial color={palette.floor} roughness={1} />
         </mesh>
@@ -2154,7 +2828,13 @@ function Scene({
           )}
         </group>
 
-        <ContactShadows position={[0, 0.03, 4]} opacity={dark ? 0.5 : 0.35} scale={80} blur={2.6} far={18} />
+        <ContactShadows
+          position={[0, 0.03, 4]}
+          opacity={dark ? 0.5 : 0.35}
+          scale={80}
+          blur={2.6}
+          far={18}
+        />
       </Suspense>
 
       <OrbitControls
@@ -2179,7 +2859,12 @@ function Scene({
       </GizmoHelper>
 
       <EffectComposer enableNormalPass={false} multisampling={0}>
-        <Bloom intensity={dark ? 0.9 : 0.4} luminanceThreshold={1} luminanceSmoothing={0.2} mipmapBlur />
+        <Bloom
+          intensity={dark ? 0.9 : 0.4}
+          luminanceThreshold={1}
+          luminanceSmoothing={0.2}
+          mipmapBlur
+        />
         <Vignette eskil={false} offset={0.25} darkness={dark ? 0.7 : 0.3} />
         <SMAA />
       </EffectComposer>
@@ -2193,7 +2878,13 @@ function Scene({
 // World positions match the <LineFixture> placements (inside the z=2 group).
 const SIM_DEVICES = [
   { code: "plc-01", name: "PLC Control Cabinet", x: 11, icon: Cpu, tag: "PLC" },
-  { code: "srv-01", name: "Edge Server Rack", x: -11, icon: Server, tag: "Server" },
+  {
+    code: "srv-01",
+    name: "Edge Server Rack",
+    x: -11,
+    icon: Server,
+    tag: "Server",
+  },
 ] as const
 
 function FactorySimulationPage() {
@@ -2213,7 +2904,9 @@ function FactorySimulationPage() {
     refetchInterval: connected ? POLL.slow : POLL.fast,
   })
   // Multiple panels can be pinned at once; minimize closes one at a time.
-  const [openIds, setOpenIds] = useState<string[]>(deepLinkId ? [deepLinkId] : [])
+  const [openIds, setOpenIds] = useState<string[]>(
+    deepLinkId ? [deepLinkId] : [],
+  )
   const [fullscreen, setFullscreen] = useState(false)
   const [showGrid, setShowGrid] = useState(false)
   // ForgeAI lives site-wide (layout level); the scene just reacts to it.
@@ -2223,16 +2916,15 @@ function FactorySimulationPage() {
 
   // Cinematic caption shown while ForgeAI steers the camera (auto-hides).
   const [cinematic, setCinematic] = useState<string | null>(null)
-  const focusToken = forge.focus?.token
   useEffect(() => {
     const f = forge.focus
-    if (!f || !f.label) return
+    if (!f?.label) return
     setCinematic(f.label)
     const hold = f.mode === "logistics" ? 9000 : 4200
     const t = window.setTimeout(() => setCinematic(null), hold)
     return () => window.clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focusToken])
+  }, [forge.focus])
 
   // Inventory + purchase orders → clickable shipment manifests on the pallets.
   const { data: invData } = useQuery({
@@ -2264,12 +2956,18 @@ function FactorySimulationPage() {
   }, [invData, poData])
 
   const toggleOpen = (id: string) =>
-    setOpenIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]))
-  const closeOne = (id: string) => setOpenIds((ids) => ids.filter((x) => x !== id))
+    setOpenIds((ids) =>
+      ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id],
+    )
+  const closeOne = (id: string) =>
+    setOpenIds((ids) => ids.filter((x) => x !== id))
 
   // Keep the pinned set in sync if the deep-link changes while mounted.
   useEffect(() => {
-    if (deepLinkId) setOpenIds((ids) => (ids.includes(deepLinkId) ? ids : [...ids, deepLinkId]))
+    if (deepLinkId)
+      setOpenIds((ids) =>
+        ids.includes(deepLinkId) ? ids : [...ids, deepLinkId],
+      )
   }, [deepLinkId])
 
   useEffect(() => {
@@ -2299,7 +2997,10 @@ function FactorySimulationPage() {
           return [id, page.data[0]] as const
         }),
       )
-      return Object.fromEntries(entries) as Record<string, TelemetryEvent | undefined>
+      return Object.fromEntries(entries) as Record<
+        string,
+        TelemetryEvent | undefined
+      >
     },
   })
 
@@ -2323,29 +3024,32 @@ function FactorySimulationPage() {
   // first-visit centering — flow through one directive the CameraDirector reads.
   const [camFocus, setCamFocus] = useState<ForgeFocus | null>(null)
   const camToken = useRef(0)
-  const focusOn = (partial: {
-    mode: ForgeFocus["mode"]
-    machine_ids?: string[]
-    follow_forklift?: boolean
-    label?: string
-    point?: { x: number; z: number } | null
-  }) => {
-    camToken.current += 1
-    setCamFocus({
-      mode: partial.mode,
-      machine_ids: partial.machine_ids ?? [],
-      follow_forklift: partial.follow_forklift ?? false,
-      label: partial.label ?? "",
-      point: partial.point ?? null,
-      token: camToken.current,
-    })
-  }
+  const focusOn = useCallback(
+    (partial: {
+      mode: ForgeFocus["mode"]
+      machine_ids?: string[]
+      follow_forklift?: boolean
+      label?: string
+      point?: { x: number; z: number } | null
+    }) => {
+      camToken.current += 1
+      setCamFocus({
+        mode: partial.mode,
+        machine_ids: partial.machine_ids ?? [],
+        follow_forklift: partial.follow_forklift ?? false,
+        label: partial.label ?? "",
+        point: partial.point ?? null,
+        token: camToken.current,
+      })
+    },
+    [],
+  )
 
   // ForgeAI focus → drive the camera.
   useEffect(() => {
     if (forge.focus) focusOn(forge.focus)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [forge.focus?.token])
+  }, [forge.focus?.token, forge.focus, focusOn])
 
   // First visit: open on the front establishing shot (from the parking lot,
   // looking into the factory). The machine menu then centers on any machine.
@@ -2355,7 +3059,7 @@ function FactorySimulationPage() {
     centeredOnce.current = true
     focusOn({ mode: "reset" })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [machines])
+  }, [machines, focusOn])
 
   return (
     <div className="flex h-[calc(100vh-7rem)] flex-col gap-3">
@@ -2363,8 +3067,10 @@ function FactorySimulationPage() {
         title="Smart Forge — Factory Simulation"
         description={
           <>
-            3D digital twin · click a machine for a live panel, or a pallet for its
-            shipment manifest · <span className="font-medium text-foreground/80">WASD</span> to pan, drag/scroll to orbit.
+            3D digital twin · click a machine for a live panel, or a pallet for
+            its shipment manifest ·{" "}
+            <span className="font-medium text-foreground/80">WASD</span> to pan,
+            drag/scroll to orbit.
           </>
         }
         actions={
@@ -2412,7 +3118,10 @@ function FactorySimulationPage() {
         )}
 
         {manifest && (
-          <ManifestPanel manifest={manifest} onClose={() => setManifest(null)} />
+          <ManifestPanel
+            manifest={manifest}
+            onClose={() => setManifest(null)}
+          />
         )}
 
         <div className="absolute right-4 top-4 flex items-center gap-2">
@@ -2446,13 +3155,25 @@ function FactorySimulationPage() {
 
         <div className="absolute left-4 top-4 flex items-center gap-3 rounded-lg border border-border bg-black/50 px-3 py-2 text-[11px] text-white backdrop-blur">
           <span className="flex items-center gap-1">
-            <i className="size-2 rounded-full" style={{ background: "var(--success)" }} /> Healthy
+            <i
+              className="size-2 rounded-full"
+              style={{ background: "var(--success)" }}
+            />{" "}
+            Healthy
           </span>
           <span className="flex items-center gap-1">
-            <i className="size-2 rounded-full" style={{ background: "var(--warning)" }} /> At risk
+            <i
+              className="size-2 rounded-full"
+              style={{ background: "var(--warning)" }}
+            />{" "}
+            At risk
           </span>
           <span className="flex items-center gap-1">
-            <i className="size-2 rounded-full" style={{ background: "var(--danger)" }} /> Critical
+            <i
+              className="size-2 rounded-full"
+              style={{ background: "var(--danger)" }}
+            />{" "}
+            Critical
           </span>
         </div>
 
@@ -2466,7 +3187,9 @@ function FactorySimulationPage() {
               <li key={m.id}>
                 <button
                   type="button"
-                  onClick={() => focusOn({ mode: "machine", machine_ids: [m.id] })}
+                  onClick={() =>
+                    focusOn({ mode: "machine", machine_ids: [m.id] })
+                  }
                   className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors hover:bg-white/10"
                 >
                   <span
@@ -2491,12 +3214,16 @@ function FactorySimulationPage() {
               <li key={d.code}>
                 <button
                   type="button"
-                  onClick={() => focusOn({ mode: "machine", point: { x: d.x, z: 2 } })}
+                  onClick={() =>
+                    focusOn({ mode: "machine", point: { x: d.x, z: 2 } })
+                  }
                   className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors hover:bg-white/10"
                 >
                   <d.icon size={13} className="shrink-0 text-info" />
                   <span className="truncate font-medium">{d.code}</span>
-                  <span className="ml-auto shrink-0 text-zinc-400">{d.tag}</span>
+                  <span className="ml-auto shrink-0 text-zinc-400">
+                    {d.tag}
+                  </span>
                 </button>
               </li>
             ))}

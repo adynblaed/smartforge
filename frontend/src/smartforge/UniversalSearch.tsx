@@ -1,13 +1,24 @@
 import { useQuery } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
-import { Boxes, FileText, Gauge, Search, Ticket as TicketIcon } from "lucide-react"
+import {
+  Boxes,
+  FileText,
+  Gauge,
+  Search,
+  Ticket as TicketIcon,
+} from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
-
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { NAV_GROUPS } from "@/components/Sidebar/nav"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import { sf } from "@/smartforge/api"
-import type { Machine, Page, PurchaseOrder, Sop, Ticket } from "@/smartforge/types"
+import type {
+  Machine,
+  Page,
+  PurchaseOrder,
+  Sop,
+  Ticket,
+} from "@/smartforge/types"
 
 type Kind = "page" | "machine" | "ticket" | "po" | "sop"
 interface Item {
@@ -25,7 +36,8 @@ interface Item {
 const PAGE_ALIASES: Record<string, string> = {
   "/command-center": "home dashboard overview kpis",
   "/order-tracker": "po pos purchase order orders procurement receipt",
-  "/supply-chain": "inventory supplier suppliers reorder stock materials po pos",
+  "/supply-chain":
+    "inventory supplier suppliers reorder stock materials po pos",
   "/quotes": "quote quoting purchase order po pos intake builder",
   "/knowledge-bases": "knowledge base bases kb forge facts notes",
   "/sops": "sop sops standard operating procedure",
@@ -117,7 +129,11 @@ export function UniversalSearch() {
         label: `${m.code} — ${m.name}`,
         sub: "Machine",
         id: m.id,
-        keywords: kw(`${m.code} ${m.name} ${m.machine_type}`, "Machine", "machine"),
+        keywords: kw(
+          `${m.code} ${m.name} ${m.machine_type}`,
+          "Machine",
+          "machine",
+        ),
       })
     for (const t of tickets.data?.data ?? [])
       list.push({
@@ -160,12 +176,15 @@ export function UniversalSearch() {
   const go = (i: Item) => {
     setOpen(false)
     setQ("")
-    if (i.kind === "ticket") navigate({ to: "/tickets", search: { ticket: i.id } })
-    else if (i.kind === "po") navigate({ to: "/order-tracker", search: { po: i.id } })
-    else if (i.kind === "sop") navigate({ to: "/sops", search: { sop: i.code } })
-    else if (i.kind === "machine") navigate({ to: "/factory-map", search: { machine: i.id } })
+    if (i.kind === "ticket")
+      navigate({ to: "/tickets", search: { ticket: i.id } })
+    else if (i.kind === "po")
+      navigate({ to: "/order-tracker", search: { po: i.id } })
+    else if (i.kind === "sop")
+      navigate({ to: "/sops", search: { sop: i.code } })
+    else if (i.kind === "machine")
+      navigate({ to: "/factory-map", search: { machine: i.id } })
     // page (dynamic path from the nav model)
-    // biome-ignore lint/suspicious/noExplicitAny: nav paths are validated route strings
     else navigate({ to: i.to } as any)
   }
 
@@ -178,7 +197,9 @@ export function UniversalSearch() {
       >
         <Search size={15} />
         <span className="flex-1 text-left">Search the platform…</span>
-        <kbd className="rounded border bg-muted px-1.5 py-0.5 text-[10px] font-medium">⌘K</kbd>
+        <kbd className="rounded border bg-muted px-1.5 py-0.5 text-[10px] font-medium">
+          ⌘K
+        </kbd>
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>

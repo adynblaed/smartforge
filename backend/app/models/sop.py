@@ -23,7 +23,9 @@ class SopBase(SQLModel):
     title: str = Field(max_length=255)
     category: str = Field(default="maintenance", max_length=32)
     entity_type: str = Field(default="machine", max_length=32)
-    machine_id: uuid.UUID | None = Field(default=None, foreign_key="machine.id", index=True)
+    machine_id: uuid.UUID | None = Field(
+        default=None, foreign_key="machine.id", index=True
+    )
     summary: str = Field(default="", max_length=1024)
     revision: str = Field(default="A", max_length=16)
 

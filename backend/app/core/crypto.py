@@ -13,18 +13,24 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import logging
 from functools import lru_cache
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Text
 from sqlalchemy.types import TypeDecorator
 
 from app.core.config import settings
 
+if TYPE_CHECKING:
+    from cryptography.fernet import Fernet
+    from sqlalchemy.engine import Dialect
+
 _PREFIX = "enc::"
 
 
 @lru_cache(maxsize=1)
-def _fernet():
+def _fernet() -> Fernet:
     from cryptography.fernet import Fernet
 
     key = base64.urlsafe_b64encode(
@@ -47,10 +53,17 @@ def decrypt(value: str | None) -> str | None:
     try:
         return _fernet().decrypt(value[len(_PREFIX) :].encode()).decode()
     except Exception:
+        # Return the stored value rather than break reads, but never
+        # silently: a decrypt failure means SECRET_KEY rotated without
+        # re-encryption — that's an operator problem, not a data problem.
+        logging.getLogger(__name__).warning(
+            "decrypt failed for an encrypted column value; returning stored "
+            "form (was SECRET_KEY rotated without re-encrypting?)"
+        )
         return value
 
 
-class EncryptedString(TypeDecorator):
+class EncryptedString(TypeDecorator[str]):
     """A text column whose value is transparently encrypted at rest.
 
     Stored as unbounded TEXT because ciphertext is longer than the plaintext.
@@ -59,8 +72,8 @@ class EncryptedString(TypeDecorator):
     impl = Text
     cache_ok = True
 
-    def process_bind_param(self, value, dialect):  # type: ignore[override]
+    def process_bind_param(self, value: str | None, dialect: Dialect) -> str | None:
         return encrypt(value) if value is not None else None
 
-    def process_result_value(self, value, dialect):  # type: ignore[override]
+    def process_result_value(self, value: str | None, dialect: Dialect) -> str | None:
         return decrypt(value) if value is not None else None

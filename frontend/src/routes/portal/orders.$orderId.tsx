@@ -5,8 +5,8 @@ import { useEffect, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { sf, wsUrl } from "@/smartforge/api"
-import { POLL } from "@/smartforge/constants"
 import { PageHeader, Panel } from "@/smartforge/components"
+import { POLL } from "@/smartforge/constants"
 import type { CustomerOrder } from "@/smartforge/types"
 
 export const Route = createFileRoute("/portal/orders/$orderId")({
@@ -130,7 +130,9 @@ function OrderDetail() {
           </ol>
 
           {data.delayed && data.delay_reason && (
-            <p className="mt-4 text-sm text-danger">Notice: {data.delay_reason}</p>
+            <p className="mt-4 text-sm text-danger">
+              Notice: {data.delay_reason}
+            </p>
           )}
         </Panel>
       )}

@@ -70,8 +70,7 @@ def test_forge_rag_answers_10_of_10(internal_client):
             )
 
         assert correct == 10, (
-            f"ForgeAI RAG answered {correct}/10 correctly. "
-            f"Sample: {answers[0][:200]!r}"
+            f"ForgeAI RAG answered {correct}/10 correctly. Sample: {answers[0][:200]!r}"
         )
     finally:
         internal_client.delete(f"/api/v1/ask-ai/knowledge-bases/{kb_id}")

@@ -8,6 +8,13 @@ scrape_configs:
     static_configs:
       - targets: ["backend:8000"]
 
+  # Data-platform pipeline metrics (throughput, stage durations, success
+  # rates) exposed by the long-lived ELT worker — see
+  # backend/app/dataplatform/metrics.py (PLATFORM_METRICS_PORT).
+  - job_name: smartforge-platform-worker
+    static_configs:
+      - targets: ["platform-worker:9108"]
+
   - job_name: prometheus
     static_configs:
       - targets: ["localhost:9090"]

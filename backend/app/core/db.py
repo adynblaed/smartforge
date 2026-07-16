@@ -46,15 +46,17 @@ def init_db(session: Session) -> None:
     from app.models.reorder import MaterialReorder
     from app.models.sop import Sop, SopSection
 
+    # SQLModel table classes gain ``__table__`` at runtime via SQLAlchemy
+    # instrumentation; sqlmodel's stubs don't expose it (third-party stub gap).
     SQLModel.metadata.create_all(
         engine,
         tables=[
-            Sop.__table__,
-            SopSection.__table__,
-            MaintenanceTicket.__table__,
-            MaintenanceTicketLog.__table__,
-            MaintenanceTicketPart.__table__,
-            MaterialReorder.__table__,
+            Sop.__table__,  # type: ignore[attr-defined]
+            SopSection.__table__,  # type: ignore[attr-defined]
+            MaintenanceTicket.__table__,  # type: ignore[attr-defined]
+            MaintenanceTicketLog.__table__,  # type: ignore[attr-defined]
+            MaintenanceTicketPart.__table__,  # type: ignore[attr-defined]
+            MaterialReorder.__table__,  # type: ignore[attr-defined]
         ],
         checkfirst=True,
     )

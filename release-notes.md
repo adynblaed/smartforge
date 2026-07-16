@@ -1,5 +1,196 @@
 # Release Notes
 
+## 1.0.0 (2026-07-16) — SmartForge LTS
+
+First long-term-support release of the SmartForge smart-factory platform,
+formally closing development against
+[`specs/CHECKLIST.md`](specs/CHECKLIST.md) (every line item marked; gates
+A–H signed; exceptions registered in
+[`docs/data-platform.md`](docs/data-platform.md) §10). The specification
+of record is [`specs/ARCHITECTURE.md`](specs/ARCHITECTURE.md)
+(consolidating and superseding the retired blueprint and spec drafts);
+the per-persona feature matrix is
+[`specs/FEATURES.md`](specs/FEATURES.md).
+
+The release ships the governed analytics data platform, the first
+business data-exchange contract delivered end to end
+(contract → lake → warehouse → dbt → API → UI), and the full hardening,
+observability, and EDA capstone:
+
+### Work Orders — the foundational exchange contract
+
+* 🆔 **Deterministic UUIDv5 surrogate identities** (DCT-011): contracts may
+  declare `surrogate_uids`; the pipeline stamps them at extraction so lake
+  and warehouse provably carry identical identifiers (SEED-009), reseeds
+  and replays are identity-stable (INC-004), and cross-table references
+  reproduce the referenced row's UUID.
+* 🌳 **Work-order genealogy**: `work_order_uid` / `parent_work_order_uid`
+  with a dialect-neutral recursive dbt model
+  (`int_work_order_genealogy`) resolving root / child / grandchild depth,
+  path, and child counts; served by the certified `api.api_work_orders`
+  contract.
+* 📇 Two new replication contracts informed by the legacy omega reports:
+  `OMEGA.SALES_ORDER_LINES` (open-order backlog) and `OMEGA.MRP_PEGGING`
+  (full-replace MRP regeneration output), with control totals.
+
+### Serving & UI
+
+* 🔎 **Work Orders explorer** on the Data Platform page: a read-only query
+  builder over the certified contract. The `/warehouse/datasets/{dataset}`
+  filter grammar gains an allowlisted operator set
+  (`column[__op]=value`, op ∈ eq/neq/gt/gte/lt/lte/contains) with typed,
+  always-bound values (IQ-004/API-003).
+* 📅 **MRP page** (`/mrp`): time-phased supply planning from
+  `api.api_mrp_supply_plan` — demand/supply/projected-net per item per day,
+  shortage + safety-stock highlighting, summary KPIs, and client-side
+  what-if supply edits (never written back).
+
+### Operations
+
+* 🧪 **`cli sample-seed`** (development only, refused elsewhere): runs the
+  real seed pipeline — publish, dlt merge, watermark-last, catalog refresh,
+  dbt — over a deterministic in-repo sample dataset (three-level genealogy,
+  backlog, internally consistent MRP pegging), making the sandbox fully
+  live with zero external dependencies; idempotent and retention-pruned.
+* 📈 **Pipeline performance KPIs** (OBS-008): Prometheus instruments
+  (`smartforge_pipeline_*` rows/bytes counters, stage-duration histograms,
+  last-run gauges), a per-run migration KPI block (rows, bytes, duration,
+  rows/s, Mbps, success rate) on every run result and control record, one
+  grep-able summary log line per run, a platform-worker scrape endpoint
+  (`:9108`), and the Grafana "Data Platform Pipeline" dashboard.
+* 📌 Frontend toolchain pinned (`@biomejs/biome` exact) and the full lint
+  gate brought to genuinely zero findings.
+
+### Hardening (engine-separation review closure)
+
+* 🔒 **Single-flight everywhere** (INC-013): the advisory pipeline lock now
+  guards every writer entry point, not just the dispatcher — operator CLI
+  `seed`/`sync`/`reconcile-deletes`, the superuser API `seed/confirm` and
+  `sync/run` (409 up front, hard lock in the background task), and
+  `sample-seed`. An operator trigger can no longer overlap a scheduler
+  tick.
+* 🧭 Boundary made explicit: data-serving never touches Oracle (API-001);
+  the superuser `/platform` control-plane ops are the documented,
+  read-only-verified, lock-guarded exception (docstrings + CLAUDE.md §7.3).
+* 🛡️ Governed-read guards fixed and unified: `SET TRANSACTION READ ONLY`
+  now precedes the statement timeout (transaction-mode ordering), the
+  timeout applies to `/warehouse/datasets`, `/warehouse/kpis`, and dataset
+  discovery too, and the KPI loop re-arms both guards after every per-KPI
+  rollback (a rollback opens a fresh, otherwise-unguarded transaction).
+* 🔐 Bootstrap role DDL is injection-safe (SEC-001): identifiers
+  allowlisted, passwords quote-doubled top-level literals that never sit
+  inside dollar-quoted blocks (a secret containing `'` or `$$` can neither
+  break nor escape the DDL).
+### Final capstone pass (timeouts, self-healing, EDA query library)
+
+* ⏱️ **No governed read can hang**: bounded-read guards (`SET TRANSACTION
+  READ ONLY` first, then the statement timeout) now cover dataset
+  discovery, `/warehouse/kpis` (re-armed after every per-KPI rollback,
+  which otherwise opens a fresh unguarded transaction), and the
+  `/platform` control-table queries — joining the existing DuckDB
+  interrupt watchdog (504) and Oracle per-call timeout. The platform-worker
+  self-heals by design (failed windows replay idempotently next tick) and
+  now counts tick-level failures
+  (`smartforge_pipeline_scheduler_tick_failures_total`) so a wounded
+  scheduler is visible in Grafana, not just logs.
+* 📚 **Standardized EDA query library**: `api.api_trailing_windows` — one
+  row per 3/6/12 trailing-month window with cross-domain production,
+  quality, work-order, purchasing, and telemetry aggregates, built
+  identically on the warehouse and the lake; consumers filter
+  `window_months` instead of hand-writing date arithmetic.
+* ⚡ **Time-series indexes out of the box**: every fct time column
+  (`event_at`, `run_started_at`, `inspected_at`, `ordered_at`, `due_at`,
+  `created_at`) is indexed on PostgreSQL via a dbt post-hook macro —
+  deliberately a no-op on DuckDB, whose zone maps already prune
+  time-range scans.
+* 🧾 **Config zero-drift guard**: a test now proves every
+  non-deployment-specific `.env.example` value equals its code default
+  (both PlatformSettings and app rate-limit settings) and that every
+  operator-tunable knob is documented — drift fails CI instead of
+  shipping.
+* Offline test matrix: 302→**356** (platform) and 81→**94** (frontend
+  unit): **572 tests**, plus the full sample-seed pipeline run (publish →
+  catalog → dual-engine dbt build, 102 PASS / 0 ERROR) as the acceptance
+  gate.
+
+### Data platform
+
+* 🏗️ Governed ELT platform: omega Oracle (read-only, verified at every
+  connect) → immutable Parquet lake with manifests → DuckDB catalog
+  (read-only views) + PostgreSQL warehouse (dlt merge, role-separated
+  identities) → dbt marts/api models (dual-target) → hardened FastAPI
+  endpoints (`/platform`, `/warehouse`, `/lake`).
+* 🔁 SCN-consistent seeds behind an operator confirmation gate
+  (`SEED OMEGA`), hourly/daily incremental windows with fixed upper bounds
+  and overlap, weekly hard-delete reconciliation, watermark-commits-last
+  ordering, SCN regression guards, schema-drift fail-closed pausing.
+* 📊 Reconciliation, freshness (dead-man's switch), run/load lineage in a
+  queryable control schema; dbt tests, source freshness, snapshots (SCD2),
+  and exposures for impact analysis.
+* 🧰 Operator CLI (`preflight`, `bootstrap`, `discover`, `plan`, `seed`,
+  `sync`, `reconcile-deletes`, `dbt`, `dispatch`, `freshness`) plus
+  runbooks for stale data, drift, backfill, rollback, backup/restore, and
+  the support model.
+
+### Features
+
+* ✨ **Data Platform** page (`/data-platform`): replication freshness,
+  runs, reconciliation, warehouse KPIs, and lake manifests, with graceful
+  not-provisioned states.
+* 🩺 `preflight` credential/connectivity gate and request-correlation IDs
+  (`X-Request-ID`) on every API response.
+* 🔒 Traefik rate-limit + security-header middlewares on the API router;
+  **role-aware app-layer rate limiting** (per-identity token buckets tiered
+  by JWT role claims, 429 + `Retry-After` + `X-RateLimit-*`); scheduled
+  `pg_dump` backups of both databases (`db-backup` service); known-default
+  passwords refused outside local/development at process start.
+* 🧭 Unified runtime model: one logging topology across API/workers/
+  scheduler/CLI (`LOG_LEVEL`-tunable, correlation IDs, no silent
+  dependency degradation); layered frontend error boundaries with typed
+  `ApiError`, status-aware descriptions, and request-ID references;
+  GDPR & SOC 2 control mapping with data-subject request procedures
+  (`docs/compliance.md`).
+
+### Testing & CI
+
+* ✅ New `backend/tests_dataplatform` suite (offline: mocked Oracle, real
+  DuckDB/PyArrow): watermark ordering with injected failures, idempotent
+  replay, publish immutability, read-only proofs, injection resistance,
+  authz denial, pagination caps, safe errors, dispatcher cadences.
+* ✅ Frontend vitest suite extended (Data Platform helpers/components) and
+  a Playwright spec for the new page.
+* 👷 New workflows: **`ci-pipeline`** — the formal offline verification
+  pipeline (572 tests: 356 platform + 122 app + 94 frontend, plus
+  lint/type gates, dual dbt parse + docs artifact, compose/Helm/preflight
+  contract checks) feeding one `pipeline-confidence` required status
+  check, zero external databases — and `security-scan` (gitleaks,
+  pip-audit, osv-scanner; weekly cron). All workflows now target `main`.
+
+### Docs
+
+* 📝 `specs/ARCHITECTURE.md` — the v1.0.0 LTS specification of record
+  (context diagram, component architecture, invariants, failure-handling
+  catalogue, decision log, runbook index, traceability), consolidating
+  the retired blueprint and spec drafts; `CLAUDE.md` platform guide
+  (incl. Day-0 deployment & go-live testing procedure); `QUICKSTART.md`
+  (omega credentials → seed rehearsal → initial migration) with the gated
+  `runbooks/initial_migration.md` SOP; `specs/FEATURES.md` per-persona
+  feature matrix; rewritten root/backend/frontend READMEs; data-platform
+  handbook (`docs/data-platform.md`) with ratified decision log, risk
+  register, SLOs, access management, and exceptions register; all seven
+  runbooks cross-referenced to the architecture; Kubernetes Helm chart +
+  Argo CD GitOps apps (`infra/`).
+
+### Upgrade notes
+
+* Copy new `.env.example` keys: `PLATFORM_OWNER_EMAIL`,
+  `API_RATE_LIMIT_*`, `RATE_LIMIT_*` (role-aware app-layer budgets),
+  `PLATFORM_METRICS_PORT`, `BACKUP_*`, and the data-platform block
+  (`OMEGA_ORACLE_*`, `WAREHOUSE_*`, `LAKE_ROOT`, `DUCKDB_PATH`).
+  `.env.example` is test-pinned to code defaults (zero-drift guard).
+* The template's own release history is preserved below for upstream
+  reference.
+
 ## Latest Changes
 
 ### Refactors

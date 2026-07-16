@@ -1,0 +1,119 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "smartforge.fullname" . }}-backend
+  labels:
+    {{- include "smartforge.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+spec:
+  {{- if not .Values.backend.hpa.enabled }}
+  replicas: {{ .Values.backend.replicas }}
+  {{- end }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      {{- include "smartforge.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: backend
+  template:
+    metadata:
+      labels:
+        {{- include "smartforge.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: backend
+        # Mounts the lake volume — see smartforge.lakeAffinity in _helpers.tpl.
+        smartforge.futureform.com/lake-attached: "true"
+      annotations:
+        checksum/config: {{ include "smartforge.configData" . | sha256sum }}
+        {{- with .Values.backend.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "smartforge.serviceAccountName" . }}
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: {{ .Values.backend.terminationGracePeriodSeconds }}
+      {{- include "smartforge.lakeAffinity" . | nindent 6 }}
+      {{- include "smartforge.pythonPodSecurityContext" . | nindent 6 }}
+      containers:
+        - name: backend
+          image: {{ include "smartforge.backendImage" . | quote }}
+          imagePullPolicy: {{ .Values.image.backend.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "smartforge.fullname" . }}-config
+          env:
+            # readOnlyRootFilesystem: uid 1000 has no home dir in the image;
+            # point HOME at the writable /tmp emptyDir.
+            - name: HOME
+              value: /tmp
+            {{- include "smartforge.appSecretEnv" . | nindent 12 }}
+            {{- include "smartforge.postgresSecretEnv" . | nindent 12 }}
+            - name: FIIX_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "smartforge.appSecretName" . }}
+                  key: FIIX_API_KEY
+                  optional: true
+            - name: QDRANT_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "smartforge.appSecretName" . }}
+                  key: QDRANT_API_KEY
+                  optional: true
+            # Empty/absent key selects the deterministic offline AskAI fallback.
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "smartforge.anthropicSecretName" . }}
+                  key: ANTHROPIC_API_KEY
+                  optional: true
+            # Read-only warehouse identity (role separation: the API never
+            # holds loader/dbt credentials).
+            - name: WAREHOUSE_API_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "smartforge.warehouseSecretName" . }}
+                  key: WAREHOUSE_API_PASSWORD
+                  optional: true
+          {{- include "smartforge.pythonContainerSecurityContext" . | nindent 10 }}
+          livenessProbe:
+            httpGet:
+              path: /api/v1/utils/health-check/
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /api/v1/utils/health-check/
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
+          volumeMounts:
+            # Shared lake volume — the backend only READS the lake/DuckDB
+            # catalog; platform-worker is the sole writer.
+            - name: lake-data
+              mountPath: /srv/data
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: lake-data
+          persistentVolumeClaim:
+            claimName: {{ include "smartforge.lakeClaimName" . }}
+        - name: tmp
+          emptyDir: {}

@@ -19,14 +19,19 @@ import { sf } from "@/smartforge/api"
 import {
   BarTrend,
   HEX,
+  healthColor,
   KpiTile,
   Loading,
+  metricTrend,
   PageHeader,
   Panel,
-  healthColor,
-  metricTrend,
 } from "@/smartforge/components"
-import type { CommandCenter, Machine, OeeMetric, Page } from "@/smartforge/types"
+import type {
+  CommandCenter,
+  Machine,
+  OeeMetric,
+  Page,
+} from "@/smartforge/types"
 
 export const Route = createFileRoute("/_layout/analytics")({
   component: AnalyticsPage,
@@ -98,7 +103,7 @@ function AnalyticsPage() {
       wos: k.open_work_orders ?? 0,
     }
     setHistory((h) => [...h.slice(-(MAX_POINTS - 1)), point])
-  }, [cc.dataUpdatedAt])
+  }, [cc.data])
 
   const k = cc.data?.kpis ?? {}
   const oeeRows = oee.data?.data ?? []
@@ -108,7 +113,8 @@ function AnalyticsPage() {
   const byShift = Object.values(
     oeeRows.reduce<Record<string, { shift: string; sum: number; n: number }>>(
       (acc, r) => {
-        const s = (acc[r.shift] ??= { shift: r.shift, sum: 0, n: 0 })
+        acc[r.shift] ??= { shift: r.shift, sum: 0, n: 0 }
+        const s = acc[r.shift]
         s.sum += r.oee * 100
         s.n += 1
         return acc
@@ -118,11 +124,15 @@ function AnalyticsPage() {
   ).map((s) => ({ shift: s.shift, oee: +(s.sum / s.n).toFixed(1) }))
 
   const avg = (sel: (o: OeeMetric) => number) =>
-    oeeRows.length ? oeeRows.reduce((a, o) => a + sel(o), 0) / oeeRows.length : 0
+    oeeRows.length
+      ? oeeRows.reduce((a, o) => a + sel(o), 0) / oeeRows.length
+      : 0
 
   const dist = {
     healthy: mach.filter((m) => (m.health_score ?? 0) >= 80).length,
-    atRisk: mach.filter((m) => (m.health_score ?? 0) >= 60 && (m.health_score ?? 0) < 80).length,
+    atRisk: mach.filter(
+      (m) => (m.health_score ?? 0) >= 60 && (m.health_score ?? 0) < 80,
+    ).length,
     critical: mach.filter((m) => (m.health_score ?? 0) < 60).length,
   }
 
@@ -137,29 +147,29 @@ function AnalyticsPage() {
         description="Executive operations intelligence · live global KPIs across the plant."
         actions={
           <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Activity size={13} className="text-success" />
-            updated {lastUpdated}
-          </span>
-          <div className="flex items-center gap-1 rounded-lg border bg-card p-1">
-            <RefreshCw size={13} className="ml-1 text-muted-foreground" />
-            {INTERVALS.map((opt) => (
-              <button
-                key={opt.ms}
-                type="button"
-                onClick={() => setIntervalMs(opt.ms)}
-                className={cn(
-                  "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
-                  intervalMs === opt.ms
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-accent",
-                )}
-              >
-                {opt.label}
-              </button>
-            ))}
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Activity size={13} className="text-success" />
+              updated {lastUpdated}
+            </span>
+            <div className="flex items-center gap-1 rounded-lg border bg-card p-1">
+              <RefreshCw size={13} className="ml-1 text-muted-foreground" />
+              {INTERVALS.map((opt) => (
+                <button
+                  key={opt.ms}
+                  type="button"
+                  onClick={() => setIntervalMs(opt.ms)}
+                  className={cn(
+                    "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                    intervalMs === opt.ms
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-accent",
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
         }
       />
 
@@ -243,20 +253,44 @@ function AnalyticsPage() {
       {/* Real-time time-series (built from the polling cadence) */}
       <div className="grid gap-6 lg:grid-cols-2">
         <Panel title="OEE Trend (%)">
-          <TimeSeries data={history} dataKey="oee" color={HEX.info} domain={[0, 100]} />
+          <TimeSeries
+            data={history}
+            dataKey="oee"
+            color={HEX.info}
+            domain={[0, 100]}
+          />
         </Panel>
         <Panel title="Throughput (units)">
           <TimeSeries data={history} dataKey="throughput" color={HEX.success} />
         </Panel>
         <Panel title="Avg Machine Health">
-          <TimeSeries data={history} dataKey="health" color="var(--primary)" domain={[0, 100]} />
+          <TimeSeries
+            data={history}
+            dataKey="health"
+            color="var(--primary)"
+            domain={[0, 100]}
+          />
         </Panel>
         <Panel title="Alerts & Open Work Orders">
           <ResponsiveContainer width="100%" height={150}>
             <LineChart data={history}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-              <XAxis dataKey="t" stroke="var(--muted-foreground)" fontSize={10} minTickGap={28} />
-              <YAxis stroke="var(--muted-foreground)" fontSize={10} allowDecimals={false} width={28} />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="var(--border)"
+                vertical={false}
+              />
+              <XAxis
+                dataKey="t"
+                stroke="var(--muted-foreground)"
+                fontSize={10}
+                minTickGap={28}
+              />
+              <YAxis
+                stroke="var(--muted-foreground)"
+                fontSize={10}
+                allowDecimals={false}
+                width={28}
+              />
               <Tooltip
                 contentStyle={{
                   background: "var(--popover)",
@@ -265,16 +299,38 @@ function AnalyticsPage() {
                   fontSize: 12,
                 }}
               />
-              <Line type="monotone" dataKey="alerts" stroke={HEX.danger} strokeWidth={2} dot={false} isAnimationActive={false} />
-              <Line type="monotone" dataKey="wos" stroke={HEX.warning} strokeWidth={2} dot={false} isAnimationActive={false} />
+              <Line
+                type="monotone"
+                dataKey="alerts"
+                stroke={HEX.danger}
+                strokeWidth={2}
+                dot={false}
+                isAnimationActive={false}
+              />
+              <Line
+                type="monotone"
+                dataKey="wos"
+                stroke={HEX.warning}
+                strokeWidth={2}
+                dot={false}
+                isAnimationActive={false}
+              />
             </LineChart>
           </ResponsiveContainer>
           <div className="mt-2 flex gap-4 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
-              <i className="size-2 rounded-full" style={{ background: HEX.danger }} /> Active alerts
+              <i
+                className="size-2 rounded-full"
+                style={{ background: HEX.danger }}
+              />{" "}
+              Active alerts
             </span>
             <span className="flex items-center gap-1">
-              <i className="size-2 rounded-full" style={{ background: HEX.warning }} /> Open work orders
+              <i
+                className="size-2 rounded-full"
+                style={{ background: HEX.warning }}
+              />{" "}
+              Open work orders
             </span>
           </div>
         </Panel>
@@ -284,7 +340,13 @@ function AnalyticsPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         <Panel title="OEE by Shift (%)">
           {byShift.length > 0 ? (
-            <BarTrend data={byShift} dataKey="oee" xKey="shift" color={HEX.info} height={200} />
+            <BarTrend
+              data={byShift}
+              dataKey="oee"
+              xKey="shift"
+              color={HEX.info}
+              height={200}
+            />
           ) : (
             <p className="text-sm text-muted-foreground">No OEE records.</p>
           )}
@@ -294,16 +356,32 @@ function AnalyticsPage() {
           {/* each component links to Quality (its source). */}
           <div className="space-y-3">
             <Link to="/quality" className={STAT_CLS}>
-              <MeterRow label="Availability" value={avg((o) => o.availability) * 100} color={HEX.success} />
+              <MeterRow
+                label="Availability"
+                value={avg((o) => o.availability) * 100}
+                color={HEX.success}
+              />
             </Link>
             <Link to="/quality" className={STAT_CLS}>
-              <MeterRow label="Performance" value={avg((o) => o.performance) * 100} color={HEX.info} />
+              <MeterRow
+                label="Performance"
+                value={avg((o) => o.performance) * 100}
+                color={HEX.info}
+              />
             </Link>
             <Link to="/quality" className={STAT_CLS}>
-              <MeterRow label="Quality" value={avg((o) => o.quality) * 100} color="var(--primary)" />
+              <MeterRow
+                label="Quality"
+                value={avg((o) => o.quality) * 100}
+                color="var(--primary)"
+              />
             </Link>
             <Link to="/quality" className={STAT_CLS}>
-              <MeterRow label="Rework rate" value={avg((o) => o.rework_rate) * 100} color={HEX.warning} />
+              <MeterRow
+                label="Rework rate"
+                value={avg((o) => o.rework_rate) * 100}
+                color={HEX.warning}
+              />
             </Link>
           </div>
         </Panel>
@@ -311,13 +389,25 @@ function AnalyticsPage() {
         <Panel title="Fleet Health Distribution">
           <div className="grid grid-cols-3 gap-3 text-center">
             <Link to="/machines" className={STAT_CLS}>
-              <DistTile label="Healthy" value={dist.healthy} color={HEX.success} />
+              <DistTile
+                label="Healthy"
+                value={dist.healthy}
+                color={HEX.success}
+              />
             </Link>
             <Link to="/machines" className={STAT_CLS}>
-              <DistTile label="At risk" value={dist.atRisk} color={HEX.warning} />
+              <DistTile
+                label="At risk"
+                value={dist.atRisk}
+                color={HEX.warning}
+              />
             </Link>
             <Link to="/machines" className={STAT_CLS}>
-              <DistTile label="Critical" value={dist.critical} color={HEX.danger} />
+              <DistTile
+                label="Critical"
+                value={dist.critical}
+                color={HEX.danger}
+              />
             </Link>
           </div>
           <ul className="mt-4 space-y-1">
@@ -328,7 +418,9 @@ function AnalyticsPage() {
                   className="-mx-2 flex items-center justify-between rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent"
                 >
                   <span>{m.code}</span>
-                  <span className={`font-semibold ${healthColor(m.health)}`}>{m.health}</span>
+                  <span className={`font-semibold ${healthColor(m.health)}`}>
+                    {m.health}
+                  </span>
                 </Link>
               </li>
             ))}
@@ -360,13 +452,28 @@ function TimeSeries({
     <ResponsiveContainer width="100%" height={150}>
       <AreaChart data={data}>
         <defs>
-          <linearGradient id={`g-${String(dataKey)}`} x1="0" y1="0" x2="0" y2="1">
+          <linearGradient
+            id={`g-${String(dataKey)}`}
+            x1="0"
+            y1="0"
+            x2="0"
+            y2="1"
+          >
             <stop offset="0%" stopColor={color} stopOpacity={0.35} />
             <stop offset="100%" stopColor={color} stopOpacity={0} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-        <XAxis dataKey="t" stroke="var(--muted-foreground)" fontSize={10} minTickGap={28} />
+        <CartesianGrid
+          strokeDasharray="3 3"
+          stroke="var(--border)"
+          vertical={false}
+        />
+        <XAxis
+          dataKey="t"
+          stroke="var(--muted-foreground)"
+          fontSize={10}
+          minTickGap={28}
+        />
         <YAxis
           stroke="var(--muted-foreground)"
           fontSize={10}
@@ -394,7 +501,15 @@ function TimeSeries({
   )
 }
 
-function MeterRow({ label, value, color }: { label: string; value: number; color: string }) {
+function MeterRow({
+  label,
+  value,
+  color,
+}: {
+  label: string
+  value: number
+  color: string
+}) {
   const pct = Math.max(0, Math.min(100, value))
   return (
     <div>
@@ -403,13 +518,24 @@ function MeterRow({ label, value, color }: { label: string; value: number; color
         <span className="font-semibold tabular-nums">{pct.toFixed(1)}%</span>
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-muted">
-        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
+        <div
+          className="h-full rounded-full"
+          style={{ width: `${pct}%`, background: color }}
+        />
       </div>
     </div>
   )
 }
 
-function DistTile({ label, value, color }: { label: string; value: number; color: string }) {
+function DistTile({
+  label,
+  value,
+  color,
+}: {
+  label: string
+  value: number
+  color: string
+}) {
   return (
     <div className="rounded-lg border bg-muted/30 p-3">
       <div className="text-2xl font-semibold tabular-nums" style={{ color }}>

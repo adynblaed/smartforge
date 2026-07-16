@@ -1,0 +1,112 @@
+# SmartForge — production overlay. Apply on top of values.yaml:
+#   helm upgrade --install smartforge ./smartforge -n smartforge \
+#     -f smartforge/values.yaml -f smartforge/values-production.yaml
+
+domain: smartforge.futureform.com
+environment: production
+
+image:
+  backend:
+    repository: ghcr.io/futureform/smartforge-backend
+    tag: v1.0.0
+  frontend:
+    # Built with VITE_API_URL=https://api.smartforge.futureform.com
+    repository: ghcr.io/futureform/smartforge-frontend
+    tag: v1.0.0
+
+imagePullSecrets:
+  - name: ghcr-pull
+
+backend:
+  replicas: 3
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 70
+  pdb:
+    enabled: true
+    minAvailable: 2
+  resources:
+    requests:
+      cpu: 500m
+      memory: 768Mi
+    limits:
+      cpu: "2"
+      memory: 1536Mi
+
+frontend:
+  replicas: 2
+  pdb:
+    enabled: true
+    minAvailable: 1
+
+platformWorker:
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 4Gi
+
+platform:
+  env: production
+  duckdb:
+    memoryLimit: 3GB
+
+postgres:
+  host: smartforge-prod-db.internal   # managed Postgres (RDS/CloudNativePG)
+  db: app
+  user: smartforge
+  existingSecret: smartforge-postgres
+
+warehouse:
+  existingSecret: smartforge-warehouse
+
+oracle:
+  host: omega-db.internal
+  serviceName: OMEGAPDB1
+  existingSecret: smartforge-oracle
+
+secrets:
+  allowInlineDev: false
+  app:
+    existingSecret: smartforge-app
+  anthropic:
+    existingSecret: smartforge-anthropic
+
+lake:
+  storage:
+    size: 100Gi
+    # RWX in production: decouples backend scheduling from the platform-worker
+    # node. Requires an RWX-capable StorageClass (EFS/Filestore/CephFS/NFS).
+    # The single-WRITER invariant is unchanged: only platform-worker writes.
+    accessMode: ReadWriteMany
+    className: efs-sc
+
+redis:
+  # In-chart single-node Redis. For HA prefer a managed Redis or the Bitnami
+  # chart: set enabled=false and point externalHost at the endpoint.
+  enabled: true
+  storage:
+    size: 2Gi
+
+qdrant:
+  storage:
+    size: 50Gi
+
+ingress:
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+
+monitoring:
+  serviceMonitor:
+    enabled: true
+    additionalLabels:
+      release: kube-prometheus-stack
+
+networkPolicy:
+  enabled: true
+  ingressControllerNamespace: ingress-nginx

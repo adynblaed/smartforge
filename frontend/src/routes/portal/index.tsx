@@ -2,8 +2,8 @@ import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, Link } from "@tanstack/react-router"
 
 import { Button } from "@/components/ui/button"
-import { Loading, PageHeader, Panel } from "@/smartforge/components"
 import { sf } from "@/smartforge/api"
+import { Loading, PageHeader, Panel } from "@/smartforge/components"
 import { POLL } from "@/smartforge/constants"
 import type { CustomerOrder, Page } from "@/smartforge/types"
 
@@ -34,7 +34,9 @@ function StageTimeline({ stage }: { stage: string }) {
           />
           <span
             className={`text-[10px] capitalize ${
-              i === idx ? "font-semibold text-foreground" : "text-muted-foreground"
+              i === idx
+                ? "font-semibold text-foreground"
+                : "text-muted-foreground"
             }`}
           >
             {s.replace("_", " ")}
@@ -86,7 +88,9 @@ function PortalDashboard() {
             </div>
             <StageTimeline stage={o.stage} />
             {o.delayed && o.delay_reason && (
-              <p className="mt-3 text-sm text-danger">Notice: {o.delay_reason}</p>
+              <p className="mt-3 text-sm text-danger">
+                Notice: {o.delay_reason}
+              </p>
             )}
             <div className="mt-4">
               <Button asChild size="sm" variant="outline">

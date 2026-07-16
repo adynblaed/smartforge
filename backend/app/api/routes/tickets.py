@@ -12,7 +12,7 @@ from datetime import timedelta
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
-from sqlmodel import desc, func, select
+from sqlmodel import col, desc, func, select
 
 from app.api.deps import InternalUser, SessionDep
 from app.models import (
@@ -48,7 +48,9 @@ def _machine_codes(session: SessionDep) -> dict[uuid.UUID, str]:
     return {m.id: m.code for m in session.exec(select(Machine)).all()}
 
 
-def _ticket_detail(ticket: MaintenanceTicket, session: SessionDep) -> MaintenanceTicketDetail:
+def _ticket_detail(
+    ticket: MaintenanceTicket, session: SessionDep
+) -> MaintenanceTicketDetail:
     machine = session.get(Machine, ticket.machine_id) if ticket.machine_id else None
     sop = session.get(Sop, ticket.sop_id) if ticket.sop_id else None
     incident = session.get(Incident, ticket.incident_id) if ticket.incident_id else None
@@ -65,8 +67,14 @@ def _ticket_detail(ticket: MaintenanceTicket, session: SessionDep) -> Maintenanc
         )
     ).all()
     for p in part_rows:
-        inv = session.get(InventoryItem, p.inventory_item_id) if p.inventory_item_id else None
-        sup = session.get(Supplier, inv.supplier_id) if inv and inv.supplier_id else None
+        inv = (
+            session.get(InventoryItem, p.inventory_item_id)
+            if p.inventory_item_id
+            else None
+        )
+        sup = (
+            session.get(Supplier, inv.supplier_id) if inv and inv.supplier_id else None
+        )
         on_hand = inv.quantity if inv else 0.0
         lead = sup.lead_time_days if sup else 0
         parts.append(
@@ -91,7 +99,7 @@ def _ticket_detail(ticket: MaintenanceTicket, session: SessionDep) -> Maintenanc
     log_rows = session.exec(
         select(MaintenanceTicketLog)
         .where(MaintenanceTicketLog.ticket_id == ticket.id)
-        .order_by(MaintenanceTicketLog.created_at)
+        .order_by(col(MaintenanceTicketLog.created_at))
     ).all()
     logs = [TicketLogPublic(**log.model_dump()) for log in log_rows]
 
@@ -253,8 +261,16 @@ def ticket_from_alert(
         ),
         operator_detail=(
             f"Rule '{alert.rule}' triggered: {alert.message}."
-            + (f" Recommended: {alert.recommended_action}" if alert.recommended_action else "")
-            + (f" Suggested window: {alert.suggested_window}." if alert.suggested_window else "")
+            + (
+                f" Recommended: {alert.recommended_action}"
+                if alert.recommended_action
+                else ""
+            )
+            + (
+                f" Suggested window: {alert.suggested_window}."
+                if alert.suggested_window
+                else ""
+            )
         ),
         remediation=(
             (alert.recommended_action or "Inspect and service per SOP.")
@@ -301,7 +317,9 @@ def tickets_by_incident(session: SessionDep, _user: InternalUser) -> Any:
 def read_references(session: SessionDep, _user: InternalUser) -> Any:
     """Everything @-referenceable from a ticket note: tickets, SOPs, KB docs."""
     refs: list[TicketReference] = []
-    for t in session.exec(select(MaintenanceTicket).order_by(MaintenanceTicket.code)).all():
+    for t in session.exec(
+        select(MaintenanceTicket).order_by(MaintenanceTicket.code)
+    ).all():
         refs.append(TicketReference(code=t.code, kind="ticket", id=t.id, title=t.title))
     for s in session.exec(select(Sop).order_by(Sop.code)).all():
         refs.append(TicketReference(code=s.code, kind="sop", id=s.id, title=s.title))

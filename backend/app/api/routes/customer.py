@@ -33,11 +33,13 @@ CONFIDENCE_ESCALATION_THRESHOLD = settings.ESCALATION_CONFIDENCE_THRESHOLD
 
 @router.get("/orders", response_model=CustomerOrdersPublic)
 def my_orders(session: SessionDep, user: CustomerUser) -> Any:
-    rows = list(session.exec(
-        select(CustomerOrder)
-        .where(CustomerOrder.customer_id == user.customer_id)
-        .order_by(desc(CustomerOrder.created_at))
-    ).all())
+    rows = list(
+        session.exec(
+            select(CustomerOrder)
+            .where(CustomerOrder.customer_id == user.customer_id)
+            .order_by(desc(CustomerOrder.created_at))
+        ).all()
+    )
     return CustomerOrdersPublic(data=rows, count=len(rows))
 
 
@@ -54,9 +56,11 @@ async def customer_ask(
     payload: AskRequest, session: SessionDep, user: CustomerUser
 ) -> Any:
     # Build a customer-safe context from this customer's own orders only.
-    orders = list(session.exec(
-        select(CustomerOrder).where(CustomerOrder.customer_id == user.customer_id)
-    ).all())
+    orders = list(
+        session.exec(
+            select(CustomerOrder).where(CustomerOrder.customer_id == user.customer_id)
+        ).all()
+    )
     order_ctx = "\n".join(
         f"Order {o.order_number}: {o.part_type} x{o.quantity}, stage {o.stage.value}, "
         f"ETA {o.estimated_completion}, delayed={o.delayed}"
@@ -65,22 +69,27 @@ async def customer_ask(
     question = f"{payload.question}\n\n[Customer orders]\n{order_ctx}"
     resp = await askai.answer(session, question, customer_safe=True)
     msg = CustomerMessage(
-        customer_id=user.customer_id, question=payload.question,
-        answer=resp.answer, confidence=resp.confidence,
+        customer_id=user.customer_id,
+        question=payload.question,
+        answer=resp.answer,
+        confidence=resp.confidence,
         escalated=resp.confidence < CONFIDENCE_ESCALATION_THRESHOLD,
     )
     session.add(msg)
     session.commit()
     # Privacy: never persist the raw question text in the audit trail.
-    write_audit(session, actor=user, action="customer.ask",
-                entity_type="customer_message", entity_id=msg.id)
+    write_audit(
+        session,
+        actor=user,
+        action="customer.ask",
+        entity_type="customer_message",
+        entity_id=msg.id,
+    )
     return resp
 
 
 @router.post("/escalate", response_model=EscalationPublic)
-def escalate(
-    payload: EscalationCreate, session: SessionDep, user: CustomerUser
-) -> Any:
+def escalate(payload: EscalationCreate, session: SessionDep, user: CustomerUser) -> Any:
     # Prevent IDOR: a customer may only escalate against their OWN order.
     if payload.order_id is not None:
         order = session.get(CustomerOrder, payload.order_id)
@@ -97,24 +106,31 @@ def escalate(
     session.add(esc)
     session.commit()
     session.refresh(esc)
-    write_audit(session, actor=user, action="customer.escalate",
-                entity_type="escalation", entity_id=esc.id)
+    write_audit(
+        session,
+        actor=user,
+        action="customer.escalate",
+        entity_type="escalation",
+        entity_id=esc.id,
+    )
     return esc
 
 
 # ---- Internal side of escalations (5E) ----
 @router.get("/escalations", response_model=EscalationsPublic)
 def list_escalations(session: SessionDep, _user: InternalUser) -> Any:
-    rows = list(session.exec(
-        select(Escalation).order_by(desc(Escalation.created_at))
-    ).all())
+    rows = list(
+        session.exec(select(Escalation).order_by(desc(Escalation.created_at))).all()
+    )
     return EscalationsPublic(data=rows, count=len(rows))
 
 
 @router.post("/escalations/{escalation_id}/respond", response_model=EscalationPublic)
 def respond_escalation(
-    escalation_id: uuid.UUID, payload: HumanResponse,
-    session: SessionDep, user: InternalUser,
+    escalation_id: uuid.UUID,
+    payload: HumanResponse,
+    session: SessionDep,
+    user: InternalUser,
 ) -> Any:
     esc = session.get(Escalation, escalation_id)
     if not esc:
@@ -125,6 +141,11 @@ def respond_escalation(
     session.add(esc)
     session.commit()
     session.refresh(esc)
-    write_audit(session, actor=user, action="escalation.respond",
-                entity_type="escalation", entity_id=esc.id)
+    write_audit(
+        session,
+        actor=user,
+        action="escalation.respond",
+        entity_type="escalation",
+        entity_id=esc.id,
+    )
     return esc

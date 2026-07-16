@@ -1,6 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { CalendarClock, CalendarDays, Check, ChevronRight, Pencil, X } from "lucide-react"
+import {
+  CalendarClock,
+  CalendarDays,
+  Check,
+  ChevronRight,
+  Pencil,
+  X,
+} from "lucide-react"
 import type { ReactNode } from "react"
 import { useMemo, useState } from "react"
 
@@ -157,7 +164,10 @@ function buildSchedule(
   const lineLabel = new Map<string, string>()
   machines.forEach((m) => {
     if (m.line_id && !lineLabel.has(m.line_id))
-      lineLabel.set(m.line_id, `Line ${String.fromCharCode(65 + lineLabel.size)}`)
+      lineLabel.set(
+        m.line_id,
+        `Line ${String.fromCharCode(65 + lineLabel.size)}`,
+      )
   })
   const cnc = machines.find((m) => m.machine_type === "cnc_mill")
 
@@ -199,9 +209,16 @@ function buildSchedule(
 }
 
 const fmtSchedDate = (d: Date) =>
-  d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })
+  d.toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  })
 
-const REORDER_BADGE: Record<Exclude<ReorderStatus, "pending">, { label: string; color: string }> = {
+const REORDER_BADGE: Record<
+  Exclude<ReorderStatus, "pending">,
+  { label: string; color: string }
+> = {
   approved: { label: "Approved", color: "var(--success)" },
   adjusted: { label: "Adjusted", color: "var(--info)" },
   cancelled: { label: "Cancelled", color: "var(--danger)" },
@@ -229,7 +246,9 @@ function SupplyChainPage() {
     queryFn: () => sf.get<Page<Machine>>("/machines"),
   })
 
-  const supplierById = new Map((suppliers?.data ?? []).map((s) => [s.id, s.name]))
+  const supplierById = new Map(
+    (suppliers?.data ?? []).map((s) => [s.id, s.name]),
+  )
   const supplierFull = new Map((suppliers?.data ?? []).map((s) => [s.id, s]))
   const itemById = new Map((inv?.data ?? []).map((i) => [i.id, i]))
   const poById = new Map((pos?.data ?? []).map((p) => [p.id, p]))
@@ -254,7 +273,10 @@ function SupplyChainPage() {
   })
   const persisted = new Map((reorderData?.data ?? []).map((r) => [r.sku, r]))
 
-  const [dialog, setDialog] = useState<{ action: ReorderAction; sku: string } | null>(null)
+  const [dialog, setDialog] = useState<{
+    action: ReorderAction
+    sku: string
+  } | null>(null)
   const { showSuccessToast, showErrorToast } = useCustomToast()
   const { user } = useAuth()
   const username = userDisplayName(user)
@@ -282,7 +304,8 @@ function SupplyChainPage() {
       showSuccessToast(`Reorder for ${row.sku} ${verb} by ${username}.`)
       setDialog(null)
     },
-    onError: () => showErrorToast("Could not save the reorder action. Please retry."),
+    onError: () =>
+      showErrorToast("Could not save the reorder action. Please retry."),
   })
 
   const reorderState = (r: ScheduledReorder): ReorderState => {
@@ -296,7 +319,12 @@ function SupplyChainPage() {
     ? schedule.find((s) => s.item.sku === dialog.sku)
     : undefined
 
-  const applyAction = (action: ReorderAction, sku: string, qty: number, reason?: string) => {
+  const applyAction = (
+    action: ReorderAction,
+    sku: string,
+    qty: number,
+    reason?: string,
+  ) => {
     const r = schedule.find((s) => s.item.sku === sku)
     actionMutation.mutate({
       sku,
@@ -319,7 +347,11 @@ function SupplyChainPage() {
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Link to="/order-tracker" className={SC_STAT_CLS}>
-          <KpiTile label="SKUs Tracked" value={inv?.count ?? 0} {...metricTrend("skus")} />
+          <KpiTile
+            label="SKUs Tracked"
+            value={inv?.count ?? 0}
+            {...metricTrend("skus")}
+          />
         </Link>
         <Link to="/order-tracker" className={SC_STAT_CLS}>
           <KpiTile
@@ -342,7 +374,10 @@ function SupplyChainPage() {
       {/* master-detail: tables (left) + a shared detail pane (right) */}
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,400px)]">
         <div className="space-y-6">
-          <CollapsiblePanel title="Supplier Risk" count={suppliers?.data.length}>
+          <CollapsiblePanel
+            title="Supplier Risk"
+            count={suppliers?.data.length}
+          >
             <ul className="space-y-1">
               {suppliers?.data.map((s) => (
                 <li key={s.id}>
@@ -351,13 +386,17 @@ function SupplyChainPage() {
                     onClick={() => setSel({ kind: "supplier", id: s.id })}
                     className={cn(
                       "-mx-2 flex w-full items-center justify-between rounded-md px-2 py-2 text-left text-sm transition-colors",
-                      sel?.kind === "supplier" && sel.id === s.id ? "bg-accent" : "hover:bg-accent/50",
+                      sel?.kind === "supplier" && sel.id === s.id
+                        ? "bg-accent"
+                        : "hover:bg-accent/50",
                     )}
                   >
                     <span>{s.name}</span>
                     <span className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span>{s.lead_time_days}d lead</span>
-                      <StatusBadge value={s.status === "ok" ? "running" : "high"} />
+                      <StatusBadge
+                        value={s.status === "ok" ? "running" : "high"}
+                      />
                     </span>
                   </button>
                 </li>
@@ -383,7 +422,12 @@ function SupplyChainPage() {
                   selectedSku={sel?.kind === "reorder" ? sel.id : null}
                 />
                 <ReorderSection
-                  icon={<CalendarClock size={15} className="text-muted-foreground" />}
+                  icon={
+                    <CalendarClock
+                      size={15}
+                      className="text-muted-foreground"
+                    />
+                  }
                   title="Upcoming Week"
                   subtitle={`${weekReorders.length} scheduled`}
                   reorders={weekReorders}
@@ -415,15 +459,21 @@ function SupplyChainPage() {
                     onClick={() => setSel({ kind: "inventory", id: i.id })}
                     className={cn(
                       "cursor-pointer border-b transition-colors hover:bg-accent/40",
-                      sel?.kind === "inventory" && sel.id === i.id && "bg-accent",
+                      sel?.kind === "inventory" &&
+                        sel.id === i.id &&
+                        "bg-accent",
                     )}
                   >
                     <td className="py-2 pr-4 font-medium">{i.sku}</td>
                     <td className="py-2 pr-4">{i.name}</td>
                     <td className="py-2 pr-4 tabular-nums">{i.quantity}</td>
-                    <td className="py-2 pr-4 tabular-nums">{i.reorder_threshold}</td>
+                    <td className="py-2 pr-4 tabular-nums">
+                      {i.reorder_threshold}
+                    </td>
                     <td className="py-2">
-                      <StatusBadge value={i.below_threshold ? "high" : "running"} />
+                      <StatusBadge
+                        value={i.below_threshold ? "high" : "running"}
+                      />
                     </td>
                   </tr>
                 ))}
@@ -431,12 +481,18 @@ function SupplyChainPage() {
             </table>
           </CollapsiblePanel>
 
-          <CollapsiblePanel title="PO Operations" count={pos?.data.length} defaultOpen={false}>
+          <CollapsiblePanel
+            title="PO Operations"
+            count={pos?.data.length}
+            defaultOpen={false}
+          >
             <div className="mb-3 inline-flex rounded-lg border bg-muted/30 p-0.5 text-xs">
-              {([
-                ["list", "List"],
-                ["board", "Status board"],
-              ] as const).map(([k, label]) => (
+              {(
+                [
+                  ["list", "List"],
+                  ["board", "Status board"],
+                ] as const
+              ).map(([k, label]) => (
                 <button
                   key={k}
                   type="button"
@@ -464,7 +520,9 @@ function SupplyChainPage() {
                   />
                 ))}
                 {(pos?.data.length ?? 0) === 0 && (
-                  <p className="text-sm text-muted-foreground">No purchase orders.</p>
+                  <p className="text-sm text-muted-foreground">
+                    No purchase orders.
+                  </p>
                 )}
               </div>
             ) : (
@@ -484,7 +542,9 @@ function SupplyChainPage() {
             sel={sel}
             po={sel?.kind === "po" ? poById.get(sel.id) : undefined}
             item={sel?.kind === "inventory" ? itemById.get(sel.id) : undefined}
-            supplier={sel?.kind === "supplier" ? supplierFull.get(sel.id) : undefined}
+            supplier={
+              sel?.kind === "supplier" ? supplierFull.get(sel.id) : undefined
+            }
             supplierName={
               sel?.kind === "po"
                 ? poById.get(sel.id)?.supplier_id
@@ -504,7 +564,9 @@ function SupplyChainPage() {
             }
             itemPOs={
               sel?.kind === "inventory"
-                ? (pos?.data ?? []).filter((p) => p.inventory_item_id === sel.id)
+                ? (pos?.data ?? []).filter(
+                    (p) => p.inventory_item_id === sel.id,
+                  )
                 : undefined
             }
             itemReorder={
@@ -650,8 +712,10 @@ function ReorderRow({
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
             <span>
               {reorder.machineName}{" "}
-              <span className="text-muted-foreground/70">({reorder.machineCode})</span> ·{" "}
-              {reorder.line}
+              <span className="text-muted-foreground/70">
+                ({reorder.machineCode})
+              </span>{" "}
+              · {reorder.line}
             </span>
             <span className="tabular-nums">Order: {state.qty}</span>
             {showDate && (
@@ -723,7 +787,11 @@ function ReorderActionDialog({
   const isCancel = action === "cancel"
   const isAdjust = action === "adjust"
   const title =
-    action === "approve" ? "Approve reorder" : isCancel ? "Cancel reorder" : "Edit reorder"
+    action === "approve"
+      ? "Approve reorder"
+      : isCancel
+        ? "Cancel reorder"
+        : "Edit reorder"
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
@@ -739,10 +807,14 @@ function ReorderActionDialog({
           {isAdjust ? (
             <>
               <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                <label
+                  htmlFor="reorder-qty"
+                  className="mb-1 block text-xs font-medium text-muted-foreground"
+                >
                   Order quantity
                 </label>
                 <input
+                  id="reorder-qty"
                   type="number"
                   min={0}
                   value={qty}
@@ -751,10 +823,14 @@ function ReorderActionDialog({
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                <label
+                  htmlFor="reorder-reason"
+                  className="mb-1 block text-xs font-medium text-muted-foreground"
+                >
                   Reason for change
                 </label>
                 <textarea
+                  id="reorder-reason"
                   rows={3}
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
@@ -768,7 +844,9 @@ function ReorderActionDialog({
               {isCancel
                 ? "This reorder will be cancelled and removed from the schedule."
                 : "This reorder will be approved and submitted for procurement."}{" "}
-              <span className="text-foreground">Order quantity: {state.qty}.</span>
+              <span className="text-foreground">
+                Order quantity: {state.qty}.
+              </span>
             </p>
           )}
         </div>
@@ -777,7 +855,12 @@ function ReorderActionDialog({
           <Button
             variant={isCancel ? "destructive" : "default"}
             disabled={pending}
-            onClick={() => onConfirm(isAdjust ? qty : state.qty, isAdjust ? reason : undefined)}
+            onClick={() =>
+              onConfirm(
+                isAdjust ? qty : state.qty,
+                isAdjust ? reason : undefined,
+              )
+            }
           >
             Sign off on {ACTION_NOUN[action]} as {username}
           </Button>
@@ -794,7 +877,13 @@ function ReorderActionDialog({
 const PO_STATUS = ["draft", "open", "received"] as const
 
 const fmtDate = (d: Date | null) =>
-  d ? d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "—"
+  d
+    ? d.toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "—"
 
 // Derive initiation + most-recent-move date and current location from status.
 function poTimeline(po: PurchaseOrder) {
@@ -868,24 +957,38 @@ function POStatusBoard({
                         selectedId === p.id && "bg-accent",
                       )}
                     >
-                      <td className="py-2 pr-4 font-medium text-primary">{p.po_number}</td>
+                      <td className="py-2 pr-4 font-medium text-primary">
+                        {p.po_number}
+                      </td>
                       <td className="py-2 pr-4">
                         <OrderStatusBadge status={p.status} />
                       </td>
-                      <td className="py-2 pr-4 tabular-nums text-muted-foreground">{fmtDate(init)}</td>
-                      <td className="py-2 pr-4 tabular-nums text-muted-foreground">{fmtDate(move)}</td>
+                      <td className="py-2 pr-4 tabular-nums text-muted-foreground">
+                        {fmtDate(init)}
+                      </td>
+                      <td className="py-2 pr-4 tabular-nums text-muted-foreground">
+                        {fmtDate(move)}
+                      </td>
                       <td className="py-2 pr-4">{location}</td>
                       <td className="py-2 pr-4 text-muted-foreground">
-                        {p.supplier_id ? supplierById.get(p.supplier_id) ?? "—" : "—"}
+                        {p.supplier_id
+                          ? (supplierById.get(p.supplier_id) ?? "—")
+                          : "—"}
                       </td>
-                      <td className="py-2 text-right tabular-nums">${p.amount.toLocaleString()}</td>
+                      <td className="py-2 text-right tabular-nums">
+                        ${p.amount.toLocaleString()}
+                      </td>
                     </tr>
                   )
                 })}
                 {t.rows.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="py-4 text-center text-sm text-muted-foreground">
-                      No {t.k === "all" ? "" : t.label.toLowerCase()} purchase orders.
+                    <td
+                      colSpan={7}
+                      className="py-4 text-center text-sm text-muted-foreground"
+                    >
+                      No {t.k === "all" ? "" : t.label.toLowerCase()} purchase
+                      orders.
                     </td>
                   </tr>
                 )}
@@ -929,7 +1032,9 @@ function POOpRow({
 function Field({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="rounded-md border bg-muted/30 p-2">
-      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+        {label}
+      </div>
       <div className="mt-0.5 font-medium">{value}</div>
     </div>
   )
@@ -1003,12 +1108,21 @@ function SupplyDetail({
           )}
         </div>
         <div className="grid grid-cols-2 gap-2 text-xs">
-          <Field label="Machine" value={`${reorder.machineName} (${reorder.machineCode})`} />
+          <Field
+            label="Machine"
+            value={`${reorder.machineName} (${reorder.machineCode})`}
+          />
           <Field label="Line" value={reorder.line} />
           <Field label="Order qty" value={st.qty.toLocaleString()} />
           <Field label="Scheduled" value={fmtSchedDate(reorder.date)} />
-          <Field label="On hand" value={reorder.item.quantity.toLocaleString()} />
-          <Field label="Reorder at" value={reorder.item.reorder_threshold.toLocaleString()} />
+          <Field
+            label="On hand"
+            value={reorder.item.quantity.toLocaleString()}
+          />
+          <Field
+            label="Reorder at"
+            value={reorder.item.reorder_threshold.toLocaleString()}
+          />
           {st.reason && (
             <div className="col-span-2">
               <Field label="Reason" value={st.reason} />
@@ -1070,7 +1184,10 @@ function SupplyDetail({
           <Field label="Initiated" value={fmtDate(init)} />
           <Field label="Last move" value={fmtDate(move)} />
           <Field label="Linked job" value={po.job_id ? "Yes" : "—"} />
-          <Field label="Shop floor" value={po.shop_floor_ready ? "Ready" : "Pending"} />
+          <Field
+            label="Shop floor"
+            value={po.shop_floor_ready ? "Ready" : "Pending"}
+          />
         </div>
         <Link
           to="/order-tracker"
@@ -1113,7 +1230,9 @@ function SupplyDetail({
             </span>
             <span className="text-sm font-semibold tabular-nums">
               {item.quantity.toLocaleString()}{" "}
-              <span className="text-xs font-normal text-muted-foreground">{unit}</span>
+              <span className="text-xs font-normal text-muted-foreground">
+                {unit}
+              </span>
             </span>
           </div>
           <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
@@ -1133,7 +1252,10 @@ function SupplyDetail({
             label="Status"
             value={item.below_threshold ? "Below threshold" : "In stock"}
           />
-          <Field label="Shortfall" value={shortfall ? shortfall.toLocaleString() : "—"} />
+          <Field
+            label="Shortfall"
+            value={shortfall ? shortfall.toLocaleString() : "—"}
+          />
           <Field label="Material" value={item.material_type ?? "—"} />
           <Field label="Unit" value={unit} />
           <Field label="Supplier" value={itemSupplier?.name ?? "—"} />
@@ -1157,7 +1279,9 @@ function SupplyDetail({
                     search={{ po: p.id }}
                     className="-mx-1 flex items-center justify-between gap-2 rounded-md px-1 py-1 text-sm hover:bg-accent/50"
                   >
-                    <span className="font-medium text-primary">{p.po_number}</span>
+                    <span className="font-medium text-primary">
+                      {p.po_number}
+                    </span>
                     <span className="flex items-center gap-2">
                       <OrderStatusBadge status={p.status} />
                       <span className="tabular-nums text-muted-foreground">
@@ -1169,7 +1293,9 @@ function SupplyDetail({
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-muted-foreground">No linked purchase orders.</p>
+            <p className="text-sm text-muted-foreground">
+              No linked purchase orders.
+            </p>
           )}
         </div>
 
@@ -1192,7 +1318,9 @@ function SupplyDetail({
                   {reorderBadge.label}
                 </span>
               ) : (
-                <span className="text-[11px] text-muted-foreground">Not yet scheduled</span>
+                <span className="text-[11px] text-muted-foreground">
+                  Not yet scheduled
+                </span>
               )}
             </div>
             {itemReorder?.signed_off_by && (
@@ -1207,7 +1335,9 @@ function SupplyDetail({
                 onClick={() => onReorder(item.sku)}
               >
                 <Check size={14} />
-                {reorderBadge?.label === "Approved" ? "Re-approve reorder" : "Approve reorder"}
+                {reorderBadge?.label === "Approved"
+                  ? "Re-approve reorder"
+                  : "Approve reorder"}
               </Button>
             )}
           </div>

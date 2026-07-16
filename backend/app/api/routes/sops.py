@@ -8,8 +8,8 @@ import uuid
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
-from sqlalchemy import and_
-from sqlmodel import select
+from sqlalchemy import ColumnElement, and_
+from sqlmodel import col, select
 
 from app.api.deps import InternalUser, SessionDep
 from app.models import (
@@ -41,7 +41,7 @@ def _sop_detail(sop: Sop, session: SessionDep) -> SopDetailPublic:
     sections = session.exec(
         select(SopSection)
         .where(SopSection.sop_id == sop.id)
-        .order_by(SopSection.order_index)
+        .order_by(col(SopSection.order_index))
     ).all()
     machine_code = None
     if sop.machine_id:
@@ -65,13 +65,13 @@ def read_sops(
 ) -> Any:
     """List SOPs, optionally filtered by category or by machine code (e.g.
     ``?machine=cnc-01``) so other pages can deep-link a machine's procedures."""
-    clauses = []
+    clauses: list[ColumnElement[bool]] = []
     if category:
-        clauses.append(Sop.category == category)
+        clauses.append(col(Sop.category) == category)
     if machine:
         m = session.exec(select(Machine).where(Machine.code == machine)).first()
         # Unknown machine code → empty result rather than the full list.
-        clauses.append(Sop.machine_id == (m.id if m else None))
+        clauses.append(col(Sop.machine_id) == (m.id if m else None))
     where = and_(*clauses) if clauses else None
     rows, count = list_and_count(
         session, Sop, skip=skip, limit=limit, where=where, order_by=Sop.code
@@ -111,6 +111,12 @@ def update_sop(
         session.add(sec)
     session.commit()
     session.refresh(sop)
-    write_audit(session, actor=user, action="sop.update",
-                entity_type="sop", entity_id=str(sop.id), detail=sop.code)
+    write_audit(
+        session,
+        actor=user,
+        action="sop.update",
+        entity_type="sop",
+        entity_id=str(sop.id),
+        detail=sop.code,
+    )
     return _sop_detail(sop, session)

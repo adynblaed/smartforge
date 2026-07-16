@@ -1,1 +1,19 @@
-Generic single-database configuration.
+SmartForge application-database migrations (Alembic, single database).
+
+Scope: the transactional `app` database ONLY. The analytics `warehouse`
+database is NOT managed here — its schemas/roles/control tables are
+provisioned idempotently by `python -m app.dataplatform.cli bootstrap`,
+its raw tables by dlt, and its models by dbt (see ../../../specs/ARCHITECTURE.md).
+
+Workflow (full guide: backend/README.md "Migrations"):
+  docker compose exec backend bash
+  alembic revision --autogenerate -m "describe the change"
+  alembic upgrade head
+
+Rules of the road:
+  * Migrations run automatically before the backend starts (the compose
+    `prestart` service / Helm pre-install+pre-upgrade hook Job runs
+    `scripts/prestart.sh`).
+  * Keep migrations backward-compatible one release back: `helm rollback`
+    re-runs the hook but never downgrades the schema.
+  * Commit every generated revision under versions/.

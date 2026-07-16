@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import {
   Area,
   AreaChart,
@@ -9,8 +10,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
-
-import type { ReactNode } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -34,7 +33,12 @@ export function PageHeader({
   className?: string
 }) {
   return (
-    <div className={cn("flex flex-wrap items-start justify-between gap-3", className)}>
+    <div
+      className={cn(
+        "flex flex-wrap items-start justify-between gap-3",
+        className,
+      )}
+    >
       <div className="min-w-0">
         <h1 className="flex items-center gap-2 text-2xl font-semibold">
           {icon}
@@ -44,7 +48,9 @@ export function PageHeader({
           <p className="mt-1 text-muted-foreground">{description}</p>
         )}
       </div>
-      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+      {actions && (
+        <div className="flex flex-wrap items-center gap-2">{actions}</div>
+      )}
     </div>
   )
 }
@@ -152,7 +158,10 @@ const METRIC_TREND: Record<string, { seed: string; color: string }> = {
   costimpact: { seed: "mt-costimpact", color: HEX.danger },
 }
 
-export function metricTrend(metric: string): { trend: number[]; trendColor: string } {
+export function metricTrend(metric: string): {
+  trend: number[]
+  trendColor: string
+} {
   const m = METRIC_TREND[metric] ?? { seed: metric, color: HEX.success }
   return { trend: makeTrendSeries(m.seed).data, trendColor: m.color }
 }
@@ -172,17 +181,30 @@ function Sparkline({ data, color }: { data: number[]; color: string }) {
   const max = Math.max(...data)
   const range = max - min || 1
   const pts = data
-    .map((v, i) => `${(i / (data.length - 1)) * w},${hgt - ((v - min) / range) * hgt}`)
+    .map(
+      (v, i) =>
+        `${(i / (data.length - 1)) * w},${hgt - ((v - min) / range) * hgt}`,
+    )
     .join(" ")
   return (
     <svg
       viewBox={`0 0 ${w} ${hgt}`}
       preserveAspectRatio="none"
-      aria-hidden
+      aria-hidden="true"
       className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-2/3 w-full opacity-30"
     >
-      <polygon points={`0,${hgt} ${pts} ${w},${hgt}`} fill={color} fillOpacity={0.12} />
-      <polyline points={pts} fill="none" stroke={color} strokeWidth={1.6} vectorEffect="non-scaling-stroke" />
+      <polygon
+        points={`0,${hgt} ${pts} ${w},${hgt}`}
+        fill={color}
+        fillOpacity={0.12}
+      />
+      <polyline
+        points={pts}
+        fill="none"
+        stroke={color}
+        strokeWidth={1.6}
+        vectorEffect="non-scaling-stroke"
+      />
     </svg>
   )
 }
@@ -245,7 +267,8 @@ const STATUS: Record<string, string> = {
 }
 
 export function StatusBadge({ value }: { value: string }) {
-  const cls = SEVERITY[value] ?? STATUS[value] ?? "bg-muted text-muted-foreground"
+  const cls =
+    SEVERITY[value] ?? STATUS[value] ?? "bg-muted text-muted-foreground"
   return (
     <Badge variant="outline" className={cn("capitalize", cls)}>
       {value}
@@ -257,18 +280,46 @@ export function StatusBadge({ value }: { value: string }) {
 // Chain): Approved/Closed = green, Open = blue, In-Review = yellow, Denied = red.
 export function orderStatusColor(status: string): string {
   const s = (status || "").toLowerCase().replace(/[\s_-]/g, "")
-  if (["approved", "closed", "received", "complete", "completed", "done", "fulfilled"].includes(s))
+  if (
+    [
+      "approved",
+      "closed",
+      "received",
+      "complete",
+      "completed",
+      "done",
+      "fulfilled",
+    ].includes(s)
+  )
     return HEX.success
   if (["open", "issued", "active", "shipped"].includes(s)) return HEX.info
-  if (["denied", "rejected", "cancelled", "canceled", "failed"].includes(s)) return HEX.danger
-  if (["inreview", "review", "pending", "intake", "draft", "quoting", "quoted", "new"].includes(s))
+  if (["denied", "rejected", "cancelled", "canceled", "failed"].includes(s))
+    return HEX.danger
+  if (
+    [
+      "inreview",
+      "review",
+      "pending",
+      "intake",
+      "draft",
+      "quoting",
+      "quoted",
+      "new",
+    ].includes(s)
+  )
     return HEX.warning
   return HEX.info
 }
 
 // A pill-style status bubble (colored outline + low-opacity wash). Inline border
 // color survives the global borderless rule.
-export function OrderStatusBadge({ status, label }: { status: string; label?: string }) {
+export function OrderStatusBadge({
+  status,
+  label,
+}: {
+  status: string
+  label?: string
+}) {
   const c = orderStatusColor(status)
   return (
     <span
@@ -348,7 +399,11 @@ export function BarTrend({
   return (
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+        <CartesianGrid
+          strokeDasharray="3 3"
+          stroke="var(--border)"
+          vertical={false}
+        />
         <XAxis dataKey={xKey} stroke="var(--muted-foreground)" fontSize={11} />
         <YAxis stroke="var(--muted-foreground)" fontSize={11} />
         <Tooltip

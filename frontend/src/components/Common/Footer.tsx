@@ -30,7 +30,10 @@ export function Footer() {
           <address className="not-italic text-muted-foreground">
             <p className="font-semibold text-foreground">Future Form</p>
             <p>
-              <a href="tel:+18008697222" className="transition-colors hover:text-foreground">
+              <a
+                href="tel:+18008697222"
+                className="transition-colors hover:text-foreground"
+              >
                 800-869-7222
               </a>
             </p>

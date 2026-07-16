@@ -38,9 +38,7 @@ class InspectionsPublic(SQLModel):
 
 # ---- Defects (tracked + correlated with scrap/rework) ----
 class DefectBase(SQLModel):
-    inspection_id: uuid.UUID | None = Field(
-        default=None, foreign_key="inspections.id"
-    )
+    inspection_id: uuid.UUID | None = Field(default=None, foreign_key="inspections.id")
     line_id: uuid.UUID | None = Field(default=None, foreign_key="line.id", index=True)
     defect_type: str = Field(max_length=128)
     part_id: str | None = Field(default=None, max_length=128)

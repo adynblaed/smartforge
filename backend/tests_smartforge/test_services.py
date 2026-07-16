@@ -28,13 +28,22 @@ def test_health_score_empty_telemetry_uses_machine_score(session):
 def test_health_score_healthy_vs_degraded(session):
     machine = _machine(session)
     healthy = [
-        m.TelemetryEvent(machine_id=machine.id, temperature=55, vibration=0.2,
-                         line_status=m.LineStatus.running)
+        m.TelemetryEvent(
+            machine_id=machine.id,
+            temperature=55,
+            vibration=0.2,
+            line_status=m.LineStatus.running,
+        )
         for _ in range(10)
     ]
     degraded = [
-        m.TelemetryEvent(machine_id=machine.id, temperature=95, vibration=0.9,
-                         fault_code="E1", line_status=m.LineStatus.down)
+        m.TelemetryEvent(
+            machine_id=machine.id,
+            temperature=95,
+            vibration=0.9,
+            fault_code="E1",
+            line_status=m.LineStatus.down,
+        )
         for _ in range(10)
     ]
     hs = mi.compute_health_score(machine, healthy).score
@@ -46,8 +55,13 @@ def test_health_score_healthy_vs_degraded(session):
 def test_health_score_bounded(session):
     machine = _machine(session)
     extreme = [
-        m.TelemetryEvent(machine_id=machine.id, temperature=200, vibration=5.0,
-                         fault_code="X", line_status=m.LineStatus.down)
+        m.TelemetryEvent(
+            machine_id=machine.id,
+            temperature=200,
+            vibration=5.0,
+            fault_code="X",
+            line_status=m.LineStatus.down,
+        )
         for _ in range(20)
     ]
     score = mi.compute_health_score(machine, extreme).score
@@ -58,13 +72,22 @@ def test_health_score_bounded(session):
 def test_alert_rules_trigger_and_dedupe(session):
     machine = _machine(session)
     machine.runtime_hours = 5000
-    telem = m.TelemetryEvent(machine_id=machine.id, temperature=95, vibration=0.9,
-                             fault_code="E101", line_status=m.LineStatus.down,
-                             runtime_hours=5000)
+    telem = m.TelemetryEvent(
+        machine_id=machine.id,
+        temperature=95,
+        vibration=0.9,
+        fault_code="E101",
+        line_status=m.LineStatus.down,
+        runtime_hours=5000,
+    )
     first = mi.evaluate_alerts(session, machine, telem)
     rules = {a.rule for a in first}
-    assert {"high_vibration", "rising_temperature", "runtime_threshold",
-            "repeated_fault"} <= rules
+    assert {
+        "high_vibration",
+        "rising_temperature",
+        "runtime_threshold",
+        "repeated_fault",
+    } <= rules
     # Re-evaluating must not duplicate active alerts.
     second = mi.evaluate_alerts(session, machine, telem)
     assert second == []
@@ -72,8 +95,12 @@ def test_alert_rules_trigger_and_dedupe(session):
 
 def test_draft_work_order_priority_mapping(session):
     machine = _machine(session)
-    alert = m.Alert(machine_id=machine.id, rule="repeated_fault",
-                    severity=m.Severity.critical, message="x")
+    alert = m.Alert(
+        machine_id=machine.id,
+        rule="repeated_fault",
+        severity=m.Severity.critical,
+        message="x",
+    )
     session.add(alert)
     session.commit()
     session.refresh(alert)
@@ -85,9 +112,14 @@ def test_draft_work_order_priority_mapping(session):
 
 # ---- OEE (2B) ----
 def test_oee_computation():
-    run = m.ProductionRun(line_id=uuid.uuid4(), planned_units=1000,
-                          actual_units=900, scrap_units=45, rework_units=20,
-                          downtime_minutes=100)
+    run = m.ProductionRun(
+        line_id=uuid.uuid4(),
+        planned_units=1000,
+        actual_units=900,
+        scrap_units=45,
+        rework_units=20,
+        downtime_minutes=100,
+    )
     oee = fi.compute_oee_from_run(run)
     assert 0 <= oee.availability <= 1
     assert 0 <= oee.performance <= 1
@@ -144,8 +176,9 @@ def test_quote_high_volume_risk_flag():
 # ---- AskAI retrieval + fallback (1C) ----
 def test_retrieve_returns_relevant_doc(session):
     machine = _machine(session)
-    docs = retrieve(session, "cnc mill vibration bearing spindle",
-                    machine_id=machine.id)
+    docs = retrieve(
+        session, "cnc mill vibration bearing spindle", machine_id=machine.id
+    )
     assert docs
     assert any("Vibration" in d.title for d in docs)
 
@@ -168,8 +201,12 @@ def test_run_sync_records_events_with_one_failure(session):
 
 def test_sync_fiix_marks_synced(session):
     machine = _machine(session)
-    wo = m.WorkOrder(machine_id=machine.id, fault_type="x",
-                     severity=m.Severity.high, recommended_task="t")
+    wo = m.WorkOrder(
+        machine_id=machine.id,
+        fault_type="x",
+        severity=m.Severity.high,
+        recommended_task="t",
+    )
     session.add(wo)
     session.commit()
     session.refresh(wo)

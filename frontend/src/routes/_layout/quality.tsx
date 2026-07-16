@@ -4,12 +4,20 @@ import { Siren, Ticket as TicketIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { sf } from "@/smartforge/api"
+import {
+  BarTrend,
+  KpiTile,
+  metricTrend,
+  PageHeader,
+  Panel,
+  StatusBadge,
+} from "@/smartforge/components"
 import { POLL } from "@/smartforge/constants"
-import { BarTrend, KpiTile, metricTrend, PageHeader, Panel, StatusBadge } from "@/smartforge/components"
 
 // Routable KPI tile wrapper.
 const STAT_CLS =
   "block rounded-xl outline-none transition hover:brightness-110 focus-visible:ring-2 focus-visible:ring-ring"
+
 import type { Defect, OeeMetric, Page } from "@/smartforge/types"
 
 export const Route = createFileRoute("/_layout/quality")({
@@ -70,7 +78,13 @@ function QualityPage() {
             label="Avg OEE"
             value={`${avgOee.toFixed(1)}%`}
             hint="overall effectiveness"
-            accent={avgOee >= 80 ? "var(--success)" : avgOee >= 65 ? "var(--warning)" : "var(--danger)"}
+            accent={
+              avgOee >= 80
+                ? "var(--success)"
+                : avgOee >= 65
+                  ? "var(--warning)"
+                  : "var(--danger)"
+            }
             {...metricTrend("oee")}
           />
         </Link>
@@ -79,7 +93,13 @@ function QualityPage() {
             label="Avg Scrap"
             value={`${avgScrap.toFixed(1)}%`}
             hint="of total output"
-            accent={avgScrap <= 3 ? "var(--success)" : avgScrap <= 5 ? "var(--warning)" : "var(--danger)"}
+            accent={
+              avgScrap <= 3
+                ? "var(--success)"
+                : avgScrap <= 5
+                  ? "var(--warning)"
+                  : "var(--danger)"
+            }
             {...metricTrend("scrap")}
           />
         </Link>
@@ -88,12 +108,20 @@ function QualityPage() {
             label="Defects"
             value={defects?.count ?? 0}
             hint="detected this period"
-            accent={(defects?.count ?? 0) > 0 ? "var(--danger)" : "var(--success)"}
+            accent={
+              (defects?.count ?? 0) > 0 ? "var(--danger)" : "var(--success)"
+            }
             {...metricTrend("defects")}
           />
         </Link>
         <Link to="/analytics" className={STAT_CLS}>
-          <KpiTile label="Scrap Cost" value={`$${scrapCost.toFixed(0)}`} hint="scrapped value" accent="var(--danger)" {...metricTrend("scrapcost")} />
+          <KpiTile
+            label="Scrap Cost"
+            value={`$${scrapCost.toFixed(0)}`}
+            hint="scrapped value"
+            accent="var(--danger)"
+            {...metricTrend("scrapcost")}
+          />
         </Link>
       </div>
 
@@ -104,19 +132,27 @@ function QualityPage() {
       <Panel title="Defect Risk Panel">
         <div className="grid gap-4 sm:grid-cols-3">
           <div>
-            <p className="text-xs uppercase text-muted-foreground">At-risk lines</p>
+            <p className="text-xs uppercase text-muted-foreground">
+              At-risk lines
+            </p>
             <p className="mt-1 text-sm">
-              {avgScrap > 3 ? "Line 01 — elevated scrap" : "No lines above threshold"}
+              {avgScrap > 3
+                ? "Line 01 — elevated scrap"
+                : "No lines above threshold"}
             </p>
           </div>
           <div>
-            <p className="text-xs uppercase text-muted-foreground">Scrap cost estimate</p>
+            <p className="text-xs uppercase text-muted-foreground">
+              Scrap cost estimate
+            </p>
             <p className="mt-1 text-lg font-semibold text-danger">
               ${scrapCost.toFixed(0)}
             </p>
           </div>
           <div>
-            <p className="text-xs uppercase text-muted-foreground">Suggested intervention</p>
+            <p className="text-xs uppercase text-muted-foreground">
+              Suggested intervention
+            </p>
             <p className="mt-1 text-sm">
               {avgScrap > 3
                 ? "Tighten inspection sampling; review tooling wear."
@@ -166,7 +202,9 @@ function DefectRow({ defect }: { defect: Defect }) {
         {defect.defect_type} {defect.part_id && `· ${defect.part_id}`}
       </span>
       <span className="flex items-center gap-3">
-        <span className="text-muted-foreground">${defect.scrap_cost.toFixed(0)}</span>
+        <span className="text-muted-foreground">
+          ${defect.scrap_cost.toFixed(0)}
+        </span>
         {link ? (
           <span className="flex items-center gap-2">
             <Link

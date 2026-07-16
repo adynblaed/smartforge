@@ -1,0 +1,62 @@
+# Telemetry worker — the single canonical telemetry simulator.
+#
+# INVARIANT (double-write hazard): exactly ONE producer may run at any time.
+# replicas is hardcoded to 1 (no values knob) and strategy is Recreate so the
+# old pod is fully terminated before its replacement starts — a RollingUpdate
+# would briefly run two producers and double-write telemetry/orders.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "smartforge.fullname" . }}-worker
+  labels:
+    {{- include "smartforge.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "smartforge.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: worker
+  template:
+    metadata:
+      labels:
+        {{- include "smartforge.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: worker
+      annotations:
+        checksum/config: {{ include "smartforge.configData" . | sha256sum }}
+        {{- with .Values.worker.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "smartforge.serviceAccountName" . }}
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: {{ .Values.worker.terminationGracePeriodSeconds }}
+      {{- include "smartforge.pythonPodSecurityContext" . | nindent 6 }}
+      containers:
+        - name: worker
+          image: {{ include "smartforge.backendImage" . | quote }}
+          imagePullPolicy: {{ .Values.image.backend.pullPolicy }}
+          command: ["python", "-m", "app.workers.telemetry_simulator"]
+          envFrom:
+            - configMapRef:
+                name: {{ include "smartforge.fullname" . }}-config
+          env:
+            - name: HOME
+              value: /tmp
+            {{- include "smartforge.appSecretEnv" . | nindent 12 }}
+            {{- include "smartforge.postgresSecretEnv" . | nindent 12 }}
+          {{- include "smartforge.pythonContainerSecurityContext" . | nindent 10 }}
+          resources:
+            {{- toYaml .Values.worker.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

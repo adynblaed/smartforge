@@ -71,18 +71,14 @@ def get_current_internal_user(current_user: CurrentUser) -> User:
     if current_user.is_superuser:
         return current_user
     if current_user.role not in INTERNAL_ROLES:
-        raise HTTPException(
-            status_code=403, detail="Internal platform access required"
-        )
+        raise HTTPException(status_code=403, detail="Internal platform access required")
     return current_user
 
 
 def get_current_customer_user(current_user: CurrentUser) -> User:
     """Allow only customer-portal accounts, which must be scoped to a customer."""
     if current_user.role != UserRole.customer or current_user.customer_id is None:
-        raise HTTPException(
-            status_code=403, detail="Customer portal access required"
-        )
+        raise HTTPException(status_code=403, detail="Customer portal access required")
     return current_user
 
 

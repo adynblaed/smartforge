@@ -33,25 +33,34 @@ def test_machine_configuration_versioning_and_approval(internal_client):
     machine = internal_client.get("/api/v1/machines/").json()["data"][0]
     mid = machine["id"]
     before = internal_client.get("/api/v1/machine-configurations").json()["count"]
-    r = internal_client.post("/api/v1/machine-configurations", json={
-        "machine_id": mid, "speed": 1400, "temperature": 60, "pressure": 130,
-        "feed_rate": 0.3, "tooling_profile": "opt", "material_type": "steel",
-    })
+    r = internal_client.post(
+        "/api/v1/machine-configurations",
+        json={
+            "machine_id": mid,
+            "speed": 1400,
+            "temperature": 60,
+            "pressure": 130,
+            "feed_rate": 0.3,
+            "tooling_profile": "opt",
+            "material_type": "steel",
+        },
+    )
     assert r.status_code == 200
     cfg = r.json()
     assert cfg["version"] >= 1
     after = internal_client.get("/api/v1/machine-configurations").json()["count"]
     assert after == before + 1
-    ap = internal_client.post(
-        f"/api/v1/machine-configurations/{cfg['id']}/approve"
-    )
+    ap = internal_client.post(f"/api/v1/machine-configurations/{cfg['id']}/approve")
     assert ap.status_code == 200 and ap.json()["approved"] is True
 
 
 def test_config_approve_404(internal_client):
-    assert internal_client.post(
-        f"/api/v1/machine-configurations/{uuid.uuid4()}/approve"
-    ).status_code == 404
+    assert (
+        internal_client.post(
+            f"/api/v1/machine-configurations/{uuid.uuid4()}/approve"
+        ).status_code
+        == 404
+    )
 
 
 def test_recommendation_decision_updates_confidence(internal_client):

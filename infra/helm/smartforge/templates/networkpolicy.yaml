@@ -1,0 +1,61 @@
+{{- if .Values.networkPolicy.enabled -}}
+# Simple namespace posture (assumes a dedicated SmartForge namespace):
+#   1. default-deny all ingress,
+#   2. allow pod-to-pod within the namespace (backend->redis/qdrant, etc.),
+#   3. allow the ingress controller to reach backend (:8000) and frontend (:80)
+#      — this also covers Prometheus if it scrapes via the same namespace
+#      selector; add a rule for your monitoring namespace if needed.
+# Egress is left open: Postgres/warehouse, the Omega Oracle source, SMTP and
+# the Anthropic API are outside the cluster.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "smartforge.fullname" . }}-default-deny-ingress
+  labels:
+    {{- include "smartforge.labels" . | nindent 4 }}
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "smartforge.fullname" . }}-allow-same-namespace
+  labels:
+    {{- include "smartforge.labels" . | nindent 4 }}
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector: {}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "smartforge.fullname" . }}-allow-ingress-controller
+  labels:
+    {{- include "smartforge.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/component
+        operator: In
+        values: ["backend", "frontend"]
+    matchLabels:
+      {{- include "smartforge.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.networkPolicy.ingressControllerNamespace }}
+      ports:
+        - port: 8000
+          protocol: TCP
+        - port: 80
+          protocol: TCP
+{{- end }}

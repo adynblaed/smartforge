@@ -1,0 +1,38 @@
+# Argo CD project for SmartForge — restricts what the SmartForge Applications
+# may deploy, from where, and to where.
+#   kubectl apply -n argocd -f appproject.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: smartforge
+  namespace: argocd
+  # Keep the project until its Applications are gone.
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: SmartForge predictive-maintenance platform (admin@futureform.com)
+
+  # Only this repository may feed the project.
+  sourceRepos:
+    - https://github.com/futureform/smartforge.git
+
+  # Only the two SmartForge namespaces on the local cluster.
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: smartforge-staging
+    - server: https://kubernetes.default.svc
+      namespace: smartforge-production
+
+  # The chart is namespace-scoped. Namespace is whitelisted only so the
+  # CreateNamespace=true sync option can bootstrap the target namespaces.
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
+
+  # Flag resources that drop out of the rendered chart instead of hiding them.
+  orphanedResources:
+    warn: true

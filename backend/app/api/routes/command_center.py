@@ -27,24 +27,34 @@ router = APIRouter(tags=["command-center"])
 
 def _kpis(session: SessionDep) -> dict[str, Any]:
     machines = list(session.exec(select(Machine)).all())
-    avg_health = round(sum(m.health_score for m in machines) / len(machines), 1) \
-        if machines else 0.0
+    avg_health = (
+        round(sum(m.health_score for m in machines) / len(machines), 1)
+        if machines
+        else 0.0
+    )
     open_wos = session.exec(
-        select(func.count()).select_from(WorkOrder)
+        select(func.count())
+        .select_from(WorkOrder)
         .where(WorkOrder.status != WorkOrderStatus.completed)
     ).one()
     active_alerts = session.exec(
-        select(func.count()).select_from(Alert)
+        select(func.count())
+        .select_from(Alert)
         .where(Alert.status == AlertStatus.active)
     ).one()
     oee_rows = list(session.exec(select(OeeMetric)).all())
-    avg_oee = round(sum(o.oee for o in oee_rows) / len(oee_rows), 4) \
-        if oee_rows else 0.0
-    avg_scrap = round(sum(o.scrap_rate for o in oee_rows) / len(oee_rows), 4) \
-        if oee_rows else 0.0
+    avg_oee = (
+        round(sum(o.oee for o in oee_rows) / len(oee_rows), 4) if oee_rows else 0.0
+    )
+    avg_scrap = (
+        round(sum(o.scrap_rate for o in oee_rows) / len(oee_rows), 4)
+        if oee_rows
+        else 0.0
+    )
     downtime = sum(o.downtime_minutes for o in oee_rows)
     delayed_orders = session.exec(
-        select(func.count()).select_from(CustomerOrder)
+        select(func.count())
+        .select_from(CustomerOrder)
         .where(CustomerOrder.delayed == True)  # noqa: E712
     ).one()
     inv = list(session.exec(select(InventoryItem)).all())
@@ -84,9 +94,11 @@ def command_center(session: SessionDep, _user: InternalUser) -> Any:
     kpis = _kpis(session)
     machines = list(session.exec(select(Machine)).all())
     at_risk = sorted(machines, key=lambda m: m.health_score)[:3]
-    risk_alerts = list(session.exec(
-        select(Alert).where(Alert.status == AlertStatus.active).limit(5)
-    ).all())
+    risk_alerts = list(
+        session.exec(
+            select(Alert).where(Alert.status == AlertStatus.active).limit(5)
+        ).all()
+    )
     return {
         "factory_health_summary": {
             "avg_health": kpis["avg_machine_health"],

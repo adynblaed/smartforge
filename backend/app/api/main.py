@@ -10,10 +10,12 @@ from app.api.routes import (
     incidents,
     integrations,
     items,
+    lake,
     login,
     logs,
     machines,
     planning,
+    platform,
     private,
     services,
     sops,
@@ -21,6 +23,7 @@ from app.api.routes import (
     tickets,
     users,
     utils,
+    warehouse,
     work_orders,
     ws,
 )
@@ -51,6 +54,11 @@ api_router.include_router(datasources.router)
 api_router.include_router(services.router)
 api_router.include_router(logs.router)
 api_router.include_router(ws.router)
+
+# Data platform (omega -> lake -> warehouse)
+api_router.include_router(platform.router)
+api_router.include_router(warehouse.router)
+api_router.include_router(lake.router)
 
 
 if settings.ENVIRONMENT == "local":

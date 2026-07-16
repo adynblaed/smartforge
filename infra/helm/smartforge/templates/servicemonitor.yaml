@@ -1,0 +1,26 @@
+{{- if .Values.monitoring.serviceMonitor.enabled -}}
+# Prometheus Operator scrape of the backend metrics endpoint. Requires
+# kube-prometheus-stack (or any Prometheus Operator) in the cluster; the
+# operator's serviceMonitorSelector may require additionalLabels
+# (e.g. release: kube-prometheus-stack).
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "smartforge.fullname" . }}-backend
+  labels:
+    {{- include "smartforge.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+    {{- with .Values.monitoring.serviceMonitor.additionalLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "smartforge.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: backend
+  endpoints:
+    - port: http
+      path: /api/v1/metrics
+      interval: {{ .Values.monitoring.serviceMonitor.interval }}
+      scrapeTimeout: {{ .Values.monitoring.serviceMonitor.scrapeTimeout }}
+{{- end }}

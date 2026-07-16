@@ -11,7 +11,7 @@ from __future__ import annotations
 import logging
 import threading
 import uuid
-from typing import Any
+from typing import Any, cast
 
 from app.core.config import settings
 
@@ -94,7 +94,9 @@ class _VectorStore:
                 self._state = True
                 logger.info(
                     "Vector store ready (qdrant=%s, model=%s, dim=%s)",
-                    settings.QDRANT_URL, settings.EMBED_MODEL, self._dim,
+                    settings.QDRANT_URL,
+                    settings.EMBED_MODEL,
+                    self._dim,
                 )
             except Exception as exc:  # noqa: BLE001 — degrade gracefully
                 logger.warning("Vector store unavailable, falling back: %s", exc)
@@ -132,9 +134,12 @@ class _VectorStore:
             from qdrant_client.models import Distance, VectorParams
 
             self._client.delete_collection(settings.QDRANT_COLLECTION)
+            # ``available`` guarantees _init() ran, so _dim is set here.
             self._client.create_collection(
                 collection_name=settings.QDRANT_COLLECTION,
-                vectors_config=VectorParams(size=self._dim, distance=Distance.COSINE),
+                vectors_config=VectorParams(
+                    size=cast(int, self._dim), distance=Distance.COSINE
+                ),
             )
             return True
         except Exception as exc:  # noqa: BLE001

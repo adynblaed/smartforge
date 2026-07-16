@@ -3,8 +3,8 @@ import { createFileRoute } from "@tanstack/react-router"
 
 import { Button } from "@/components/ui/button"
 import { sf } from "@/smartforge/api"
-import { POLL } from "@/smartforge/constants"
 import { PageHeader, Panel, StatusBadge } from "@/smartforge/components"
+import { POLL } from "@/smartforge/constants"
 import type { Page, WorkOrder } from "@/smartforge/types"
 
 export const Route = createFileRoute("/_layout/work-orders")({
@@ -53,9 +53,13 @@ function WorkOrdersPage() {
                       {w.recommended_task}
                     </div>
                   </td>
-                  <td className="py-2 pr-4"><StatusBadge value={w.severity} /></td>
+                  <td className="py-2 pr-4">
+                    <StatusBadge value={w.severity} />
+                  </td>
                   <td className="py-2 pr-4">P{w.priority}</td>
-                  <td className="py-2 pr-4"><StatusBadge value={w.status} /></td>
+                  <td className="py-2 pr-4">
+                    <StatusBadge value={w.status} />
+                  </td>
                   <td className="py-2 pr-4 text-xs">
                     {w.fiix_id ?? w.fiix_sync_state}
                   </td>
@@ -63,22 +67,43 @@ function WorkOrdersPage() {
                     <div className="flex gap-2">
                       {w.status === "draft" && (
                         <>
-                          <Button size="sm"
-                            onClick={() => act.mutate({ id: w.id, path: "approve?approve=true" })}>
+                          <Button
+                            size="sm"
+                            onClick={() =>
+                              act.mutate({
+                                id: w.id,
+                                path: "approve?approve=true",
+                              })
+                            }
+                          >
                             Approve
                           </Button>
-                          <Button size="sm" variant="outline"
-                            onClick={() => act.mutate({ id: w.id, path: "approve?approve=false" })}>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              act.mutate({
+                                id: w.id,
+                                path: "approve?approve=false",
+                              })
+                            }
+                          >
                             Reject
                           </Button>
                         </>
                       )}
-                      {w.status === "approved" && w.fiix_sync_state !== "synced" && (
-                        <Button size="sm" variant="outline"
-                          onClick={() => act.mutate({ id: w.id, path: "sync-fiix" })}>
-                          Sync Fiix
-                        </Button>
-                      )}
+                      {w.status === "approved" &&
+                        w.fiix_sync_state !== "synced" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              act.mutate({ id: w.id, path: "sync-fiix" })
+                            }
+                          >
+                            Sync Fiix
+                          </Button>
+                        )}
                     </div>
                   </td>
                 </tr>

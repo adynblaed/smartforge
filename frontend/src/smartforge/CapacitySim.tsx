@@ -5,7 +5,14 @@ import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { sf } from "./api"
-import { BarTrend, KpiTile, Panel, healthHex, makeTrendSeries, metricTrend } from "./components"
+import {
+  BarTrend,
+  healthHex,
+  KpiTile,
+  makeTrendSeries,
+  metricTrend,
+  Panel,
+} from "./components"
 import type { Machine, Page } from "./types"
 
 // Routable KPI tile wrapper + 24h trend helper.
@@ -49,7 +56,12 @@ const PROFILES = {
   aggressive: { label: "Aggressive", speed: 1.35, availability: 92 },
 } as const
 
-function projectRun(m: Machine, speed: number, availability: number, shiftHours: number) {
+function projectRun(
+  m: Machine,
+  speed: number,
+  availability: number,
+  shiftHours: number,
+) {
   const cycle = (BASE_CYCLE[m.machine_type] ?? 40) / speed
   const healthF = Math.max(0.5, m.health_score / 100)
   const avail = availability / 100
@@ -105,7 +117,8 @@ export function SimulationStudio({
   focusMachine?: string
 }) {
   const preset =
-    PROFILES[(profile as keyof typeof PROFILES) ?? "baseline"] ?? PROFILES.baseline
+    PROFILES[(profile as keyof typeof PROFILES) ?? "baseline"] ??
+    PROFILES.baseline
   const [speed, setSpeed] = useState<number>(preset.speed)
   const [availability, setAvailability] = useState<number>(preset.availability)
   const [shiftHours, setShiftHours] = useState<number>(16)
@@ -116,11 +129,17 @@ export function SimulationStudio({
   })
   const machines = data?.data ?? []
   const rows = useMemo(
-    () => machines.map((m) => ({ m, ...projectRun(m, speed, availability, shiftHours) })),
+    () =>
+      machines.map((m) => ({
+        m,
+        ...projectRun(m, speed, availability, shiftHours),
+      })),
     [machines, speed, availability, shiftHours],
   )
   const totalUnits = rows.reduce((a, r) => a + r.units, 0)
-  const avgOee = rows.length ? rows.reduce((a, r) => a + r.oee, 0) / rows.length : 0
+  const avgOee = rows.length
+    ? rows.reduce((a, r) => a + r.oee, 0) / rows.length
+    : 0
   const bottleneck = rows.reduce<(typeof rows)[number] | null>(
     (min, r) => (min === null || r.oee < min.oee ? r : min),
     null,
@@ -142,7 +161,9 @@ export function SimulationStudio({
               key={k}
               size="sm"
               variant={
-                speed === p.speed && availability === p.availability ? "default" : "outline"
+                speed === p.speed && availability === p.availability
+                  ? "default"
+                  : "outline"
               }
               className="h-7 text-[11px]"
               onClick={() => applyPreset(p)}
@@ -155,29 +176,70 @@ export function SimulationStudio({
     >
       <div className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-3">
-          <Slider label="Line speed" value={speed} min={0.8} max={1.4} step={0.05}
-            display={`${speed.toFixed(2)}×`} onChange={setSpeed} />
-          <Slider label="Availability" value={availability} min={70} max={100} step={1}
-            display={`${availability}%`} onChange={setAvailability} />
-          <Slider label="Shift hours" value={shiftHours} min={8} max={24} step={8}
-            display={`${shiftHours}h`} onChange={setShiftHours} />
+          <Slider
+            label="Line speed"
+            value={speed}
+            min={0.8}
+            max={1.4}
+            step={0.05}
+            display={`${speed.toFixed(2)}×`}
+            onChange={setSpeed}
+          />
+          <Slider
+            label="Availability"
+            value={availability}
+            min={70}
+            max={100}
+            step={1}
+            display={`${availability}%`}
+            onChange={setAvailability}
+          />
+          <Slider
+            label="Shift hours"
+            value={shiftHours}
+            min={8}
+            max={24}
+            step={8}
+            display={`${shiftHours}h`}
+            onChange={setShiftHours}
+          />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3">
           <Link to="/analytics" className={STAT_CLS}>
-            <KpiTile label="Projected units / run" value={totalUnits.toLocaleString()} {...trend("opt-units", "up")} />
+            <KpiTile
+              label="Projected units / run"
+              value={totalUnits.toLocaleString()}
+              {...trend("opt-units", "up")}
+            />
           </Link>
           <Link to="/analytics" className={STAT_CLS}>
-            <KpiTile label="Avg OEE" value={`${avgOee.toFixed(1)}%`}
-              accent={avgOee >= 80 ? "var(--success)" : avgOee >= 65 ? "var(--warning)" : "var(--danger)"}
-              {...metricTrend("oee")} />
+            <KpiTile
+              label="Avg OEE"
+              value={`${avgOee.toFixed(1)}%`}
+              accent={
+                avgOee >= 80
+                  ? "var(--success)"
+                  : avgOee >= 65
+                    ? "var(--warning)"
+                    : "var(--danger)"
+              }
+              {...metricTrend("oee")}
+            />
           </Link>
           <Link to="/machines" className={STAT_CLS}>
-            <KpiTile label="Bottleneck" value={bottleneck?.m.code ?? "—"} accent="var(--warning)" {...trend("opt-bottleneck", "down")} />
+            <KpiTile
+              label="Bottleneck"
+              value={bottleneck?.m.code ?? "—"}
+              accent="var(--warning)"
+              {...trend("opt-bottleneck", "down")}
+            />
           </Link>
         </div>
 
-        {chart.length > 0 && <BarTrend data={chart} dataKey="units" xKey="name" />}
+        {chart.length > 0 && (
+          <BarTrend data={chart} dataKey="units" xKey="name" />
+        )}
 
         <table className="w-full text-sm">
           <thead className="text-left text-muted-foreground">
@@ -206,8 +268,13 @@ export function SimulationStudio({
                   </span>
                 </td>
                 <td className="py-2 pr-4 tabular-nums">{r.cycle.toFixed(1)}</td>
-                <td className="py-2 pr-4 tabular-nums">{r.units.toLocaleString()}</td>
-                <td className="py-2 pr-4 font-semibold tabular-nums" style={{ color: healthHex(r.oee) }}>
+                <td className="py-2 pr-4 tabular-nums">
+                  {r.units.toLocaleString()}
+                </td>
+                <td
+                  className="py-2 pr-4 font-semibold tabular-nums"
+                  style={{ color: healthHex(r.oee) }}
+                >
                   {r.oee.toFixed(1)}%
                 </td>
                 <td className="py-2 text-xs">
@@ -224,9 +291,9 @@ export function SimulationStudio({
           </tbody>
         </table>
         <p className="text-xs text-muted-foreground">
-          Preview model — projects each machine's run from line speed, availability,
-          shift length and live health. Pick a profile or use “Simulate run” on a
-          recommended configuration above.
+          Preview model — projects each machine's run from line speed,
+          availability, shift length and live health. Pick a profile or use
+          “Simulate run” on a recommended configuration above.
         </p>
       </div>
     </Panel>
@@ -251,13 +318,27 @@ export function CapacityPlanner({
     <div className="flex flex-col gap-6">
       <div className="mx-auto grid w-full max-w-3xl gap-4 sm:grid-cols-3">
         <Link to="/machines" className={STAT_CLS}>
-          <KpiTile label="Machines" value={cap?.total_machines ?? 0} {...trend("cap-machines", "up")} />
+          <KpiTile
+            label="Machines"
+            value={cap?.total_machines ?? 0}
+            {...trend("cap-machines", "up")}
+          />
         </Link>
         <Link to="/machines" className={STAT_CLS}>
-          <KpiTile label="Available" value={cap?.available ?? 0} accent="var(--success)" {...trend("cap-available", "up")} />
+          <KpiTile
+            label="Available"
+            value={cap?.available ?? 0}
+            accent="var(--success)"
+            {...trend("cap-available", "up")}
+          />
         </Link>
         <Link to="/machines" className={STAT_CLS}>
-          <KpiTile label="In Maintenance" value={cap?.in_maintenance ?? 0} accent="var(--warning)" {...trend("cap-maint", "down")} />
+          <KpiTile
+            label="In Maintenance"
+            value={cap?.in_maintenance ?? 0}
+            accent="var(--warning)"
+            {...trend("cap-maint", "down")}
+          />
         </Link>
       </div>
 
@@ -274,7 +355,11 @@ export function CapacityPlanner({
             <KpiTile
               label="Demand (units)"
               value={sim.demand_units}
-              accent={sim.demand_units > sim.capacity_units ? "var(--danger)" : undefined}
+              accent={
+                sim.demand_units > sim.capacity_units
+                  ? "var(--danger)"
+                  : undefined
+              }
             />
           </div>
           {sim.capacity_conflicts.length > 0 && (
@@ -307,7 +392,9 @@ export function CapacityPlanner({
                 ))}
               </tbody>
             </table>
-            <p className="mt-3 text-xs text-muted-foreground">{sim.load_balancing}</p>
+            <p className="mt-3 text-xs text-muted-foreground">
+              {sim.load_balancing}
+            </p>
           </Panel>
         </>
       )}

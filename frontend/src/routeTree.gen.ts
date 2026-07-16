@@ -8,227 +8,822 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root'
-import { Route as SignupRouteImport } from './routes/signup'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as RecoverPasswordRouteImport } from './routes/recover-password'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as LayoutRouteImport } from './routes/_layout'
-import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
-import { Route as LayoutSettingsRouteImport } from './routes/_layout/settings'
-import { Route as LayoutItemsRouteImport } from './routes/_layout/items'
-import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
+import { Route as rootRouteImport } from "./routes/__root"
+import { Route as TermsRouteImport } from "./routes/terms"
+import { Route as SignupRouteImport } from "./routes/signup"
+import { Route as ResetPasswordRouteImport } from "./routes/reset-password"
+import { Route as RecoverPasswordRouteImport } from "./routes/recover-password"
+import { Route as PrivacyRouteImport } from "./routes/privacy"
+import { Route as PortalRouteImport } from "./routes/portal"
+import { Route as LoginRouteImport } from "./routes/login"
+import { Route as LayoutRouteImport } from "./routes/_layout"
+import { Route as PortalIndexRouteImport } from "./routes/portal/index"
+import { Route as LayoutIndexRouteImport } from "./routes/_layout/index"
+import { Route as PortalAskRouteImport } from "./routes/portal/ask"
+import { Route as LayoutWorkOrdersRouteImport } from "./routes/_layout/work-orders"
+import { Route as LayoutTicketsRouteImport } from "./routes/_layout/tickets"
+import { Route as LayoutSupplyChainRouteImport } from "./routes/_layout/supply-chain"
+import { Route as LayoutSopsRouteImport } from "./routes/_layout/sops"
+import { Route as LayoutSettingsRouteImport } from "./routes/_layout/settings"
+import { Route as LayoutServicesRouteImport } from "./routes/_layout/services"
+import { Route as LayoutQuotesRouteImport } from "./routes/_layout/quotes"
+import { Route as LayoutQualityRouteImport } from "./routes/_layout/quality"
+import { Route as LayoutOrderTrackerRouteImport } from "./routes/_layout/order-tracker"
+import { Route as LayoutOptimizationRouteImport } from "./routes/_layout/optimization"
+import { Route as LayoutMrpRouteImport } from "./routes/_layout/mrp"
+import { Route as LayoutMachinesRouteImport } from "./routes/_layout/machines"
+import { Route as LayoutLogsRouteImport } from "./routes/_layout/logs"
+import { Route as LayoutKnowledgeBasesRouteImport } from "./routes/_layout/knowledge-bases"
+import { Route as LayoutItemsRouteImport } from "./routes/_layout/items"
+import { Route as LayoutIntegrationsRouteImport } from "./routes/_layout/integrations"
+import { Route as LayoutIncidentsRouteImport } from "./routes/_layout/incidents"
+import { Route as LayoutFactoryMapRouteImport } from "./routes/_layout/factory-map"
+import { Route as LayoutEscalationsRouteImport } from "./routes/_layout/escalations"
+import { Route as LayoutDatasourcesRouteImport } from "./routes/_layout/datasources"
+import { Route as LayoutDataPlatformRouteImport } from "./routes/_layout/data-platform"
+import { Route as LayoutCommandCenterRouteImport } from "./routes/_layout/command-center"
+import { Route as LayoutAskAiRouteImport } from "./routes/_layout/ask-ai"
+import { Route as LayoutAnalyticsRouteImport } from "./routes/_layout/analytics"
+import { Route as LayoutAdminRouteImport } from "./routes/_layout/admin"
+import { Route as PortalOrdersOrderIdRouteImport } from "./routes/portal/orders.$orderId"
 
+const TermsRoute = TermsRouteImport.update({
+  id: "/terms",
+  path: "/terms",
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignupRoute = SignupRouteImport.update({
-  id: '/signup',
-  path: '/signup',
+  id: "/signup",
+  path: "/signup",
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
+  id: "/reset-password",
+  path: "/reset-password",
   getParentRoute: () => rootRouteImport,
 } as any)
 const RecoverPasswordRoute = RecoverPasswordRouteImport.update({
-  id: '/recover-password',
-  path: '/recover-password',
+  id: "/recover-password",
+  path: "/recover-password",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: "/privacy",
+  path: "/privacy",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalRoute = PortalRouteImport.update({
+  id: "/portal",
+  path: "/portal",
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
+  id: "/login",
+  path: "/login",
   getParentRoute: () => rootRouteImport,
 } as any)
 const LayoutRoute = LayoutRouteImport.update({
-  id: '/_layout',
+  id: "/_layout",
   getParentRoute: () => rootRouteImport,
 } as any)
+const PortalIndexRoute = PortalIndexRouteImport.update({
+  id: "/",
+  path: "/",
+  getParentRoute: () => PortalRoute,
+} as any)
 const LayoutIndexRoute = LayoutIndexRouteImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
+  getParentRoute: () => LayoutRoute,
+} as any)
+const PortalAskRoute = PortalAskRouteImport.update({
+  id: "/ask",
+  path: "/ask",
+  getParentRoute: () => PortalRoute,
+} as any)
+const LayoutWorkOrdersRoute = LayoutWorkOrdersRouteImport.update({
+  id: "/work-orders",
+  path: "/work-orders",
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutTicketsRoute = LayoutTicketsRouteImport.update({
+  id: "/tickets",
+  path: "/tickets",
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutSupplyChainRoute = LayoutSupplyChainRouteImport.update({
+  id: "/supply-chain",
+  path: "/supply-chain",
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutSopsRoute = LayoutSopsRouteImport.update({
+  id: "/sops",
+  path: "/sops",
   getParentRoute: () => LayoutRoute,
 } as any)
 const LayoutSettingsRoute = LayoutSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
+  id: "/settings",
+  path: "/settings",
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutServicesRoute = LayoutServicesRouteImport.update({
+  id: "/services",
+  path: "/services",
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutQuotesRoute = LayoutQuotesRouteImport.update({
+  id: "/quotes",
+  path: "/quotes",
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutQualityRoute = LayoutQualityRouteImport.update({
+  id: "/quality",
+  path: "/quality",
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutOrderTrackerRoute = LayoutOrderTrackerRouteImport.update({
+  id: "/order-tracker",
+  path: "/order-tracker",
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutOptimizationRoute = LayoutOptimizationRouteImport.update({
+  id: "/optimization",
+  path: "/optimization",
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutMrpRoute = LayoutMrpRouteImport.update({
+  id: "/mrp",
+  path: "/mrp",
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutMachinesRoute = LayoutMachinesRouteImport.update({
+  id: "/machines",
+  path: "/machines",
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutLogsRoute = LayoutLogsRouteImport.update({
+  id: "/logs",
+  path: "/logs",
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutKnowledgeBasesRoute = LayoutKnowledgeBasesRouteImport.update({
+  id: "/knowledge-bases",
+  path: "/knowledge-bases",
   getParentRoute: () => LayoutRoute,
 } as any)
 const LayoutItemsRoute = LayoutItemsRouteImport.update({
-  id: '/items',
-  path: '/items',
+  id: "/items",
+  path: "/items",
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutIntegrationsRoute = LayoutIntegrationsRouteImport.update({
+  id: "/integrations",
+  path: "/integrations",
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutIncidentsRoute = LayoutIncidentsRouteImport.update({
+  id: "/incidents",
+  path: "/incidents",
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutFactoryMapRoute = LayoutFactoryMapRouteImport.update({
+  id: "/factory-map",
+  path: "/factory-map",
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutEscalationsRoute = LayoutEscalationsRouteImport.update({
+  id: "/escalations",
+  path: "/escalations",
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutDatasourcesRoute = LayoutDatasourcesRouteImport.update({
+  id: "/datasources",
+  path: "/datasources",
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutDataPlatformRoute = LayoutDataPlatformRouteImport.update({
+  id: "/data-platform",
+  path: "/data-platform",
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutCommandCenterRoute = LayoutCommandCenterRouteImport.update({
+  id: "/command-center",
+  path: "/command-center",
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutAskAiRoute = LayoutAskAiRouteImport.update({
+  id: "/ask-ai",
+  path: "/ask-ai",
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutAnalyticsRoute = LayoutAnalyticsRouteImport.update({
+  id: "/analytics",
+  path: "/analytics",
   getParentRoute: () => LayoutRoute,
 } as any)
 const LayoutAdminRoute = LayoutAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
+  id: "/admin",
+  path: "/admin",
   getParentRoute: () => LayoutRoute,
+} as any)
+const PortalOrdersOrderIdRoute = PortalOrdersOrderIdRouteImport.update({
+  id: "/orders/$orderId",
+  path: "/orders/$orderId",
+  getParentRoute: () => PortalRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/login': typeof LoginRoute
-  '/recover-password': typeof RecoverPasswordRoute
-  '/reset-password': typeof ResetPasswordRoute
-  '/signup': typeof SignupRoute
-  '/admin': typeof LayoutAdminRoute
-  '/items': typeof LayoutItemsRoute
-  '/settings': typeof LayoutSettingsRoute
-  '/': typeof LayoutIndexRoute
+  "/": typeof LayoutIndexRoute
+  "/login": typeof LoginRoute
+  "/portal": typeof PortalRouteWithChildren
+  "/privacy": typeof PrivacyRoute
+  "/recover-password": typeof RecoverPasswordRoute
+  "/reset-password": typeof ResetPasswordRoute
+  "/signup": typeof SignupRoute
+  "/terms": typeof TermsRoute
+  "/admin": typeof LayoutAdminRoute
+  "/analytics": typeof LayoutAnalyticsRoute
+  "/ask-ai": typeof LayoutAskAiRoute
+  "/command-center": typeof LayoutCommandCenterRoute
+  "/data-platform": typeof LayoutDataPlatformRoute
+  "/datasources": typeof LayoutDatasourcesRoute
+  "/escalations": typeof LayoutEscalationsRoute
+  "/factory-map": typeof LayoutFactoryMapRoute
+  "/incidents": typeof LayoutIncidentsRoute
+  "/integrations": typeof LayoutIntegrationsRoute
+  "/items": typeof LayoutItemsRoute
+  "/knowledge-bases": typeof LayoutKnowledgeBasesRoute
+  "/logs": typeof LayoutLogsRoute
+  "/machines": typeof LayoutMachinesRoute
+  "/mrp": typeof LayoutMrpRoute
+  "/optimization": typeof LayoutOptimizationRoute
+  "/order-tracker": typeof LayoutOrderTrackerRoute
+  "/quality": typeof LayoutQualityRoute
+  "/quotes": typeof LayoutQuotesRoute
+  "/services": typeof LayoutServicesRoute
+  "/settings": typeof LayoutSettingsRoute
+  "/sops": typeof LayoutSopsRoute
+  "/supply-chain": typeof LayoutSupplyChainRoute
+  "/tickets": typeof LayoutTicketsRoute
+  "/work-orders": typeof LayoutWorkOrdersRoute
+  "/portal/ask": typeof PortalAskRoute
+  "/portal/": typeof PortalIndexRoute
+  "/portal/orders/$orderId": typeof PortalOrdersOrderIdRoute
 }
 export interface FileRoutesByTo {
-  '/login': typeof LoginRoute
-  '/recover-password': typeof RecoverPasswordRoute
-  '/reset-password': typeof ResetPasswordRoute
-  '/signup': typeof SignupRoute
-  '/admin': typeof LayoutAdminRoute
-  '/items': typeof LayoutItemsRoute
-  '/settings': typeof LayoutSettingsRoute
-  '/': typeof LayoutIndexRoute
+  "/login": typeof LoginRoute
+  "/privacy": typeof PrivacyRoute
+  "/recover-password": typeof RecoverPasswordRoute
+  "/reset-password": typeof ResetPasswordRoute
+  "/signup": typeof SignupRoute
+  "/terms": typeof TermsRoute
+  "/admin": typeof LayoutAdminRoute
+  "/analytics": typeof LayoutAnalyticsRoute
+  "/ask-ai": typeof LayoutAskAiRoute
+  "/command-center": typeof LayoutCommandCenterRoute
+  "/data-platform": typeof LayoutDataPlatformRoute
+  "/datasources": typeof LayoutDatasourcesRoute
+  "/escalations": typeof LayoutEscalationsRoute
+  "/factory-map": typeof LayoutFactoryMapRoute
+  "/incidents": typeof LayoutIncidentsRoute
+  "/integrations": typeof LayoutIntegrationsRoute
+  "/items": typeof LayoutItemsRoute
+  "/knowledge-bases": typeof LayoutKnowledgeBasesRoute
+  "/logs": typeof LayoutLogsRoute
+  "/machines": typeof LayoutMachinesRoute
+  "/mrp": typeof LayoutMrpRoute
+  "/optimization": typeof LayoutOptimizationRoute
+  "/order-tracker": typeof LayoutOrderTrackerRoute
+  "/quality": typeof LayoutQualityRoute
+  "/quotes": typeof LayoutQuotesRoute
+  "/services": typeof LayoutServicesRoute
+  "/settings": typeof LayoutSettingsRoute
+  "/sops": typeof LayoutSopsRoute
+  "/supply-chain": typeof LayoutSupplyChainRoute
+  "/tickets": typeof LayoutTicketsRoute
+  "/work-orders": typeof LayoutWorkOrdersRoute
+  "/portal/ask": typeof PortalAskRoute
+  "/": typeof LayoutIndexRoute
+  "/portal": typeof PortalIndexRoute
+  "/portal/orders/$orderId": typeof PortalOrdersOrderIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/_layout': typeof LayoutRouteWithChildren
-  '/login': typeof LoginRoute
-  '/recover-password': typeof RecoverPasswordRoute
-  '/reset-password': typeof ResetPasswordRoute
-  '/signup': typeof SignupRoute
-  '/_layout/admin': typeof LayoutAdminRoute
-  '/_layout/items': typeof LayoutItemsRoute
-  '/_layout/settings': typeof LayoutSettingsRoute
-  '/_layout/': typeof LayoutIndexRoute
+  "/_layout": typeof LayoutRouteWithChildren
+  "/login": typeof LoginRoute
+  "/portal": typeof PortalRouteWithChildren
+  "/privacy": typeof PrivacyRoute
+  "/recover-password": typeof RecoverPasswordRoute
+  "/reset-password": typeof ResetPasswordRoute
+  "/signup": typeof SignupRoute
+  "/terms": typeof TermsRoute
+  "/_layout/admin": typeof LayoutAdminRoute
+  "/_layout/analytics": typeof LayoutAnalyticsRoute
+  "/_layout/ask-ai": typeof LayoutAskAiRoute
+  "/_layout/command-center": typeof LayoutCommandCenterRoute
+  "/_layout/data-platform": typeof LayoutDataPlatformRoute
+  "/_layout/datasources": typeof LayoutDatasourcesRoute
+  "/_layout/escalations": typeof LayoutEscalationsRoute
+  "/_layout/factory-map": typeof LayoutFactoryMapRoute
+  "/_layout/incidents": typeof LayoutIncidentsRoute
+  "/_layout/integrations": typeof LayoutIntegrationsRoute
+  "/_layout/items": typeof LayoutItemsRoute
+  "/_layout/knowledge-bases": typeof LayoutKnowledgeBasesRoute
+  "/_layout/logs": typeof LayoutLogsRoute
+  "/_layout/machines": typeof LayoutMachinesRoute
+  "/_layout/mrp": typeof LayoutMrpRoute
+  "/_layout/optimization": typeof LayoutOptimizationRoute
+  "/_layout/order-tracker": typeof LayoutOrderTrackerRoute
+  "/_layout/quality": typeof LayoutQualityRoute
+  "/_layout/quotes": typeof LayoutQuotesRoute
+  "/_layout/services": typeof LayoutServicesRoute
+  "/_layout/settings": typeof LayoutSettingsRoute
+  "/_layout/sops": typeof LayoutSopsRoute
+  "/_layout/supply-chain": typeof LayoutSupplyChainRoute
+  "/_layout/tickets": typeof LayoutTicketsRoute
+  "/_layout/work-orders": typeof LayoutWorkOrdersRoute
+  "/portal/ask": typeof PortalAskRoute
+  "/_layout/": typeof LayoutIndexRoute
+  "/portal/": typeof PortalIndexRoute
+  "/portal/orders/$orderId": typeof PortalOrdersOrderIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/login'
-    | '/recover-password'
-    | '/reset-password'
-    | '/signup'
-    | '/admin'
-    | '/items'
-    | '/settings'
-    | '/'
+    | "/"
+    | "/login"
+    | "/portal"
+    | "/privacy"
+    | "/recover-password"
+    | "/reset-password"
+    | "/signup"
+    | "/terms"
+    | "/admin"
+    | "/analytics"
+    | "/ask-ai"
+    | "/command-center"
+    | "/data-platform"
+    | "/datasources"
+    | "/escalations"
+    | "/factory-map"
+    | "/incidents"
+    | "/integrations"
+    | "/items"
+    | "/knowledge-bases"
+    | "/logs"
+    | "/machines"
+    | "/mrp"
+    | "/optimization"
+    | "/order-tracker"
+    | "/quality"
+    | "/quotes"
+    | "/services"
+    | "/settings"
+    | "/sops"
+    | "/supply-chain"
+    | "/tickets"
+    | "/work-orders"
+    | "/portal/ask"
+    | "/portal/"
+    | "/portal/orders/$orderId"
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/login'
-    | '/recover-password'
-    | '/reset-password'
-    | '/signup'
-    | '/admin'
-    | '/items'
-    | '/settings'
-    | '/'
+    | "/login"
+    | "/privacy"
+    | "/recover-password"
+    | "/reset-password"
+    | "/signup"
+    | "/terms"
+    | "/admin"
+    | "/analytics"
+    | "/ask-ai"
+    | "/command-center"
+    | "/data-platform"
+    | "/datasources"
+    | "/escalations"
+    | "/factory-map"
+    | "/incidents"
+    | "/integrations"
+    | "/items"
+    | "/knowledge-bases"
+    | "/logs"
+    | "/machines"
+    | "/mrp"
+    | "/optimization"
+    | "/order-tracker"
+    | "/quality"
+    | "/quotes"
+    | "/services"
+    | "/settings"
+    | "/sops"
+    | "/supply-chain"
+    | "/tickets"
+    | "/work-orders"
+    | "/portal/ask"
+    | "/"
+    | "/portal"
+    | "/portal/orders/$orderId"
   id:
-    | '__root__'
-    | '/_layout'
-    | '/login'
-    | '/recover-password'
-    | '/reset-password'
-    | '/signup'
-    | '/_layout/admin'
-    | '/_layout/items'
-    | '/_layout/settings'
-    | '/_layout/'
+    | "__root__"
+    | "/_layout"
+    | "/login"
+    | "/portal"
+    | "/privacy"
+    | "/recover-password"
+    | "/reset-password"
+    | "/signup"
+    | "/terms"
+    | "/_layout/admin"
+    | "/_layout/analytics"
+    | "/_layout/ask-ai"
+    | "/_layout/command-center"
+    | "/_layout/data-platform"
+    | "/_layout/datasources"
+    | "/_layout/escalations"
+    | "/_layout/factory-map"
+    | "/_layout/incidents"
+    | "/_layout/integrations"
+    | "/_layout/items"
+    | "/_layout/knowledge-bases"
+    | "/_layout/logs"
+    | "/_layout/machines"
+    | "/_layout/mrp"
+    | "/_layout/optimization"
+    | "/_layout/order-tracker"
+    | "/_layout/quality"
+    | "/_layout/quotes"
+    | "/_layout/services"
+    | "/_layout/settings"
+    | "/_layout/sops"
+    | "/_layout/supply-chain"
+    | "/_layout/tickets"
+    | "/_layout/work-orders"
+    | "/portal/ask"
+    | "/_layout/"
+    | "/portal/"
+    | "/portal/orders/$orderId"
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   LayoutRoute: typeof LayoutRouteWithChildren
   LoginRoute: typeof LoginRoute
+  PortalRoute: typeof PortalRouteWithChildren
+  PrivacyRoute: typeof PrivacyRoute
   RecoverPasswordRoute: typeof RecoverPasswordRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
+  TermsRoute: typeof TermsRoute
 }
 
-declare module '@tanstack/react-router' {
+declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    '/signup': {
-      id: '/signup'
-      path: '/signup'
-      fullPath: '/signup'
+    "/terms": {
+      id: "/terms"
+      path: "/terms"
+      fullPath: "/terms"
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/signup": {
+      id: "/signup"
+      path: "/signup"
+      fullPath: "/signup"
       preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
+    "/reset-password": {
+      id: "/reset-password"
+      path: "/reset-password"
+      fullPath: "/reset-password"
       preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/recover-password': {
-      id: '/recover-password'
-      path: '/recover-password'
-      fullPath: '/recover-password'
+    "/recover-password": {
+      id: "/recover-password"
+      path: "/recover-password"
+      fullPath: "/recover-password"
       preLoaderRoute: typeof RecoverPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
+    "/privacy": {
+      id: "/privacy"
+      path: "/privacy"
+      fullPath: "/privacy"
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/portal": {
+      id: "/portal"
+      path: "/portal"
+      fullPath: "/portal"
+      preLoaderRoute: typeof PortalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/login": {
+      id: "/login"
+      path: "/login"
+      fullPath: "/login"
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_layout': {
-      id: '/_layout'
-      path: ''
-      fullPath: ''
+    "/_layout": {
+      id: "/_layout"
+      path: ""
+      fullPath: "/"
       preLoaderRoute: typeof LayoutRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_layout/': {
-      id: '/_layout/'
-      path: '/'
-      fullPath: '/'
+    "/portal/": {
+      id: "/portal/"
+      path: "/"
+      fullPath: "/portal/"
+      preLoaderRoute: typeof PortalIndexRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    "/_layout/": {
+      id: "/_layout/"
+      path: "/"
+      fullPath: "/"
       preLoaderRoute: typeof LayoutIndexRouteImport
       parentRoute: typeof LayoutRoute
     }
-    '/_layout/settings': {
-      id: '/_layout/settings'
-      path: '/settings'
-      fullPath: '/settings'
+    "/portal/ask": {
+      id: "/portal/ask"
+      path: "/ask"
+      fullPath: "/portal/ask"
+      preLoaderRoute: typeof PortalAskRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    "/_layout/work-orders": {
+      id: "/_layout/work-orders"
+      path: "/work-orders"
+      fullPath: "/work-orders"
+      preLoaderRoute: typeof LayoutWorkOrdersRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    "/_layout/tickets": {
+      id: "/_layout/tickets"
+      path: "/tickets"
+      fullPath: "/tickets"
+      preLoaderRoute: typeof LayoutTicketsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    "/_layout/supply-chain": {
+      id: "/_layout/supply-chain"
+      path: "/supply-chain"
+      fullPath: "/supply-chain"
+      preLoaderRoute: typeof LayoutSupplyChainRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    "/_layout/sops": {
+      id: "/_layout/sops"
+      path: "/sops"
+      fullPath: "/sops"
+      preLoaderRoute: typeof LayoutSopsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    "/_layout/settings": {
+      id: "/_layout/settings"
+      path: "/settings"
+      fullPath: "/settings"
       preLoaderRoute: typeof LayoutSettingsRouteImport
       parentRoute: typeof LayoutRoute
     }
-    '/_layout/items': {
-      id: '/_layout/items'
-      path: '/items'
-      fullPath: '/items'
+    "/_layout/services": {
+      id: "/_layout/services"
+      path: "/services"
+      fullPath: "/services"
+      preLoaderRoute: typeof LayoutServicesRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    "/_layout/quotes": {
+      id: "/_layout/quotes"
+      path: "/quotes"
+      fullPath: "/quotes"
+      preLoaderRoute: typeof LayoutQuotesRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    "/_layout/quality": {
+      id: "/_layout/quality"
+      path: "/quality"
+      fullPath: "/quality"
+      preLoaderRoute: typeof LayoutQualityRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    "/_layout/order-tracker": {
+      id: "/_layout/order-tracker"
+      path: "/order-tracker"
+      fullPath: "/order-tracker"
+      preLoaderRoute: typeof LayoutOrderTrackerRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    "/_layout/optimization": {
+      id: "/_layout/optimization"
+      path: "/optimization"
+      fullPath: "/optimization"
+      preLoaderRoute: typeof LayoutOptimizationRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    "/_layout/mrp": {
+      id: "/_layout/mrp"
+      path: "/mrp"
+      fullPath: "/mrp"
+      preLoaderRoute: typeof LayoutMrpRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    "/_layout/machines": {
+      id: "/_layout/machines"
+      path: "/machines"
+      fullPath: "/machines"
+      preLoaderRoute: typeof LayoutMachinesRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    "/_layout/logs": {
+      id: "/_layout/logs"
+      path: "/logs"
+      fullPath: "/logs"
+      preLoaderRoute: typeof LayoutLogsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    "/_layout/knowledge-bases": {
+      id: "/_layout/knowledge-bases"
+      path: "/knowledge-bases"
+      fullPath: "/knowledge-bases"
+      preLoaderRoute: typeof LayoutKnowledgeBasesRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    "/_layout/items": {
+      id: "/_layout/items"
+      path: "/items"
+      fullPath: "/items"
       preLoaderRoute: typeof LayoutItemsRouteImport
       parentRoute: typeof LayoutRoute
     }
-    '/_layout/admin': {
-      id: '/_layout/admin'
-      path: '/admin'
-      fullPath: '/admin'
+    "/_layout/integrations": {
+      id: "/_layout/integrations"
+      path: "/integrations"
+      fullPath: "/integrations"
+      preLoaderRoute: typeof LayoutIntegrationsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    "/_layout/incidents": {
+      id: "/_layout/incidents"
+      path: "/incidents"
+      fullPath: "/incidents"
+      preLoaderRoute: typeof LayoutIncidentsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    "/_layout/factory-map": {
+      id: "/_layout/factory-map"
+      path: "/factory-map"
+      fullPath: "/factory-map"
+      preLoaderRoute: typeof LayoutFactoryMapRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    "/_layout/escalations": {
+      id: "/_layout/escalations"
+      path: "/escalations"
+      fullPath: "/escalations"
+      preLoaderRoute: typeof LayoutEscalationsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    "/_layout/datasources": {
+      id: "/_layout/datasources"
+      path: "/datasources"
+      fullPath: "/datasources"
+      preLoaderRoute: typeof LayoutDatasourcesRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    "/_layout/data-platform": {
+      id: "/_layout/data-platform"
+      path: "/data-platform"
+      fullPath: "/data-platform"
+      preLoaderRoute: typeof LayoutDataPlatformRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    "/_layout/command-center": {
+      id: "/_layout/command-center"
+      path: "/command-center"
+      fullPath: "/command-center"
+      preLoaderRoute: typeof LayoutCommandCenterRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    "/_layout/ask-ai": {
+      id: "/_layout/ask-ai"
+      path: "/ask-ai"
+      fullPath: "/ask-ai"
+      preLoaderRoute: typeof LayoutAskAiRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    "/_layout/analytics": {
+      id: "/_layout/analytics"
+      path: "/analytics"
+      fullPath: "/analytics"
+      preLoaderRoute: typeof LayoutAnalyticsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    "/_layout/admin": {
+      id: "/_layout/admin"
+      path: "/admin"
+      fullPath: "/admin"
       preLoaderRoute: typeof LayoutAdminRouteImport
       parentRoute: typeof LayoutRoute
+    }
+    "/portal/orders/$orderId": {
+      id: "/portal/orders/$orderId"
+      path: "/orders/$orderId"
+      fullPath: "/portal/orders/$orderId"
+      preLoaderRoute: typeof PortalOrdersOrderIdRouteImport
+      parentRoute: typeof PortalRoute
     }
   }
 }
 
 interface LayoutRouteChildren {
   LayoutAdminRoute: typeof LayoutAdminRoute
+  LayoutAnalyticsRoute: typeof LayoutAnalyticsRoute
+  LayoutAskAiRoute: typeof LayoutAskAiRoute
+  LayoutCommandCenterRoute: typeof LayoutCommandCenterRoute
+  LayoutDataPlatformRoute: typeof LayoutDataPlatformRoute
+  LayoutDatasourcesRoute: typeof LayoutDatasourcesRoute
+  LayoutEscalationsRoute: typeof LayoutEscalationsRoute
+  LayoutFactoryMapRoute: typeof LayoutFactoryMapRoute
+  LayoutIncidentsRoute: typeof LayoutIncidentsRoute
+  LayoutIntegrationsRoute: typeof LayoutIntegrationsRoute
   LayoutItemsRoute: typeof LayoutItemsRoute
+  LayoutKnowledgeBasesRoute: typeof LayoutKnowledgeBasesRoute
+  LayoutLogsRoute: typeof LayoutLogsRoute
+  LayoutMachinesRoute: typeof LayoutMachinesRoute
+  LayoutMrpRoute: typeof LayoutMrpRoute
+  LayoutOptimizationRoute: typeof LayoutOptimizationRoute
+  LayoutOrderTrackerRoute: typeof LayoutOrderTrackerRoute
+  LayoutQualityRoute: typeof LayoutQualityRoute
+  LayoutQuotesRoute: typeof LayoutQuotesRoute
+  LayoutServicesRoute: typeof LayoutServicesRoute
   LayoutSettingsRoute: typeof LayoutSettingsRoute
+  LayoutSopsRoute: typeof LayoutSopsRoute
+  LayoutSupplyChainRoute: typeof LayoutSupplyChainRoute
+  LayoutTicketsRoute: typeof LayoutTicketsRoute
+  LayoutWorkOrdersRoute: typeof LayoutWorkOrdersRoute
   LayoutIndexRoute: typeof LayoutIndexRoute
 }
 
 const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutAdminRoute: LayoutAdminRoute,
+  LayoutAnalyticsRoute: LayoutAnalyticsRoute,
+  LayoutAskAiRoute: LayoutAskAiRoute,
+  LayoutCommandCenterRoute: LayoutCommandCenterRoute,
+  LayoutDataPlatformRoute: LayoutDataPlatformRoute,
+  LayoutDatasourcesRoute: LayoutDatasourcesRoute,
+  LayoutEscalationsRoute: LayoutEscalationsRoute,
+  LayoutFactoryMapRoute: LayoutFactoryMapRoute,
+  LayoutIncidentsRoute: LayoutIncidentsRoute,
+  LayoutIntegrationsRoute: LayoutIntegrationsRoute,
   LayoutItemsRoute: LayoutItemsRoute,
+  LayoutKnowledgeBasesRoute: LayoutKnowledgeBasesRoute,
+  LayoutLogsRoute: LayoutLogsRoute,
+  LayoutMachinesRoute: LayoutMachinesRoute,
+  LayoutMrpRoute: LayoutMrpRoute,
+  LayoutOptimizationRoute: LayoutOptimizationRoute,
+  LayoutOrderTrackerRoute: LayoutOrderTrackerRoute,
+  LayoutQualityRoute: LayoutQualityRoute,
+  LayoutQuotesRoute: LayoutQuotesRoute,
+  LayoutServicesRoute: LayoutServicesRoute,
   LayoutSettingsRoute: LayoutSettingsRoute,
+  LayoutSopsRoute: LayoutSopsRoute,
+  LayoutSupplyChainRoute: LayoutSupplyChainRoute,
+  LayoutTicketsRoute: LayoutTicketsRoute,
+  LayoutWorkOrdersRoute: LayoutWorkOrdersRoute,
   LayoutIndexRoute: LayoutIndexRoute,
 }
 
 const LayoutRouteWithChildren =
   LayoutRoute._addFileChildren(LayoutRouteChildren)
 
+interface PortalRouteChildren {
+  PortalAskRoute: typeof PortalAskRoute
+  PortalIndexRoute: typeof PortalIndexRoute
+  PortalOrdersOrderIdRoute: typeof PortalOrdersOrderIdRoute
+}
+
+const PortalRouteChildren: PortalRouteChildren = {
+  PortalAskRoute: PortalAskRoute,
+  PortalIndexRoute: PortalIndexRoute,
+  PortalOrdersOrderIdRoute: PortalOrdersOrderIdRoute,
+}
+
+const PortalRouteWithChildren =
+  PortalRoute._addFileChildren(PortalRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   LayoutRoute: LayoutRouteWithChildren,
   LoginRoute: LoginRoute,
+  PortalRoute: PortalRouteWithChildren,
+  PrivacyRoute: PrivacyRoute,
   RecoverPasswordRoute: RecoverPasswordRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
+  TermsRoute: TermsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

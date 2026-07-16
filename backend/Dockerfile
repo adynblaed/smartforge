@@ -31,6 +31,12 @@ COPY ./backend/scripts /app/backend/scripts
 
 COPY ./backend/pyproject.toml ./backend/alembic.ini /app/backend/
 
+# Data-platform assets. PlatformSettings resolves repo_root to /app in this
+# image, so contracts land at /app/config and the dbt project at /app/dbt —
+# required by the platform-worker (registry load + dbt build) and `cli`.
+COPY ./config /app/config
+COPY ./dbt /app/dbt
+
 COPY ./backend/app /app/backend/app
 
 # Sync the project

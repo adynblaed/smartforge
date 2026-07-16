@@ -1,4 +1,50 @@
-# FastAPI Project - Backend
+# SmartForge — Backend
+
+FastAPI application serving the smart-factory app **and** the governed
+analytics data platform. Platform-wide guidance lives in
+[`../CLAUDE.md`](../CLAUDE.md); the v1.0.0 LTS specification of record
+(architecture, invariants, failure handling, runbook index) is
+[`../specs/ARCHITECTURE.md`](../specs/ARCHITECTURE.md).
+
+## Layout
+
+| Path | Contents |
+|---|---|
+| `app/api/routes/` | All routers, incl. data platform: `platform.py`, `warehouse.py`, `lake.py` |
+| `app/services/` | Domain logic (machine intelligence, quality, supply chain, AskAI…) |
+| `app/workers/` | Telemetry simulator (compose `worker` service) |
+| `app/dataplatform/` | omega Oracle → Parquet lake → DuckDB + Postgres warehouse pipeline |
+| `tests/` | Template suite (**needs Postgres**, resets users — run via compose/CI only) |
+| `tests_smartforge/` | App suite — in-memory SQLite + dependency overrides, no services |
+| `tests_dataplatform/` | Platform suite — mocked Oracle, real DuckDB/PyArrow in temp dirs |
+
+## Test suites
+
+```console
+$ uv run pytest tests_smartforge -q     # app routers/services (offline)
+$ uv run pytest tests_dataplatform -q   # data platform (offline)
+$ bash ./scripts/test.sh                # template suite (Postgres required)
+```
+
+## Data platform CLI
+
+```console
+$ uv run python -m app.dataplatform.cli preflight [--tolerate-unreachable]
+$ uv run python -m app.dataplatform.cli bootstrap        # warehouse db/roles/control tables
+$ uv run python -m app.dataplatform.cli discover         # read-only schema inference + seed plan
+$ uv run python -m app.dataplatform.cli seed             # confirm + execute (human gate: SEED OMEGA)
+$ uv run python -m app.dataplatform.cli sample-seed      # DEV ONLY: real pipeline, deterministic sample data (no Oracle)
+$ uv run python -m app.dataplatform.cli sync --cadence hourly
+$ uv run python -m app.dataplatform.cli dispatch         # one scheduler tick (what platform-worker runs)
+$ uv run python -m app.dataplatform.cli freshness
+```
+
+dbt runs from here too:
+`uv run dbt build --project-dir ../dbt --profiles-dir ../dbt --target warehouse|lake`.
+
+---
+
+# FastAPI Project - Backend (template guide)
 
 ## Requirements
 

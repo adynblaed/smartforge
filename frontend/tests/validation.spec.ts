@@ -33,12 +33,19 @@ test("shell breadcrumbs mirror the sidebar grouping", async ({ page }) => {
   ).toBeVisible()
 })
 
-test("machine click opens the same live panel as the line fixtures", async ({ page }) => {
+test("machine click opens the same live panel as the line fixtures", async ({
+  page,
+}) => {
   // Visit Simulation deep-links /factory-map?machine=<id> which auto-pins the
   // machine's EntityPanel — the same panel the PLC/Server fixtures use.
   await page.goto("/machines")
-  await page.getByRole("link", { name: /Visit Simulation/i }).first().click()
-  await expect(page.getByText("Active power draw")).toBeVisible({ timeout: 15000 })
+  await page
+    .getByRole("link", { name: /Visit Simulation/i })
+    .first()
+    .click()
+  await expect(page.getByText("Active power draw")).toBeVisible({
+    timeout: 15000,
+  })
 })
 
 test("machine console: 3 machines, telemetry, alerts", async ({ page }) => {
@@ -50,55 +57,81 @@ test("machine console: 3 machines, telemetry, alerts", async ({ page }) => {
   // live 3D preview pane (same scene as the sim) renders a canvas per card
   await expect(page.locator("canvas").first()).toBeVisible()
   await expect(page.getByText("Machine Health Leaderboard")).toBeVisible()
-  await expect(page.getByRole("button", { name: "Ticket" }).first()).toBeVisible()
+  await expect(
+    page.getByRole("button", { name: "Ticket" }).first(),
+  ).toBeVisible()
 })
 
 test("work orders queue has rows", async ({ page }) => {
   await page.goto("/work-orders")
-  await expect(page.getByRole("heading", { name: "Work Order Queue" })).toBeVisible()
-  await expect(page.getByRole("button", { name: "Approve" }).first()).toBeVisible()
+  await expect(
+    page.getByRole("heading", { name: "Work Order Queue" }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole("button", { name: "Approve" }).first(),
+  ).toBeVisible()
 })
 
 test("quality shows OEE + defect data", async ({ page }) => {
   await page.goto("/quality")
-  await expect(page.getByRole("heading", { name: "Quality & OEE" })).toBeVisible()
+  await expect(
+    page.getByRole("heading", { name: "Quality & OEE" }),
+  ).toBeVisible()
   await expect(page.getByText(/%/).first()).toBeVisible()
 })
 
-test("optimizations: config + capacity + simulation studio", async ({ page }) => {
+test("optimizations: config + capacity + simulation studio", async ({
+  page,
+}) => {
   await page.goto("/optimization")
-  await expect(page.getByRole("heading", { name: "Optimizations" })).toBeVisible()
+  await expect(
+    page.getByRole("heading", { name: "Optimizations" }),
+  ).toBeVisible()
   // Planning folded in: capacity what-if + per-machine simulation studio.
-  await expect(page.getByText("Scheduling & Capacity", { exact: true })).toBeVisible()
-  await expect(page.getByRole("button", { name: "Run what-if schedule" })).toBeVisible()
+  await expect(
+    page.getByText("Scheduling & Capacity", { exact: true }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole("button", { name: "Run what-if schedule" }),
+  ).toBeVisible()
   await expect(page.getByText(/Simulation Studio/)).toBeVisible()
 })
 
 test("integrations status", async ({ page }) => {
   await page.goto("/integrations")
-  await expect(page.getByRole("heading", { name: "Integrations & Operations" })).toBeVisible()
+  await expect(
+    page.getByRole("heading", { name: "Integrations & Operations" }),
+  ).toBeVisible()
   await expect(page.getByRole("button", { name: "Run ERP sync" })).toBeVisible()
 })
 
 test("incidents impact view", async ({ page }) => {
   await page.goto("/incidents")
-  await expect(page.getByRole("heading", { name: "Incident Impact" })).toBeVisible()
+  await expect(
+    page.getByRole("heading", { name: "Incident Impact" }),
+  ).toBeVisible()
 })
 
 test("supply chain risk", async ({ page }) => {
   await page.goto("/supply-chain")
-  await expect(page.getByRole("heading", { name: "Supply Chain" })).toBeVisible()
+  await expect(
+    page.getByRole("heading", { name: "Supply Chain" }),
+  ).toBeVisible()
   await expect(page.getByText("Supplier Risk", { exact: true })).toBeVisible()
 })
 
 test("quotes & intake", async ({ page }) => {
   await page.goto("/quotes")
-  await expect(page.getByRole("heading", { name: "Order Intake & PO Builder" })).toBeVisible()
+  await expect(
+    page.getByRole("heading", { name: "Order Intake & PO Builder" }),
+  ).toBeVisible()
 })
 
 test("escalations panel", async ({ page }) => {
   await page.goto("/escalations")
-  await expect(page.getByRole("heading", { name: "Customer Escalations" })).toBeVisible()
+  await expect(
+    page.getByRole("heading", { name: "Customer Escalations" }),
+  ).toBeVisible()
 })
 
 test("askai answers (no connectivity error)", async ({ page }) => {
@@ -107,7 +140,9 @@ test("askai answers (no connectivity error)", async ({ page }) => {
   await input.fill("How do I fix high vibration?")
   await input.press("Enter")
   await expect(
-    page.getByText(/vibration|machine|cnc|spindle|bearing|maintenance|offline/i).first(),
+    page
+      .getByText(/vibration|machine|cnc|spindle|bearing|maintenance|offline/i)
+      .first(),
   ).toBeVisible({ timeout: 20000 })
   await expect(page.getByText(/couldn't reach the assistant/)).toHaveCount(0)
 })
@@ -115,7 +150,9 @@ test("askai answers (no connectivity error)", async ({ page }) => {
 test("analytics dashboards non-empty", async ({ page }) => {
   await page.goto("/analytics")
   await expect(page.getByText("Overall OEE")).toBeVisible()
-  await expect(page.getByRole("button", { name: "1m", exact: true })).toBeVisible()
+  await expect(
+    page.getByRole("button", { name: "1m", exact: true }),
+  ).toBeVisible()
 })
 
 test("datasources global tables", async ({ page }) => {
@@ -130,7 +167,9 @@ test("order tracker datasource lists active POs by order", async ({ page }) => {
   await expect(page.getByText(/PO-20/).first()).toBeVisible()
 })
 
-test("tickets center: serialized tickets, parts & SOP guidance", async ({ page }) => {
+test("tickets center: serialized tickets, parts & SOP guidance", async ({
+  page,
+}) => {
   await page.goto("/tickets")
   await expect(
     page.getByRole("heading", { name: "Maintenance Alert Center" }),
@@ -151,14 +190,18 @@ test("acknowledged ticket shows user email + timestamp", async ({ page }) => {
   await expect(page.getByText(/@smartforge\.com/).first()).toBeVisible()
 })
 
-test("sops library renders chaptered procedures + deep-link", async ({ page }) => {
+test("sops library renders chaptered procedures + deep-link", async ({
+  page,
+}) => {
   await page.goto("/sops")
   await expect(
     page.getByRole("heading", { name: /Standard Operating Procedures/ }),
   ).toBeVisible()
   await expect(page.getByText("SOP-PRESS-001").first()).toBeVisible()
   await page.goto("/sops?sop=SOP-PRESS-001&section=hydraulic-oil-service")
-  await expect(page.getByText("Hydraulic Oil & Seal Service").first()).toBeVisible()
+  await expect(
+    page.getByText("Hydraulic Oil & Seal Service").first(),
+  ).toBeVisible()
 })
 
 test("services page lists platform integrations", async ({ page }) => {
@@ -183,7 +226,10 @@ test("services health board reports live status + cross-links to logs", async ({
   // live health probe stamps a latency on the running database
   await expect(page.getByText(/Primary operational database · /)).toBeVisible()
   // a service streams to the Logs console
-  await page.getByRole("link", { name: /View logs/ }).first().click()
+  await page
+    .getByRole("link", { name: /View logs/ })
+    .first()
+    .click()
   await expect(page).toHaveURL(/\/logs\?service=/)
   await expect(page.getByRole("heading", { name: "Logs" })).toBeVisible()
 })
@@ -205,7 +251,9 @@ test("machine card deep-links to its scoped SOPs", async ({ page }) => {
 test("forge facts manager", async ({ page }) => {
   await page.goto("/knowledge-bases")
   await expect(page.getByRole("heading", { name: "Forge Facts" })).toBeVisible()
-  await expect(page.getByRole("button", { name: "New Forge Fact" })).toBeVisible()
+  await expect(
+    page.getByRole("button", { name: "New Forge Fact" }),
+  ).toBeVisible()
 })
 
 test("ForgeAI prioritizes SOPs and cites them as clickable sources", async ({
@@ -258,7 +306,9 @@ test("sidebar exposes the account menu (logout)", async ({ page }) => {
   await expect(page.getByTestId("user-menu")).toBeVisible()
 })
 
-test("stale token forces a clean relogin (no zero-data screen)", async ({ page }) => {
+test("stale token forces a clean relogin (no zero-data screen)", async ({
+  page,
+}) => {
   await page.addInitScript(() =>
     localStorage.setItem("access_token", "stale.invalid.token"),
   )
@@ -275,13 +325,21 @@ test("nginx artifact serves data same-origin (front→back through proxy)", asyn
   const username = process.env.FIRST_SUPERUSER
   const password = process.env.FIRST_SUPERUSER_PASSWORD
   test.skip(!username || !password, "superuser creds not in env")
-  const res = await page.request.post("http://frontend/api/v1/login/access-token", {
-    form: { username: username!, password: password! },
-  })
+  const res = await page.request.post(
+    "http://frontend/api/v1/login/access-token",
+    {
+      form: { username: username!, password: password! },
+    },
+  )
   expect(res.ok()).toBeTruthy()
   const token = (await res.json()).access_token as string
-  await page.addInitScript((t) => localStorage.setItem("access_token", t), token)
+  await page.addInitScript(
+    (t) => localStorage.setItem("access_token", t),
+    token,
+  )
   await page.goto("http://frontend/command-center")
-  await expect(page.getByText("Avg Machine Health")).toBeVisible({ timeout: 15000 })
+  await expect(page.getByText("Avg Machine Health")).toBeVisible({
+    timeout: 15000,
+  })
   await expect(page.getByText(/3 machines/)).toBeVisible({ timeout: 15000 })
 })

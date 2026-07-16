@@ -129,15 +129,6 @@ from app.models.maintenance_ticket import (
     TicketReference,
     TicketStatusUpdate,
 )
-from app.models.sop import (
-    Sop,
-    SopDetailPublic,
-    SopPublic,
-    SopSection,
-    SopSectionPublic,
-    SopsPublic,
-    SopUpdate,
-)
 from app.models.optimization import (
     MachineConfiguration,
     MachineConfigurationCreate,
@@ -178,6 +169,15 @@ from app.models.reorder import (
     MaterialReorderPublic,
     MaterialReordersPublic,
     ReorderActionRequest,
+)
+from app.models.sop import (
+    Sop,
+    SopDetailPublic,
+    SopPublic,
+    SopSection,
+    SopSectionPublic,
+    SopsPublic,
+    SopUpdate,
 )
 from app.models.supply_chain import (
     InventoryItem,
@@ -317,6 +317,7 @@ __all__ = [
     "SopSectionPublic",
     "SopDetailPublic",
     "SopsPublic",
+    "SopUpdate",
     # production
     "Job",
     "JobCreate",

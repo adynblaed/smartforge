@@ -1,0 +1,10 @@
+version: 2
+
+sources:
+  - name: platform_control
+    schema: control
+    description: Pipeline control tables (watermarks, runs, manifests).
+    tables:
+      - name: replication_watermarks
+      - name: replication_runs
+      - name: replication_table_runs

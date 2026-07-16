@@ -27,15 +27,17 @@ TICKET_LOG_KINDS = ("system", "acknowledgement", "note", "status_change")
 class MaintenanceTicketBase(SQLModel):
     code: str = Field(index=True, unique=True, max_length=64)  # e.g. "TICKET-0001"
     title: str = Field(max_length=255)
-    machine_id: uuid.UUID | None = Field(default=None, foreign_key="machine.id", index=True)
+    machine_id: uuid.UUID | None = Field(
+        default=None, foreign_key="machine.id", index=True
+    )
     alert_id: uuid.UUID | None = Field(default=None, foreign_key="alerts.id")
     incident_id: uuid.UUID | None = Field(default=None, foreign_key="incidents.id")
     severity: str = Field(default="medium", max_length=16)
     status: str = Field(default="open", index=True, max_length=24)
     # Audience-aware explanation of what went wrong + how to fix it.
-    what_happened: str = Field(default="", max_length=2000)      # layman
+    what_happened: str = Field(default="", max_length=2000)  # layman
     executive_summary: str = Field(default="", max_length=2000)  # executive / business
-    operator_detail: str = Field(default="", max_length=2000)    # operator / technical
+    operator_detail: str = Field(default="", max_length=2000)  # operator / technical
     remediation: str = Field(default="", max_length=2000)
     sop_id: uuid.UUID | None = Field(default=None, foreign_key="sops.id")
     sop_anchor: str | None = Field(default=None, max_length=64)

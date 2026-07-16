@@ -115,9 +115,7 @@ def _events_lines(session: SessionDep, limit: int) -> list[dict[str, Any]]:
         level = "WARN" if any(h in r.action for h in _WARN_HINTS) else "INFO"
         who = r.actor_email or "system"
         detail = f" — {r.detail}" if r.detail else ""
-        events.append(
-            (r.created_at, level, f"[{src}] {r.action}{detail} ({who})")
-        )
+        events.append((r.created_at, level, f"[{src}] {r.action}{detail} ({who})"))
 
     # Machine channel: recent alerts (with machine code as the source ref).
     codes = {m.id: m.code for m in session.exec(select(Machine)).all()}

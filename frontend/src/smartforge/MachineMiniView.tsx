@@ -46,13 +46,42 @@ export function MachineMiniView({
 
       <ambientLight intensity={0.85} />
       <directionalLight position={[5, 9, 5]} intensity={2.4} />
-      <directionalLight position={[-4, 4, -3]} intensity={0.9} color="#bcd3ff" />
-      <pointLight position={[-4, 4, -3]} intensity={24} color="#38bdf8" distance={24} />
-      <pointLight position={[4, 3, 4]} intensity={18} color="#a855f7" distance={24} />
+      <directionalLight
+        position={[-4, 4, -3]}
+        intensity={0.9}
+        color="#bcd3ff"
+      />
+      <pointLight
+        position={[-4, 4, -3]}
+        intensity={24}
+        color="#38bdf8"
+        distance={24}
+      />
+      <pointLight
+        position={[4, 3, 4]}
+        intensity={18}
+        color="#a855f7"
+        distance={24}
+      />
       <Environment resolution={128}>
-        <Lightformer intensity={3} position={[0, 6, -2]} scale={[10, 5, 1]} color="#cfe0ff" />
-        <Lightformer intensity={2.2} position={[5, 4, 4]} scale={[5, 5, 1]} color="#ffffff" />
-        <Lightformer intensity={1.6} position={[-5, 3, 3]} scale={[4, 4, 1]} color="#bcd3ff" />
+        <Lightformer
+          intensity={3}
+          position={[0, 6, -2]}
+          scale={[10, 5, 1]}
+          color="#cfe0ff"
+        />
+        <Lightformer
+          intensity={2.2}
+          position={[5, 4, 4]}
+          scale={[5, 5, 1]}
+          color="#ffffff"
+        />
+        <Lightformer
+          intensity={1.6}
+          position={[-5, 3, 3]}
+          scale={[4, 4, 1]}
+          color="#bcd3ff"
+        />
       </Environment>
 
       <Suspense fallback={null}>
@@ -76,12 +105,23 @@ export function MachineMiniView({
               metalness={0.6}
             />
           </mesh>
-          <ContactShadows position={[0, 0.01, 0]} opacity={0.5} scale={6} blur={2.4} far={5} />
+          <ContactShadows
+            position={[0, 0.01, 0]}
+            opacity={0.5}
+            scale={6}
+            blur={2.4}
+            far={5}
+          />
         </group>
       </Suspense>
 
       <EffectComposer enableNormalPass={false} multisampling={0}>
-        <Bloom intensity={0.8} luminanceThreshold={1} luminanceSmoothing={0.2} mipmapBlur />
+        <Bloom
+          intensity={0.8}
+          luminanceThreshold={1}
+          luminanceSmoothing={0.2}
+          mipmapBlur
+        />
       </EffectComposer>
 
       <OrbitControls

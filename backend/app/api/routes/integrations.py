@@ -26,7 +26,9 @@ def status(session: SessionDep, _user: InternalUser) -> Any:
 @router.get("/events", response_model=SyncEventsPublic)
 def events(session: SessionDep, _user: InternalUser, system: str = "erp") -> Any:
     model = ErpSyncEvent if system == "erp" else MesSyncEvent
-    rows = list(session.exec(select(model).order_by(desc(model.created_at)).limit(100)).all())
+    rows = list(
+        session.exec(select(model).order_by(desc(model.created_at)).limit(100)).all()
+    )
     return SyncEventsPublic(data=rows, count=len(rows))
 
 

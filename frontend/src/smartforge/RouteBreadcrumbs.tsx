@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router"
 import { Fragment } from "react"
-
+import { breadcrumbsFor } from "@/components/Sidebar/nav"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -9,7 +9,6 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
-import { breadcrumbsFor } from "@/components/Sidebar/nav"
 
 /**
  * Route-driven breadcrumb trail for the app shell header. Derived from the same

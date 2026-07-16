@@ -15,8 +15,8 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { cn } from "@/lib/utils"
 import useAuth from "@/hooks/useAuth"
+import { cn } from "@/lib/utils"
 import { sf } from "@/smartforge/api"
 import { Loading, PageHeader, StatusBadge } from "@/smartforge/components"
 import { POLL } from "@/smartforge/constants"
@@ -143,7 +143,9 @@ function TicketsPage() {
           {!data ? (
             <Loading />
           ) : visible.length === 0 ? (
-            <p className="py-12 text-center text-sm text-muted-foreground">No tickets.</p>
+            <p className="py-12 text-center text-sm text-muted-foreground">
+              No tickets.
+            </p>
           ) : (
             <ul className="space-y-2">
               {visible.map((tk) => {
@@ -173,12 +175,18 @@ function TicketsPage() {
                       )}
                       {tk.status === "acknowledged" && tk.acknowledged_by && (
                         <span className="hidden items-center gap-1 text-[11px] text-muted-foreground sm:flex">
-                          <CheckCircle2 size={12} className="text-emerald-400" />
+                          <CheckCircle2
+                            size={12}
+                            className="text-emerald-400"
+                          />
                           {tk.acknowledged_by}
                         </span>
                       )}
                       <StatusChip status={tk.status} />
-                      <ChevronRight size={15} className="shrink-0 text-muted-foreground" />
+                      <ChevronRight
+                        size={15}
+                        className="shrink-0 text-muted-foreground"
+                      />
                     </button>
                   </li>
                 )
@@ -229,7 +237,9 @@ function MentionText({
                   type="button"
                   key={i}
                   className={cn(cls, "hover:underline")}
-                  onClick={() => navigate({ to: "/sops", search: { sop: ref.code } })}
+                  onClick={() =>
+                    navigate({ to: "/sops", search: { sop: ref.code } })
+                  }
                 >
                   @{ref.code}
                 </button>
@@ -314,7 +324,9 @@ function MentionTextarea({
                   {r.kind}
                 </span>
                 <span className="font-mono text-primary">@{r.code}</span>
-                <span className="truncate text-muted-foreground">{r.title}</span>
+                <span className="truncate text-muted-foreground">
+                  {r.title}
+                </span>
               </button>
             </li>
           ))}
@@ -365,255 +377,270 @@ function TicketDetailView({ id }: { id: string }) {
     },
   })
   const addNote = useMutation({
-    mutationFn: () => sf.post(`/tickets/${id}/notes`, { message: note, tz: LOCAL_TZ }),
+    mutationFn: () =>
+      sf.post(`/tickets/${id}/notes`, { message: note, tz: LOCAL_TZ }),
     onSuccess: () => {
       setNote("")
       invalidate()
     },
   })
   const setStatus = useMutation({
-    mutationFn: (status: string) => sf.post(`/tickets/${id}/status`, { status }),
+    mutationFn: (status: string) =>
+      sf.post(`/tickets/${id}/status`, { status }),
     onSuccess: invalidate,
   })
 
   if (!t) return <Loading />
 
   return (
-      <div className="space-y-5">
-        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-          {t.machine_code && (
-            <span>
-              Machine <b className="text-foreground">{t.machine_code}</b>
-              {t.machine_name ? ` · ${t.machine_name}` : ""}
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+        {t.machine_code && (
+          <span>
+            Machine <b className="text-foreground">{t.machine_code}</b>
+            {t.machine_name ? ` · ${t.machine_name}` : ""}
+          </span>
+        )}
+        {t.incident_title &&
+          (t.incident_id ? (
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/incidents" })}
+              className="flex items-center gap-1 text-primary hover:underline"
+            >
+              <TriangleAlert size={12} /> {t.incident_title}
+            </button>
+          ) : (
+            <span className="flex items-center gap-1">
+              <TriangleAlert size={12} /> {t.incident_title}
             </span>
-          )}
-          {t.incident_title &&
-            (t.incident_id ? (
-              <button
-                type="button"
-                onClick={() => navigate({ to: "/incidents" })}
-                className="flex items-center gap-1 text-primary hover:underline"
-              >
-                <TriangleAlert size={12} /> {t.incident_title}
-              </button>
-            ) : (
-              <span className="flex items-center gap-1">
-                <TriangleAlert size={12} /> {t.incident_title}
-              </span>
-            ))}
-          <span>Opened {fmtTime(t.created_at, LOCAL_TZ)}</span>
-        </div>
+          ))}
+        <span>Opened {fmtTime(t.created_at, LOCAL_TZ)}</span>
+      </div>
 
-        {/* Audience-aware explanation */}
-        <div className="rounded-lg border p-3">
-          <Tabs defaultValue="what_happened">
-            <TabsList>
-              {AUDIENCES.map((a) => (
-                <TabsTrigger
-                  key={a.key}
-                  value={a.key}
-                  className="dark:text-white data-[state=active]:!bg-white data-[state=active]:!text-black dark:data-[state=active]:!bg-white dark:data-[state=active]:!text-black"
-                >
-                  {a.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+      {/* Audience-aware explanation */}
+      <div className="rounded-lg border p-3">
+        <Tabs defaultValue="what_happened">
+          <TabsList>
             {AUDIENCES.map((a) => (
-              <TabsContent key={a.key} value={a.key} className="mt-3 text-sm">
-                {t[a.key as keyof TicketDetail] as string}
-              </TabsContent>
+              <TabsTrigger
+                key={a.key}
+                value={a.key}
+                className="dark:text-white data-[state=active]:!bg-white data-[state=active]:!text-black dark:data-[state=active]:!bg-white dark:data-[state=active]:!text-black"
+              >
+                {a.label}
+              </TabsTrigger>
             ))}
-          </Tabs>
-          <div className="mt-3 rounded-md bg-muted/50 p-3 text-sm">
-            <p className="mb-1 text-xs font-semibold uppercase text-muted-foreground">
-              Remediation
+          </TabsList>
+          {AUDIENCES.map((a) => (
+            <TabsContent key={a.key} value={a.key} className="mt-3 text-sm">
+              {t[a.key as keyof TicketDetail] as string}
+            </TabsContent>
+          ))}
+        </Tabs>
+        <div className="mt-3 rounded-md bg-muted/50 p-3 text-sm">
+          <p className="mb-1 text-xs font-semibold uppercase text-muted-foreground">
+            Remediation
+          </p>
+          <MentionText text={t.remediation} refs={refMap} />
+        </div>
+        {t.sop_code && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="mt-3 !bg-white !text-black hover:!bg-white/90"
+            onClick={() =>
+              navigate({
+                to: "/sops",
+                search: {
+                  sop: t.sop_code!,
+                  section: t.sop_anchor ?? undefined,
+                },
+              })
+            }
+          >
+            <BookOpen size={14} /> View {t.sop_code}
+            {t.sop_anchor ? ` · ${t.sop_anchor.replace(/-/g, " ")}` : ""}
+            <ExternalLink size={12} />
+          </Button>
+        )}
+      </div>
+
+      {/* Parts & materials */}
+      <div className="rounded-lg border">
+        <div className="flex items-center gap-2 border-b px-3 py-2 text-sm font-semibold">
+          <Package size={15} /> Parts & Materials
+        </div>
+        <div className="divide-y">
+          {t.parts.length === 0 && (
+            <p className="px-3 py-3 text-xs text-muted-foreground">
+              No parts listed for this ticket.
             </p>
-            <MentionText text={t.remediation} refs={refMap} />
+          )}
+          {t.parts.map((p) => (
+            <div
+              key={p.id}
+              className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2.5 text-sm"
+            >
+              <span className="min-w-0 flex-1 font-medium">
+                {p.name}
+                {p.sku && (
+                  <span className="ml-1 font-mono text-[11px] text-muted-foreground">
+                    {p.sku}
+                  </span>
+                )}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                Need <b className="text-foreground">{p.qty_needed}</b> · On hand{" "}
+                <b
+                  className={cn(
+                    "text-foreground",
+                    !p.in_stock && "text-rose-400",
+                  )}
+                >
+                  {p.on_hand} {p.unit}
+                </b>
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {p.supplier_name ?? "—"}
+                {p.supplier_status && p.supplier_status !== "ok" && (
+                  <span className="ml-1 text-amber-400">
+                    ({p.supplier_status})
+                  </span>
+                )}{" "}
+                · {p.lead_time_days}d lead
+              </span>
+              <span className="flex items-center gap-1 text-xs">
+                <Clock size={12} className="text-muted-foreground" />
+                order by{" "}
+                <b className="text-foreground">
+                  {p.order_by ? new Date(p.order_by).toLocaleDateString() : "—"}
+                </b>
+              </span>
+              {p.in_stock ? (
+                <Badge
+                  variant="outline"
+                  className="border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                >
+                  In stock
+                </Badge>
+              ) : (
+                <Badge
+                  variant="outline"
+                  className="border-rose-500/30 bg-rose-500/10 text-rose-400"
+                >
+                  Reorder ({p.shortfall} short)
+                </Badge>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Acknowledgement */}
+      <div className="rounded-lg border p-3">
+        <p className="mb-2 text-sm font-semibold">Acknowledgement</p>
+        {t.acknowledged_by ? (
+          <div className="flex items-center gap-2 rounded-md bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">
+            <CheckCircle2 size={15} />
+            <span>
+              Acknowledged by <b>{t.acknowledged_by}</b> ·{" "}
+              {fmtTime(t.acknowledged_at, t.acknowledged_tz)}
+            </span>
           </div>
-          {t.sop_code && (
+        ) : (
+          <div className="space-y-2">
+            <MentionTextarea
+              value={ackNote}
+              onChange={setAckNote}
+              references={refList ?? []}
+              placeholder="Optional note, e.g. “Need to order more of Part XYZ…” (type @ to reference an SOP or ticket)"
+            />
+            <Button
+              size="sm"
+              onClick={() => acknowledge.mutate()}
+              disabled={acknowledge.isPending}
+            >
+              <CheckCircle2 size={14} /> Acknowledge as {user?.email}
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Activity / notes timeline */}
+      <div className="rounded-lg border p-3">
+        <p className="mb-3 text-sm font-semibold">Activity & Notes</p>
+        <ol className="space-y-3">
+          {t.logs.map((log: TicketLog) => (
+            <li key={log.id} className="flex gap-3 text-sm">
+              <span
+                className={cn(
+                  "mt-1.5 size-2 shrink-0 rounded-full",
+                  log.kind === "acknowledgement"
+                    ? "bg-emerald-400"
+                    : log.kind === "note"
+                      ? "bg-primary"
+                      : log.kind === "status_change"
+                        ? "bg-violet-400"
+                        : "bg-amber-400",
+                )}
+              />
+              <div className="min-w-0 flex-1">
+                <MentionText text={log.message} refs={refMap} />
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  {log.author_email ? `${log.author_email} · ` : "system · "}
+                  {fmtTime(log.created_at, log.tz ?? LOCAL_TZ)}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ol>
+
+        <div className="mt-4 space-y-2 border-t pt-3">
+          <MentionTextarea
+            value={note}
+            onChange={setNote}
+            references={refList ?? []}
+            placeholder="Add a note… type @ to reference an SOP, ticket or knowledge base"
+          />
+          <div className="flex items-center justify-between">
             <Button
               size="sm"
               variant="outline"
-              className="mt-3 !bg-white !text-black hover:!bg-white/90"
-              onClick={() =>
-                navigate({
-                  to: "/sops",
-                  search: { sop: t.sop_code!, section: t.sop_anchor ?? undefined },
-                })
-              }
+              onClick={() => addNote.mutate()}
+              disabled={!note.trim() || addNote.isPending}
             >
-              <BookOpen size={14} /> View {t.sop_code}
-              {t.sop_anchor ? ` · ${t.sop_anchor.replace(/-/g, " ")}` : ""}
-              <ExternalLink size={12} />
+              Add note
             </Button>
-          )}
-        </div>
-
-        {/* Parts & materials */}
-        <div className="rounded-lg border">
-          <div className="flex items-center gap-2 border-b px-3 py-2 text-sm font-semibold">
-            <Package size={15} /> Parts & Materials
-          </div>
-          <div className="divide-y">
-            {t.parts.length === 0 && (
-              <p className="px-3 py-3 text-xs text-muted-foreground">
-                No parts listed for this ticket.
-              </p>
-            )}
-            {t.parts.map((p) => (
-              <div key={p.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2.5 text-sm">
-                <span className="min-w-0 flex-1 font-medium">
-                  {p.name}
-                  {p.sku && (
-                    <span className="ml-1 font-mono text-[11px] text-muted-foreground">
-                      {p.sku}
-                    </span>
-                  )}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  Need <b className="text-foreground">{p.qty_needed}</b> · On hand{" "}
-                  <b className={cn("text-foreground", !p.in_stock && "text-rose-400")}>
-                    {p.on_hand} {p.unit}
-                  </b>
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {p.supplier_name ?? "—"}
-                  {p.supplier_status && p.supplier_status !== "ok" && (
-                    <span className="ml-1 text-amber-400">({p.supplier_status})</span>
-                  )}{" "}
-                  · {p.lead_time_days}d lead
-                </span>
-                <span className="flex items-center gap-1 text-xs">
-                  <Clock size={12} className="text-muted-foreground" />
-                  order by{" "}
-                  <b className="text-foreground">
-                    {p.order_by ? new Date(p.order_by).toLocaleDateString() : "—"}
-                  </b>
-                </span>
-                {p.in_stock ? (
-                  <Badge
-                    variant="outline"
-                    className="border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                  >
-                    In stock
-                  </Badge>
-                ) : (
-                  <Badge
-                    variant="outline"
-                    className="border-rose-500/30 bg-rose-500/10 text-rose-400"
-                  >
-                    Reorder ({p.shortfall} short)
-                  </Badge>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Acknowledgement */}
-        <div className="rounded-lg border p-3">
-          <p className="mb-2 text-sm font-semibold">Acknowledgement</p>
-          {t.acknowledged_by ? (
-            <div className="flex items-center gap-2 rounded-md bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">
-              <CheckCircle2 size={15} />
-              <span>
-                Acknowledged by <b>{t.acknowledged_by}</b> ·{" "}
-                {fmtTime(t.acknowledged_at, t.acknowledged_tz)}
-              </span>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <MentionTextarea
-                value={ackNote}
-                onChange={setAckNote}
-                references={refList ?? []}
-                placeholder="Optional note, e.g. “Need to order more of Part XYZ…” (type @ to reference an SOP or ticket)"
-              />
-              <Button
-                size="sm"
-                onClick={() => acknowledge.mutate()}
-                disabled={acknowledge.isPending}
-              >
-                <CheckCircle2 size={14} /> Acknowledge as {user?.email}
-              </Button>
-            </div>
-          )}
-        </div>
-
-        {/* Activity / notes timeline */}
-        <div className="rounded-lg border p-3">
-          <p className="mb-3 text-sm font-semibold">Activity & Notes</p>
-          <ol className="space-y-3">
-            {t.logs.map((log: TicketLog) => (
-              <li key={log.id} className="flex gap-3 text-sm">
-                <span
-                  className={cn(
-                    "mt-1.5 size-2 shrink-0 rounded-full",
-                    log.kind === "acknowledgement"
-                      ? "bg-emerald-400"
-                      : log.kind === "note"
-                        ? "bg-primary"
-                        : log.kind === "status_change"
-                          ? "bg-violet-400"
-                          : "bg-amber-400",
-                  )}
-                />
-                <div className="min-w-0 flex-1">
-                  <MentionText text={log.message} refs={refMap} />
-                  <p className="mt-0.5 text-[11px] text-muted-foreground">
-                    {log.author_email ? `${log.author_email} · ` : "system · "}
-                    {fmtTime(log.created_at, log.tz ?? LOCAL_TZ)}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ol>
-
-          <div className="mt-4 space-y-2 border-t pt-3">
-            <MentionTextarea
-              value={note}
-              onChange={setNote}
-              references={refList ?? []}
-              placeholder="Add a note… type @ to reference an SOP, ticket or knowledge base"
-            />
-            <div className="flex items-center justify-between">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => addNote.mutate()}
-                disabled={!note.trim() || addNote.isPending}
-              >
-                Add note
-              </Button>
-              <div className="flex gap-2">
-                {t.status !== "in_progress" && t.status !== "resolved" && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="!bg-white !text-black hover:!bg-white/90"
-                    onClick={() => setStatus.mutate("in_progress")}
-                  >
-                    Start work
-                  </Button>
-                )}
-                {t.status !== "resolved" && t.status !== "closed" && (
-                  <Button size="sm" onClick={() => setStatus.mutate("resolved")}>
-                    Mark resolved
-                  </Button>
-                )}
-                {t.status === "resolved" && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setStatus.mutate("closed")}
-                  >
-                    Close
-                  </Button>
-                )}
-              </div>
+            <div className="flex gap-2">
+              {t.status !== "in_progress" && t.status !== "resolved" && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="!bg-white !text-black hover:!bg-white/90"
+                  onClick={() => setStatus.mutate("in_progress")}
+                >
+                  Start work
+                </Button>
+              )}
+              {t.status !== "resolved" && t.status !== "closed" && (
+                <Button size="sm" onClick={() => setStatus.mutate("resolved")}>
+                  Mark resolved
+                </Button>
+              )}
+              {t.status === "resolved" && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setStatus.mutate("closed")}
+                >
+                  Close
+                </Button>
+              )}
             </div>
           </div>
         </div>
       </div>
+    </div>
   )
 }

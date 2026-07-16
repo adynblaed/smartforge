@@ -1,0 +1,120 @@
+version: 2
+
+# Downstream dependencies of the governed data products (DBT-013).
+# Every consumer of a mart or API model is registered here so that
+# `dbt ls --select +exposure:*` answers "what breaks if this model changes?"
+# (GOV-007 impact analysis). Keep this file in sync with:
+#   - backend/app/api/routes/warehouse.py  (FastAPI warehouse endpoints)
+#   - backend/app/api/routes/lake.py       (FastAPI lake endpoints)
+#   - frontend/src/routes/_layout/data-platform.tsx (Data Platform page)
+#   - infra/grafana/dashboards             (operational dashboards)
+
+exposures:
+  - name: fastapi_warehouse_api
+    label: "FastAPI /warehouse endpoints"
+    type: application
+    maturity: high
+    url: http://localhost:8000/docs#/warehouse
+    description: >
+      Governed analytical access layer. GET /api/v1/warehouse/datasets and
+      GET /api/v1/warehouse/datasets/{dataset} serve only the marts and api
+      schemas through a read-only role with statement timeouts, mandatory
+      pagination, and allowlisted filters. GET /api/v1/warehouse/kpis serves
+      curated aggregates. Breaking column or type changes to these models
+      require versioning per the API contract policy (DBT-007 / API-002).
+    owner:
+      name: Data Platform Engineering
+      email: "{{ env_var('PLATFORM_OWNER_EMAIL', 'admin@futureform.com') }}"
+    depends_on:
+      - ref('api_machine_health')
+      - ref('api_production_summary')
+      - ref('api_quality_summary')
+      - ref('api_supply_chain_status')
+      - ref('api_work_orders')
+      - ref('api_open_order_backlog')
+      - ref('api_mrp_supply_plan')
+      - ref('api_trailing_windows')
+      - ref('dim_machines')
+      - ref('dim_customers')
+      - ref('dim_suppliers')
+      - ref('dim_status')
+      - ref('fct_production_runs')
+      - ref('fct_work_orders')
+      - ref('fct_quality_inspections')
+      - ref('fct_purchase_orders')
+      - ref('fct_telemetry_events')
+
+  - name: smartforge_data_platform_page
+    label: "SmartForge frontend — Data Platform page"
+    type: dashboard
+    maturity: high
+    url: http://localhost:5173/data-platform
+    description: >
+      Operator-facing observability page (freshness, replication runs,
+      reconciliation, warehouse KPIs, lake manifests). Consumes the FastAPI
+      /platform, /warehouse, and /lake endpoints; surfaces staleness to users
+      so degraded data is never silently presented as healthy (DQ-014, BI-005).
+    owner:
+      name: Data Platform Engineering
+      email: "{{ env_var('PLATFORM_OWNER_EMAIL', 'admin@futureform.com') }}"
+    depends_on:
+      - ref('api_machine_health')
+      - ref('api_production_summary')
+      - ref('api_quality_summary')
+      - ref('api_supply_chain_status')
+      - ref('api_work_orders')
+
+  - name: smartforge_mrp_page
+    label: "SmartForge frontend — MRP page"
+    type: dashboard
+    maturity: high
+    url: http://localhost:5173/mrp
+    description: >
+      Time-phased supply-planning grid (demand / supply / projected balance
+      per item per day) with shortage and safety-stock highlighting, built
+      entirely on the certified api_mrp_supply_plan contract. What-if supply
+      edits are client-side only — the page never writes.
+    owner:
+      name: Supply Chain
+      email: "{{ env_var('PLATFORM_OWNER_EMAIL', 'admin@futureform.com') }}"
+    depends_on:
+      - ref('api_mrp_supply_plan')
+      - ref('api_open_order_backlog')
+
+  # Warehouse-target-only: api_replication_freshness reads control tables
+  # that live in PostgreSQL, so this exposure is disabled on the lake target
+  # exactly like the model itself.
+  - name: freshness_provenance_consumers
+    label: "Freshness & provenance consumers (API-012 / BI-005)"
+    type: application
+    maturity: high
+    url: http://localhost:8000/docs#/warehouse
+    config:
+      enabled: "{{ target.name == 'warehouse' }}"
+    description: >
+      GET /api/v1/warehouse/datasets/api_replication_freshness and the
+      Data Platform page freshness panel. Exposes committed watermarks,
+      SCNs, and load IDs so every consumer can verify data currency.
+    owner:
+      name: Data Platform Engineering
+      email: "{{ env_var('PLATFORM_OWNER_EMAIL', 'admin@futureform.com') }}"
+    depends_on:
+      - ref('api_replication_freshness')
+
+  - name: analyst_lake_duckdb
+    label: "Analyst DuckDB lake access (read-only)"
+    type: analysis
+    maturity: medium
+    url: http://localhost:8000/docs#/lake
+    description: >
+      Ad hoc analyst exploration over the published Parquet lake via the
+      read-only DuckDB catalog (raw_oracle.* views) and the governed
+      GET /api/v1/lake endpoints. Exploratory (not certified) — certified
+      figures come from the marts/api schemas in the warehouse (IQ-010).
+    owner:
+      name: Analytics
+      email: "{{ env_var('PLATFORM_OWNER_EMAIL', 'admin@futureform.com') }}"
+    depends_on:
+      - source('omega_raw', 'machines')
+      - source('omega_raw', 'production_runs')
+      - source('omega_raw', 'telemetry_events')

@@ -1,0 +1,259 @@
+# =============================================================================
+# Omega (Oracle) -> SmartForge Data Platform: per-table replication contracts
+# =============================================================================
+# This file is the checked-in registry required by the specs
+# (Data_Warehouse_Lake_Specs.pdf §6, Migration.md §6.1, Checklist DCT-001).
+#
+# Every replicated table MUST have an explicit contract here. The schema
+# inference flow (`python -m app.dataplatform.cli discover`) reads live Oracle
+# metadata and writes a *proposed* plan to config/generated/; the proposal is
+# only merged into this file after operator review, and seeding only runs
+# after explicit confirmation (API: POST /api/v1/platform/seed/confirm).
+#
+# Contract fields:
+#   enabled              - master switch; disabling pauses one table safely (OPS-003)
+#   cadence              - hourly | daily | weekly | manual
+#   strategy             - updated_at_merge | monotonic_append | full_replace
+#                          | primary_key_reconcile | hash_bucket_reconcile
+#   primary_key          - ordered list of PK columns (Oracle names, UPPERCASE)
+#   cursor_column        - monotonic change marker validated per SRC-004
+#   cursor_type          - timestamp | integer
+#   overlap_minutes      - lower-bound overlap for late-arriving rows (INC-003)
+#   chunk_rows           - keyset-pagination batch size (SEED-004)
+#   partition_column     - lake partition (LAKE-005); null = load-date partitions
+#   delete_strategy      - soft_delete | parent_reconciliation
+#                          | weekly_key_reconciliation | implicit_replace | none
+#   soft_delete_column   - required when delete_strategy = soft_delete
+#   destination_name     - normalized snake_case target table name (DCT-011)
+#   classification       - internal | confidential | restricted (SRC-017)
+#   owner                - accountable business/domain owner (SRC-010)
+#   control_total_columns - numeric columns (Oracle names, UPPERCASE) whose
+#                          sums are reconciled source -> lake -> warehouse
+#                          per load (DQ-002/DBT-005); omit for none
+#   surrogate_uids       - platform-generated deterministic UUIDv5 columns
+#                          stamped at extraction (DCT-011): column (snake_case
+#                          destination), source_columns (Oracle UPPERCASE key),
+#                          entity (identified entity; defaults to this table's
+#                          destination_name — name another table's entity to
+#                          reproduce ITS row UUIDs for cross-table references)
+# =============================================================================
+
+defaults:
+  source_system: omega
+  source_database: OMEGADB
+  enabled: true
+  overlap_minutes: 5
+  chunk_rows: 50000
+  classification: internal
+  owner: data-engineering
+
+tables:
+  OMEGA.MACHINES:
+    cadence: daily
+    strategy: updated_at_merge
+    primary_key: [MACHINE_ID]
+    cursor_column: LAST_UPDATE_TS
+    cursor_type: timestamp
+    overlap_minutes: 15
+    chunk_rows: 10000
+    delete_strategy: soft_delete
+    soft_delete_column: IS_DECOMMISSIONED
+    destination_name: machines
+    owner: manufacturing-ops
+
+  # The foundational data-exchange contract: every imported work order gets
+  # a deterministic UUID (work_order_uid), and the parent link gets the
+  # parent's UUID — enabling the genealogy tree (root -> child -> grandchild)
+  # built in dbt (int_work_order_genealogy) from the same publication.
+  OMEGA.WORK_ORDERS:
+    cadence: hourly
+    strategy: updated_at_merge
+    primary_key: [WORK_ORDER_ID]
+    cursor_column: LAST_UPDATE_TS
+    cursor_type: timestamp
+    partition_column: SCHEDULED_DATE
+    delete_strategy: soft_delete
+    soft_delete_column: IS_CANCELLED
+    destination_name: work_orders
+    owner: maintenance
+    # QTY_ORDERED per dbt/models/staging/stg_omega__work_orders.sql
+    control_total_columns: [QTY_ORDERED]
+    surrogate_uids:
+      - column: work_order_uid
+        source_columns: [WORK_ORDER_ID]
+      - column: parent_work_order_uid
+        source_columns: [PARENT_WORK_ORDER_ID]
+
+  OMEGA.PRODUCTION_RUNS:
+    cadence: hourly
+    strategy: updated_at_merge
+    primary_key: [RUN_ID]
+    cursor_column: LAST_UPDATE_TS
+    cursor_type: timestamp
+    chunk_rows: 100000
+    partition_column: RUN_DATE
+    delete_strategy: parent_reconciliation
+    destination_name: production_runs
+    owner: manufacturing-ops
+    # UNITS_PRODUCED per dbt/models/staging/stg_omega__production_runs.sql
+    control_total_columns: [UNITS_PRODUCED]
+
+  OMEGA.TELEMETRY_EVENTS:
+    cadence: hourly
+    strategy: monotonic_append
+    primary_key: [EVENT_ID]
+    cursor_column: EVENT_ID
+    cursor_type: integer
+    overlap_minutes: 0
+    chunk_rows: 250000
+    partition_column: EVENT_DATE
+    delete_strategy: none
+    destination_name: telemetry_events
+    owner: manufacturing-ops
+
+  OMEGA.QUALITY_INSPECTIONS:
+    cadence: hourly
+    strategy: updated_at_merge
+    primary_key: [INSPECTION_ID]
+    cursor_column: LAST_UPDATE_TS
+    cursor_type: timestamp
+    partition_column: INSPECTION_DATE
+    delete_strategy: weekly_key_reconciliation
+    destination_name: quality_inspections
+    owner: quality
+
+  OMEGA.DEFECTS:
+    cadence: hourly
+    strategy: updated_at_merge
+    primary_key: [DEFECT_ID]
+    cursor_column: LAST_UPDATE_TS
+    cursor_type: timestamp
+    partition_column: DETECTED_DATE
+    delete_strategy: weekly_key_reconciliation
+    destination_name: defects
+    owner: quality
+
+  OMEGA.INVENTORY_ITEMS:
+    cadence: daily
+    strategy: updated_at_merge
+    primary_key: [ITEM_ID]
+    cursor_column: LAST_UPDATE_TS
+    cursor_type: timestamp
+    overlap_minutes: 15
+    delete_strategy: weekly_key_reconciliation
+    destination_name: inventory_items
+    owner: supply-chain
+
+  OMEGA.PURCHASE_ORDERS:
+    cadence: hourly
+    strategy: updated_at_merge
+    primary_key: [PO_ID]
+    cursor_column: LAST_UPDATE_TS
+    cursor_type: timestamp
+    partition_column: ORDER_DATE
+    delete_strategy: soft_delete
+    soft_delete_column: IS_CANCELLED
+    destination_name: purchase_orders
+    owner: supply-chain
+    # TOTAL_AMOUNT per dbt/models/staging/stg_omega__purchase_orders.sql
+    control_total_columns: [TOTAL_AMOUNT]
+
+  OMEGA.PURCHASE_ORDER_LINES:
+    cadence: hourly
+    strategy: updated_at_merge
+    primary_key: [PO_ID, LINE_NUMBER]
+    cursor_column: LAST_UPDATE_TS
+    cursor_type: timestamp
+    chunk_rows: 100000
+    partition_column: ORDER_DATE
+    delete_strategy: parent_reconciliation
+    destination_name: purchase_order_lines
+    owner: supply-chain
+    # LINE_AMOUNT per dbt/models/staging/stg_omega__purchase_order_lines.sql
+    control_total_columns: [LINE_AMOUNT]
+
+  OMEGA.SUPPLIERS:
+    cadence: daily
+    strategy: updated_at_merge
+    primary_key: [SUPPLIER_ID]
+    cursor_column: LAST_UPDATE_TS
+    cursor_type: timestamp
+    overlap_minutes: 15
+    chunk_rows: 10000
+    delete_strategy: weekly_key_reconciliation
+    destination_name: suppliers
+    owner: supply-chain
+
+  OMEGA.CUSTOMERS:
+    cadence: daily
+    strategy: updated_at_merge
+    primary_key: [CUSTOMER_ID]
+    cursor_column: LAST_UPDATE_TS
+    cursor_type: timestamp
+    overlap_minutes: 15
+    delete_strategy: weekly_key_reconciliation
+    destination_name: customers
+    classification: confidential
+    owner: sales-ops
+
+  # Open-order backlog: one row per sales-order line (source of the legacy
+  # OPEN_ORDERS_BACKLOG report). Lines peg to producing work orders, so the
+  # contract reproduces work-order UUIDs for the cross-reference.
+  OMEGA.SALES_ORDER_LINES:
+    cadence: hourly
+    strategy: updated_at_merge
+    primary_key: [ORDER_NO, LINE_NO]
+    cursor_column: LAST_UPDATE_TS
+    cursor_type: timestamp
+    chunk_rows: 100000
+    partition_column: DUE_DATE
+    delete_strategy: soft_delete
+    soft_delete_column: IS_CANCELLED
+    destination_name: sales_order_lines
+    classification: confidential
+    owner: sales-ops
+    # AMOUNT_USD/BALANCE_QTY per dbt/models/staging/stg_omega__sales_order_lines.sql
+    control_total_columns: [AMOUNT_USD, BALANCE_QTY]
+    surrogate_uids:
+      - column: sales_order_line_uid
+        source_columns: [ORDER_NO, LINE_NO]
+      - column: work_order_uid
+        entity: work_orders
+        source_columns: [WORK_ORDER_ID]
+
+  # MRP pegging: omega's planning-engine output (source of the legacy
+  # INV_ALLOCATION_SUMMARY report). Each MRP regeneration replaces the whole
+  # plan, so the contract is full_replace with implicit deletes — exactly
+  # like a lookup, but at planning scale.
+  OMEGA.MRP_PEGGING:
+    cadence: daily
+    strategy: full_replace
+    primary_key: [PEGGING_ID]
+    cursor_column: null
+    overlap_minutes: 0
+    chunk_rows: 100000
+    delete_strategy: implicit_replace
+    destination_name: mrp_pegging
+    owner: supply-chain
+    # SUPPLY_QTY/DEMAND_QTY per dbt/models/staging/stg_omega__mrp_pegging.sql
+    control_total_columns: [SUPPLY_QTY, DEMAND_QTY]
+    surrogate_uids:
+      - column: mrp_pegging_uid
+        source_columns: [PEGGING_ID]
+      - column: work_order_uid
+        entity: work_orders
+        source_columns: [WORK_ORDER_ID]
+      - column: pegged_work_order_uid
+        entity: work_orders
+        source_columns: [PEGGED_WORK_ORDER_ID]
+
+  OMEGA.STATUS_LOOKUP:
+    cadence: daily
+    strategy: full_replace
+    primary_key: [STATUS_CODE]
+    cursor_column: null
+    overlap_minutes: 0
+    chunk_rows: 10000
+    delete_strategy: implicit_replace
+    destination_name: status_lookup
+    owner: data-engineering

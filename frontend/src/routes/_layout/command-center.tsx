@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { useMemo } from "react"
 import {
   AlertTriangle,
   ChevronRight,
@@ -9,20 +8,21 @@ import {
   SlidersHorizontal,
 } from "lucide-react"
 import type { ReactNode } from "react"
+import { useMemo } from "react"
 
 import useAuth from "@/hooks/useAuth"
 import { sf } from "@/smartforge/api"
-import { POLL } from "@/smartforge/constants"
 import {
+  healthColor,
   KpiTile,
   Loading,
+  metricTrend,
   PageHeader,
   Panel,
   StatusBadge,
-  healthColor,
-  metricTrend,
   userDisplayName,
 } from "@/smartforge/components"
+import { POLL } from "@/smartforge/constants"
 import { GlobalOperations } from "@/smartforge/GlobalOperations"
 import type { CommandCenter, Page, PurchaseOrder } from "@/smartforge/types"
 
@@ -65,7 +65,8 @@ function CommandCenterPage() {
   const greetingLine = useMemo(() => {
     const word = pick([greetingFor(new Date().getHours()), ...GREETINGS])
     const named = userDisplayName(user)
-    const name = named === "there" ? "Operator" : pick([named, named, "Operator"])
+    const name =
+      named === "there" ? "Operator" : pick([named, named, "Operator"])
     return `${word}, ${name}`
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
@@ -227,7 +228,8 @@ function CommandCenterPage() {
               style={{
                 borderColor: "var(--danger)",
                 color: "var(--danger)",
-                backgroundColor: "color-mix(in oklab, var(--danger) 12%, transparent)",
+                backgroundColor:
+                  "color-mix(in oklab, var(--danger) 12%, transparent)",
               }}
             >
               {k.active_alerts ?? 0} active
@@ -236,7 +238,9 @@ function CommandCenterPage() {
         >
           <ul className="space-y-3">
             {data?.risk_alerts.length === 0 && (
-              <li className="text-sm text-muted-foreground">No active alerts.</li>
+              <li className="text-sm text-muted-foreground">
+                No active alerts.
+              </li>
             )}
             {data?.risk_alerts.map((a) => (
               <li key={a.id}>

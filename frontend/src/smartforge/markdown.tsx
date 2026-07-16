@@ -80,7 +80,11 @@ export function renderMarkdown(md: string): string {
       const header = splitRow(line)
       i += 2
       const rows: string[][] = []
-      while (i < lines.length && lines[i].includes("|") && lines[i].trim() !== "") {
+      while (
+        i < lines.length &&
+        lines[i].includes("|") &&
+        lines[i].trim() !== ""
+      ) {
         rows.push(splitRow(lines[i]))
         i++
       }
@@ -91,7 +95,9 @@ export function renderMarkdown(md: string): string {
           rows
             .map(
               (r) =>
-                "<tr>" + r.map((c) => `<td>${inline(c)}</td>`).join("") + "</tr>",
+                "<tr>" +
+                r.map((c) => `<td>${inline(c)}</td>`).join("") +
+                "</tr>",
             )
             .join("") +
           "</tbody></table>",
@@ -164,10 +170,16 @@ const PROSE = cn(
   "[&_td]:border [&_td]:border-border [&_td]:px-1.5 [&_td]:py-1",
 )
 
-export function Markdown({ content, className }: { content: string; className?: string }) {
+export function Markdown({
+  content,
+  className,
+}: {
+  content: string
+  className?: string
+}) {
   return (
     <div className={cn("overflow-x-auto", PROSE, className)}>
-      {/* content is HTML-escaped inside renderMarkdown before any transform */}
+      {/* biome-ignore lint/security/noDangerouslySetInnerHtml: content is HTML-escaped inside renderMarkdown before any transform */}
       <div dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }} />
     </div>
   )

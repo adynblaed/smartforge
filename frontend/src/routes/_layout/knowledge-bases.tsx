@@ -46,7 +46,8 @@ interface Draft {
 
 const EMPTY: Draft = { id: null, name: "", description: "", content: "" }
 
-const TABLE_SNIPPET = "\n| Column A | Column B |\n|----------|----------|\n| value | value |\n"
+const TABLE_SNIPPET =
+  "\n| Column A | Column B |\n|----------|----------|\n| value | value |\n"
 const CODE_SNIPPET = "\n```\ncode\n```\n"
 
 type ViewMode = "edit" | "split" | "preview"
@@ -69,7 +70,11 @@ function KnowledgeBasesPage() {
 
   const save = useMutation({
     mutationFn: async (d: Draft) => {
-      const body = { name: d.name, description: d.description, content: d.content }
+      const body = {
+        name: d.name,
+        description: d.description,
+        content: d.content,
+      }
       return d.id
         ? sf.patch<KnowledgeBase>(`/ask-ai/knowledge-bases/${d.id}`, body)
         : sf.post<KnowledgeBase>("/ask-ai/knowledge-bases", body)
@@ -95,7 +100,8 @@ function KnowledgeBasesPage() {
 
   // Rebuild the full RAG vector index (SOPs + Forge Facts) for semantic search.
   const resync = useMutation({
-    mutationFn: () => sf.post<{ message: string }>("/ask-ai/knowledge-bases/sync"),
+    mutationFn: () =>
+      sf.post<{ message: string }>("/ask-ai/knowledge-bases/sync"),
   })
 
   // Markdown toolbar — wraps/prefixes the current textarea selection.
@@ -133,7 +139,9 @@ function KnowledgeBasesPage() {
   }
 
   const canSave = draft.name.trim().length > 0 && !save.isPending
-  const words = draft.content.trim() ? draft.content.trim().split(/\s+/).length : 0
+  const words = draft.content.trim()
+    ? draft.content.trim().split(/\s+/).length
+    : 0
 
   return (
     <div className="flex flex-col gap-6">
@@ -147,7 +155,10 @@ function KnowledgeBasesPage() {
               onClick={() => resync.mutate()}
               disabled={resync.isPending}
             >
-              <RefreshCw size={15} className={cn(resync.isPending && "animate-spin")} />
+              <RefreshCw
+                size={15}
+                className={cn(resync.isPending && "animate-spin")}
+              />
               {resync.isPending ? "Re-indexing…" : "Re-sync RAG index"}
             </Button>
             {resync.data?.message && (
@@ -162,7 +173,11 @@ function KnowledgeBasesPage() {
       <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
         {/* KB list */}
         <div className="flex flex-col gap-2">
-          <Button onClick={() => setDraft(EMPTY)} variant="outline" className="justify-start">
+          <Button
+            onClick={() => setDraft(EMPTY)}
+            variant="outline"
+            className="justify-start"
+          >
             <Plus size={16} /> New Forge Fact
           </Button>
           {isLoading && <Loading label="Loading…" />}
@@ -180,7 +195,9 @@ function KnowledgeBasesPage() {
               }
               className={cn(
                 "rounded-lg border px-3 py-2 text-left transition-colors",
-                draft.id === kb.id ? "border-primary bg-primary/5" : "hover:bg-accent",
+                draft.id === kb.id
+                  ? "border-primary bg-primary/5"
+                  : "hover:bg-accent",
               )}
             >
               <div className="flex items-center gap-2 text-sm font-medium">
@@ -207,12 +224,16 @@ function KnowledgeBasesPage() {
             <Input
               placeholder="Forge Fact name (e.g. Coolant spec note)"
               value={draft.name}
-              onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, name: e.target.value }))
+              }
             />
             <Input
               placeholder="Short description (optional)"
               value={draft.description}
-              onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, description: e.target.value }))
+              }
             />
           </div>
 
@@ -252,10 +273,18 @@ function KnowledgeBasesPage() {
             </ToolBtn>
 
             <div className="ml-auto flex items-center gap-0.5 rounded-md bg-background p-0.5">
-              <ViewBtn active={view === "edit"} onClick={() => setView("edit")} label="Edit">
+              <ViewBtn
+                active={view === "edit"}
+                onClick={() => setView("edit")}
+                label="Edit"
+              >
                 <Pencil size={13} />
               </ViewBtn>
-              <ViewBtn active={view === "split"} onClick={() => setView("split")} label="Split">
+              <ViewBtn
+                active={view === "split"}
+                onClick={() => setView("split")}
+                label="Split"
+              >
                 <Columns2 size={13} />
               </ViewBtn>
               <ViewBtn
@@ -269,12 +298,16 @@ function KnowledgeBasesPage() {
           </div>
 
           {/* editor / preview (respects the view toggle) */}
-          <div className={cn("grid gap-3", view === "split" && "md:grid-cols-2")}>
+          <div
+            className={cn("grid gap-3", view === "split" && "md:grid-cols-2")}
+          >
             {view !== "preview" && (
               <textarea
                 ref={taRef}
                 value={draft.content}
-                onChange={(e) => setDraft((d) => ({ ...d, content: e.target.value }))}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, content: e.target.value }))
+                }
                 placeholder="# Title&#10;&#10;Write SOPs, manuals, specs, etc… ForgeAI will remember this everywhere."
                 className="min-h-[460px] w-full resize-y rounded-md border bg-muted/50 p-3 font-mono text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 spellCheck
@@ -285,7 +318,9 @@ function KnowledgeBasesPage() {
                 {draft.content.trim() ? (
                   <Markdown content={draft.content} />
                 ) : (
-                  <p className="text-muted-foreground">Live preview appears here.</p>
+                  <p className="text-muted-foreground">
+                    Live preview appears here.
+                  </p>
                 )}
               </div>
             )}
@@ -295,7 +330,8 @@ function KnowledgeBasesPage() {
             <span className="text-xs text-muted-foreground">
               {save.isSuccess && !save.isPending ? "Saved · " : ""}
               {draft.id ? "Editing existing" : "New Forge Fact"} ·{" "}
-              {draft.content.length.toLocaleString()} chars · {words.toLocaleString()} words
+              {draft.content.length.toLocaleString()} chars ·{" "}
+              {words.toLocaleString()} words
             </span>
             <div className="flex gap-2">
               {draft.id && (
@@ -363,7 +399,9 @@ function ViewBtn({
       title={label}
       className={cn(
         "flex items-center gap-1 rounded px-2 py-1 text-[11px] font-medium transition-colors",
-        active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent",
+        active
+          ? "bg-primary text-primary-foreground"
+          : "text-muted-foreground hover:bg-accent",
       )}
     >
       {children}

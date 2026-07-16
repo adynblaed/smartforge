@@ -3,7 +3,14 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import { Bloom, EffectComposer, Vignette } from "@react-three/postprocessing"
 import { useQuery } from "@tanstack/react-query"
 import { Link, useNavigate } from "@tanstack/react-router"
-import { Building2, ChevronDown, ChevronRight, RotateCcw, Truck, X } from "lucide-react"
+import {
+  Building2,
+  ChevronDown,
+  ChevronRight,
+  RotateCcw,
+  Truck,
+  X,
+} from "lucide-react"
 import { useMemo, useRef, useState } from "react"
 import {
   BackSide,
@@ -17,8 +24,8 @@ import {
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { sf } from "@/smartforge/api"
-import { POLL } from "@/smartforge/constants"
 import { HEX } from "@/smartforge/components"
+import { POLL } from "@/smartforge/constants"
 import type { Page, PurchaseOrder } from "@/smartforge/types"
 
 const R = 2
@@ -65,25 +72,52 @@ function Globe() {
     <group>
       <mesh>
         <sphereGeometry args={[R * 0.99, 64, 64]} />
-        <meshStandardMaterial color="#0a1422" metalness={0.2} roughness={0.85} />
+        <meshStandardMaterial
+          color="#0a1422"
+          metalness={0.2}
+          roughness={0.85}
+        />
       </mesh>
       <mesh>
         <sphereGeometry args={[R, 36, 24]} />
-        <meshBasicMaterial wireframe color="#16365a" transparent opacity={0.4} />
+        <meshBasicMaterial
+          wireframe
+          color="#16365a"
+          transparent
+          opacity={0.4}
+        />
       </mesh>
       <mesh>
         <sphereGeometry args={[R * 1.08, 48, 48]} />
-        <meshBasicMaterial color="#1e90ff" transparent opacity={0.08} side={BackSide} />
+        <meshBasicMaterial
+          color="#1e90ff"
+          transparent
+          opacity={0.08}
+          side={BackSide}
+        />
       </mesh>
     </group>
   )
 }
 
-function CityDot({ lat, lng, color }: { lat: number; lng: number; color: string }) {
+function CityDot({
+  lat,
+  lng,
+  color,
+}: {
+  lat: number
+  lng: number
+  color: string
+}) {
   return (
     <mesh position={latLng(lat, lng, R * 1.005)}>
       <sphereGeometry args={[0.035, 16, 16]} />
-      <meshStandardMaterial color={color} emissive={color} emissiveIntensity={3} toneMapped={false} />
+      <meshStandardMaterial
+        color={color}
+        emissive={color}
+        emissiveIntensity={3}
+        toneMapped={false}
+      />
     </mesh>
   )
 }
@@ -91,6 +125,7 @@ function CityDot({ lat, lng, color }: { lat: number; lng: number; color: string 
 function FactoryBuilding({ onOpenFactory }: { onOpenFactory: () => void }) {
   const [hovered, setHovered] = useState(false)
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: react-three-fiber scene node, not a DOM element
     <group
       position={RENO_V.toArray() as [number, number, number]}
       quaternion={[RENO_Q.x, RENO_Q.y, RENO_Q.z, RENO_Q.w]}
@@ -110,17 +145,37 @@ function FactoryBuilding({ onOpenFactory }: { onOpenFactory: () => void }) {
     >
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
         <ringGeometry args={[0.12, 0.16, 32]} />
-        <meshBasicMaterial color={HEX.info} transparent opacity={0.9} toneMapped={false} />
+        <meshBasicMaterial
+          color={HEX.info}
+          transparent
+          opacity={0.9}
+          toneMapped={false}
+        />
       </mesh>
       <mesh position={[0, 0.14, 0]} scale={hovered ? 1.15 : 1}>
         <boxGeometry args={[0.13, 0.28, 0.13]} />
-        <meshStandardMaterial color="#e6eef8" emissive={HEX.info} emissiveIntensity={hovered ? 1.4 : 0.7} metalness={0.4} roughness={0.3} />
+        <meshStandardMaterial
+          color="#e6eef8"
+          emissive={HEX.info}
+          emissiveIntensity={hovered ? 1.4 : 0.7}
+          metalness={0.4}
+          roughness={0.3}
+        />
       </mesh>
       <mesh position={[0, 0.32, 0]}>
         <boxGeometry args={[0.08, 0.12, 0.08]} />
-        <meshStandardMaterial color="#cdd9e8" emissive={HEX.info} emissiveIntensity={0.6} />
+        <meshStandardMaterial
+          color="#cdd9e8"
+          emissive={HEX.info}
+          emissiveIntensity={0.6}
+        />
       </mesh>
-      <Html position={[0, 0.5, 0]} center distanceFactor={6} zIndexRange={[20, 0]}>
+      <Html
+        position={[0, 0.5, 0]}
+        center
+        distanceFactor={6}
+        zIndexRange={[20, 0]}
+      >
         <div className="pointer-events-none flex select-none items-center gap-0.5 whitespace-nowrap rounded-full border border-sky-400/40 bg-black/70 px-1.5 py-px text-[7px] font-semibold text-sky-200 backdrop-blur">
           <Building2 size={7} /> Future Form HQ · Reno, NV
         </div>
@@ -152,7 +207,12 @@ function RouteLayer({
     // Longer (international) lanes bow further off the surface.
     const angle = start.angleTo(end)
     const lift = R * (1.18 + angle * 0.32)
-    const mid = start.clone().add(end).multiplyScalar(0.5).normalize().multiplyScalar(lift)
+    const mid = start
+      .clone()
+      .add(end)
+      .multiplyScalar(0.5)
+      .normalize()
+      .multiplyScalar(lift)
     return new QuadraticBezierCurve3(start, mid, end)
   }, [route])
 
@@ -175,7 +235,8 @@ function RouteLayer({
       carrier.current.lookAt(p.clone().add(tan))
     }
     flow.current = (flow.current + dt * 0.18) % 1
-    if (pulse.current) pulse.current.position.copy(curve.getPointAt(flow.current))
+    if (pulse.current)
+      pulse.current.position.copy(curve.getPointAt(flow.current))
   })
 
   const opacity = selected ? 1 : dimmed ? 0.12 : 0.5
@@ -193,9 +254,15 @@ function RouteLayer({
       {/* streaming flow pulse */}
       <mesh ref={pulse}>
         <sphereGeometry args={[selected ? 0.05 : 0.035, 12, 12]} />
-        <meshBasicMaterial color={route.color} transparent opacity={dimmed ? 0.2 : 1} toneMapped={false} />
+        <meshBasicMaterial
+          color={route.color}
+          transparent
+          opacity={dimmed ? 0.2 : 1}
+          toneMapped={false}
+        />
       </mesh>
 
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: react-three-fiber scene node, not a DOM element */}
       <group
         ref={carrier}
         scale={selected ? 1.6 : 1}
@@ -213,11 +280,22 @@ function RouteLayer({
       >
         <mesh position={[0, 0, 0.05]}>
           <boxGeometry args={[0.07, 0.06, 0.12]} />
-          <meshStandardMaterial color="#eef2f8" emissive={route.color} emissiveIntensity={selected ? 1.6 : 0.6} metalness={0.4} roughness={0.4} />
+          <meshStandardMaterial
+            color="#eef2f8"
+            emissive={route.color}
+            emissiveIntensity={selected ? 1.6 : 0.6}
+            metalness={0.4}
+            roughness={0.4}
+          />
         </mesh>
         <mesh position={[0, 0, -0.07]}>
           <boxGeometry args={[0.06, 0.05, 0.05]} />
-          <meshStandardMaterial color={route.color} emissive={route.color} emissiveIntensity={2} toneMapped={false} />
+          <meshStandardMaterial
+            color={route.color}
+            emissive={route.color}
+            emissiveIntensity={2}
+            toneMapped={false}
+          />
         </mesh>
       </group>
     </group>
@@ -287,10 +365,27 @@ function Scene({
       <color attach="background" args={["#03060d"]} />
       <ambientLight intensity={0.5} />
       <directionalLight position={[5, 3, 5]} intensity={1.4} />
-      <pointLight position={[-4, 2, 3]} intensity={20} color="#1e90ff" distance={20} />
-      <Stars radius={70} depth={35} count={2600} factor={3} saturation={0} fade speed={0.4} />
+      <pointLight
+        position={[-4, 2, 3]}
+        intensity={20}
+        color="#1e90ff"
+        distance={20}
+      />
+      <Stars
+        radius={70}
+        depth={35}
+        count={2600}
+        factor={3}
+        saturation={0}
+        fade
+        speed={0.4}
+      />
 
-      <GlobeContent selected={selected} onSelect={onSelect} onOpenFactory={onOpenFactory} />
+      <GlobeContent
+        selected={selected}
+        onSelect={onSelect}
+        onOpenFactory={onOpenFactory}
+      />
 
       <OrbitControls
         makeDefault
@@ -300,7 +395,12 @@ function Scene({
         maxDistance={15}
       />
       <EffectComposer enableNormalPass={false} multisampling={0}>
-        <Bloom intensity={0.9} luminanceThreshold={0.6} luminanceSmoothing={0.3} mipmapBlur />
+        <Bloom
+          intensity={0.9}
+          luminanceThreshold={0.6}
+          luminanceSmoothing={0.3}
+          mipmapBlur
+        />
         <Vignette eskil={false} offset={0.3} darkness={0.7} />
       </EffectComposer>
     </>
@@ -317,7 +417,8 @@ export function GlobalOperations({ className }: { className?: string }) {
     refetchInterval: POLL.slow,
   })
   const allPOs = data?.data ?? []
-  const routePOs = (id: number) => allPOs.filter((_, i) => i % ROUTES.length === id)
+  const routePOs = (id: number) =>
+    allPOs.filter((_, i) => i % ROUTES.length === id)
 
   const route = selected != null ? ROUTES[selected] : null
   const pos = selected != null ? routePOs(selected) : []
@@ -355,7 +456,9 @@ export function GlobalOperations({ className }: { className?: string }) {
 
       <div className="pointer-events-none absolute bottom-4 left-4 top-4 flex max-w-[230px] flex-col gap-2">
         <div>
-          <h2 className="text-sm font-semibold text-white">Global Operations</h2>
+          <h2 className="text-sm font-semibold text-white">
+            Global Operations
+          </h2>
           <p className="text-[11px] text-white/60">
             {ROUTES.length} active lanes · {allPOs.length} purchase orders
           </p>
@@ -372,10 +475,15 @@ export function GlobalOperations({ className }: { className?: string }) {
                 onClick={() => setSelected(r.id)}
                 className={cn(
                   "flex w-full items-center gap-2 rounded px-1.5 py-1 text-left transition-colors hover:bg-white/10",
-                  selected === r.id ? "bg-white/10 text-sky-300" : "text-white/85",
+                  selected === r.id
+                    ? "bg-white/10 text-sky-300"
+                    : "text-white/85",
                 )}
               >
-                <i className="size-2 shrink-0 rounded-full" style={{ background: r.color }} />
+                <i
+                  className="size-2 shrink-0 rounded-full"
+                  style={{ background: r.color }}
+                />
                 <span className="truncate">Reno → {r.city}</span>
               </button>
             ))}
@@ -394,7 +502,9 @@ export function GlobalOperations({ className }: { className?: string }) {
                 <Truck size={15} />
               </span>
               <div>
-                <h3 className="text-sm font-semibold leading-tight">Reno → {route.city}</h3>
+                <h3 className="text-sm font-semibold leading-tight">
+                  Reno → {route.city}
+                </h3>
                 <p className="text-[11px] text-muted-foreground">
                   {pos.length} active purchase orders on this lane
                 </p>
@@ -438,20 +548,30 @@ function POReceipt({ po, accent }: { po: PurchaseOrder; accent: string }) {
           {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
           {po.po_number}
         </span>
-        <span className="text-sm tabular-nums">${po.amount.toLocaleString()}</span>
+        <span className="text-sm tabular-nums">
+          ${po.amount.toLocaleString()}
+        </span>
       </button>
       {open && (
         <div className="space-y-1 border-t px-3 py-2 text-[11px]">
           {/* high-level receipt preview */}
-          <ReceiptRow label="Status" value={<span className="capitalize">{po.status}</span>} />
+          <ReceiptRow
+            label="Status"
+            value={<span className="capitalize">{po.status}</span>}
+          />
           <ReceiptRow
             label="Shop floor"
             value={po.shop_floor_ready ? "Ready" : "In transit"}
           />
-          <ReceiptRow label="Linked job" value={po.job_id ? po.job_id.slice(0, 8) : "—"} />
+          <ReceiptRow
+            label="Linked job"
+            value={po.job_id ? po.job_id.slice(0, 8) : "—"}
+          />
           <ReceiptRow
             label="Customer order"
-            value={po.customer_order_id ? po.customer_order_id.slice(0, 8) : "—"}
+            value={
+              po.customer_order_id ? po.customer_order_id.slice(0, 8) : "—"
+            }
           />
           <div className="mt-1 flex justify-between border-t pt-1 font-semibold">
             <span>Total</span>
@@ -473,7 +593,13 @@ function POReceipt({ po, accent }: { po: PurchaseOrder; accent: string }) {
   )
 }
 
-function ReceiptRow({ label, value }: { label: string; value: React.ReactNode }) {
+function ReceiptRow({
+  label,
+  value,
+}: {
+  label: string
+  value: React.ReactNode
+}) {
   return (
     <div className="flex justify-between">
       <span className="text-muted-foreground">{label}</span>

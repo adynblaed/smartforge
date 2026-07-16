@@ -8,7 +8,8 @@ const ACTIVE_KEY = "forgeai-active-session"
 
 export const forgeSessionKey = (id: string) => `forgeai-session-${id}`
 const titleKey = (id: string) => `forgeai-session-title-${id}`
-export const newForgeId = () => `${Date.now()}-${Math.floor(Math.random() * 1e4)}`
+export const newForgeId = () =>
+  `${Date.now()}-${Math.floor(Math.random() * 1e4)}`
 
 // Optional custom title for a session (e.g. machine chats started from the
 // console get a dated, named title instead of the first-message derivation).

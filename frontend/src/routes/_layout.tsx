@@ -1,5 +1,12 @@
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router"
+import {
+  createFileRoute,
+  Outlet,
+  redirect,
+  useRouter,
+} from "@tanstack/react-router"
+import { ErrorBoundary } from "react-error-boundary"
 
+import { ErrorFallbackCard } from "@/components/Common/ErrorComponent"
 import { Footer } from "@/components/Common/Footer"
 import AppSidebar from "@/components/Sidebar/AppSidebar"
 import { Separator } from "@/components/ui/separator"
@@ -10,6 +17,7 @@ import {
 } from "@/components/ui/sidebar"
 import { isLoggedIn } from "@/hooks/useAuth"
 import { sf } from "@/smartforge/api"
+import { logClientError } from "@/smartforge/clientLog"
 import { ForgeAgentProvider } from "@/smartforge/ForgeAgent"
 import { NavUserMenu } from "@/smartforge/NavUserMenu"
 import { RouteBreadcrumbs } from "@/smartforge/RouteBreadcrumbs"
@@ -43,6 +51,7 @@ export const Route = createFileRoute("/_layout")({
 })
 
 function Layout() {
+  const router = useRouter()
   return (
     <ForgeAgentProvider>
       <SidebarProvider>
@@ -64,7 +73,15 @@ function Layout() {
           </header>
           <main className="flex-1 p-6 md:p-8">
             <div className="mx-auto max-w-7xl">
-              <Outlet />
+              {/* Render throws in page components keep the app shell (sidebar,
+                  header) and offer a reset instead of blanking the screen. */}
+              <ErrorBoundary
+                FallbackComponent={ErrorFallbackCard}
+                onError={(error) => logClientError("layout", error)}
+                onReset={() => router.invalidate()}
+              >
+                <Outlet />
+              </ErrorBoundary>
             </div>
           </main>
           <Footer />

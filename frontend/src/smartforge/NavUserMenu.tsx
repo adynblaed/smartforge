@@ -34,8 +34,12 @@ export function NavUserMenu() {
         {user ? (
           <>
             <DropdownMenuLabel className="truncate font-normal">
-              <div className="text-sm font-medium">{user.full_name ?? "Signed in"}</div>
-              <div className="truncate text-xs text-muted-foreground">{user.email}</div>
+              <div className="text-sm font-medium">
+                {user.full_name ?? "Signed in"}
+              </div>
+              <div className="truncate text-xs text-muted-foreground">
+                {user.email}
+              </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>

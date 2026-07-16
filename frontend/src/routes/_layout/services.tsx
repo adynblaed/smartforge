@@ -106,9 +106,9 @@ function ServicesPage() {
           ))}
         </div>
         <p className="mt-4 text-xs text-muted-foreground">
-          Status is probed live ({POLL_MS / 1000}s heartbeat). Uptime is observed
-          over this session; connection settings are managed via environment
-          configuration.
+          Status is probed live ({POLL_MS / 1000}s heartbeat). Uptime is
+          observed over this session; connection settings are managed via
+          environment configuration.
         </p>
       </Panel>
     </div>
@@ -135,7 +135,12 @@ function ServiceMonitor({ svc, beats }: { svc: Service; beats: Beat[] }) {
             {svc.category}
           </div>
         </div>
-        <span className={cn("flex shrink-0 items-center gap-1.5 text-xs font-medium capitalize", STATUS_TEXT[beat])}>
+        <span
+          className={cn(
+            "flex shrink-0 items-center gap-1.5 text-xs font-medium capitalize",
+            STATUS_TEXT[beat],
+          )}
+        >
           <span className={cn("size-2 rounded-full", BEAT_BG[beat])} />
           {svc.status}
         </span>

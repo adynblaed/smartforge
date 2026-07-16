@@ -1,5 +1,6 @@
 import { useRouterState } from "@tanstack/react-router"
 import { Maximize2, Minus, Plus, Sparkles } from "lucide-react"
+import type { ReactNode } from "react"
 import {
   createContext,
   useCallback,
@@ -9,7 +10,6 @@ import {
   useRef,
   useState,
 } from "react"
-import type { ReactNode } from "react"
 
 import { cn } from "@/lib/utils"
 import { sf } from "./api"
@@ -81,7 +81,15 @@ export function ForgeAgentProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo(
-    () => ({ open, highlightIds, focus, setOpen, toggle, setHighlightIds, setFocus }),
+    () => ({
+      open,
+      highlightIds,
+      focus,
+      setOpen,
+      toggle,
+      setHighlightIds,
+      setFocus,
+    }),
     [open, highlightIds, focus, setOpen, toggle, setFocus],
   )
 
@@ -207,11 +215,17 @@ function ForgeAgentPanel({
       )}
     >
       {/* left-edge drag handle — resize the panel width */}
+      {/* biome-ignore lint/a11y/useSemanticElements: window-splitter — an <hr> cannot host pointer handlers or children */}
       <div
         onPointerDown={startDrag}
         onPointerMove={onDrag}
         onPointerUp={endDrag}
         role="separator"
+        tabIndex={0}
+        aria-orientation="vertical"
+        aria-valuenow={Math.round(w)}
+        aria-valuemin={Math.round(minW)}
+        aria-valuemax={Math.round(maxW)}
         aria-label="Resize ForgeAI panel width"
         title="Drag to resize"
         className="group absolute bottom-0 left-0 top-0 z-20 flex w-2 cursor-ew-resize touch-none items-center justify-center hover:bg-primary/10"
@@ -226,7 +240,9 @@ function ForgeAgentPanel({
           </span>
           <div>
             <h2 className="text-sm font-semibold leading-tight">ForgeAI</h2>
-            <p className="text-[11px] text-muted-foreground">Live operations assistant</p>
+            <p className="text-[11px] text-muted-foreground">
+              Live operations assistant
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -270,7 +286,9 @@ function ForgeAgentPanel({
             "Give me a fleet overview",
           ]}
           ask={async (q) => {
-            const res = await sf.post<ForgeResponse>("/ask-ai/forge", { question: q })
+            const res = await sf.post<ForgeResponse>("/ask-ai/forge", {
+              question: q,
+            })
             onHighlight(res.highlight ?? [])
             onFocus(res.focus ?? null)
             return res

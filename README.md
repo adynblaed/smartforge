@@ -1,311 +1,149 @@
 # SmartForge — Smart Factory Intelligence Platform
 
-SmartForge is a full-stack smart-factory platform: live machine telemetry, AI-assisted
-operations, a 3D digital-twin factory map, predictive maintenance, ERP/MES
-integrations, a customer portal, and executive observability. See
-[`specs/SMART_FACTORY.md`](specs/SMART_FACTORY.md) for the full specification and
-[`docs/`](docs/) for architecture, API, data-model, and deployment notes.
+**v1.0.0** · Future Form Manufacturing
+
+SmartForge is a full-stack smart-factory platform: live machine telemetry,
+AI-assisted operations, a 3D digital-twin factory map, predictive
+maintenance, ERP/MES integrations, a customer portal, executive
+observability — and a governed **analytics data platform** that replicates
+the legacy omega Oracle system into a Parquet data lake (DuckDB) and a
+PostgreSQL warehouse, transformed with dbt and served through hardened
+FastAPI endpoints.
+
+> New here? Start with [`CLAUDE.md`](CLAUDE.md) — the single guide covering
+> prerequisites, launch, credential testing, the service catalogue, data
+> lifecycles, exchange/migration procedures, testing, and the Day-0
+> deployment procedure. The formal record lives in `specs/`:
+> [`ARCHITECTURE.md`](specs/ARCHITECTURE.md) (specification of record),
+> [`CHECKLIST.md`](specs/CHECKLIST.md) (marked acceptance), and
+> [`FEATURES.md`](specs/FEATURES.md) (per-persona feature matrix).
+> Connecting the live omega Oracle source? —
+> [`QUICKSTART.md`](QUICKSTART.md) (credentials → seed rehearsal → initial
+> migration).
+
+## Stack
+
+| Layer | Technology |
+|---|---|
+| Backend | FastAPI · SQLModel · Pydantic · PostgreSQL 18 · Redis · Qdrant |
+| Data platform | python-oracledb (thin) · PyArrow/Parquet · DuckDB · dlt · dbt (dual-target) |
+| Frontend | React 19 · TypeScript · Vite · TanStack Router/Query · Tailwind v4 · shadcn/ui · React Three Fiber |
+| AI | Anthropic Claude (ForgeAI RAG with cited sources; deterministic offline fallback) |
+| Ops | Docker Compose · Traefik (TLS, rate limits, security headers) · Prometheus · Grafana · Helm + Argo CD (`infra/`) |
+| CI/CD | GitHub Actions: tests, dual dbt parse, Playwright E2E, gitleaks/pip-audit/osv security scans, staged deploys |
 
 ## Modules
 
-The platform is organized into the groups that appear in the app sidebar (each
-breadcrumb mirrors this grouping):
+Organized as the app sidebar (breadcrumbs mirror this grouping):
 
 - **Smart Forge** — *Command Center* (executive KPIs, risk panels, global
-  operations globe), *Factory Simulation* (3D digital twin you can deep-link into
-  with a machine selected), and *ForgeAI* (RAG assistant grounded in SOPs and
-  forge facts, with cited sources).
-- **Machine Intelligence** — *Machines* (live console: cards, leaderboard, alert
-  center, scoped SOP deep-links), *Work Orders*, and *Tickets* (master-detail
-  Maintenance Alert Center: serialized tickets, parts & inventory, SOP guidance,
-  and an acknowledgement + note trail — selecting a ticket opens it in a right pane).
+  operations globe), *Factory Simulation* (3D digital twin with machine
+  deep-links), and *ForgeAI* (RAG assistant grounded in SOPs and forge
+  facts, with cited sources).
+- **Machine Intelligence** — *Machines* (live console), *Work Orders*, and
+  *Tickets* (master-detail maintenance alert center with serialized
+  tickets, parts & inventory, SOP guidance, acknowledgement trail).
 - **Factory Intelligence** — *Quality* (OEE + defect/scrap analytics) and
   *Optimizations* (config recommendations, capacity what-if, simulation studio).
-- **MES** — *Services* / *Integrations* (ERP & MES sync status + event log) and
-  *Incidents* (impact view + root-cause records).
-- **Purchase Orders** — *Order Tracker*, *Supply Chain* (inventory, supplier risk,
-  reorder recommendations, and live PO operations — every table opens its row in a
-  right detail pane), and *Quotes & Intake* (quote builder with a Future Form-branded
-  PDF + PO review).
+- **MES** — *Services* / *Integrations* (ERP & MES sync status + event log)
+  and *Incidents* (impact view + root-cause records).
+- **Purchase Orders** — *Order Tracker*, *Supply Chain* (inventory,
+  supplier risk, reorder recommendations, live PO operations), and
+  *Quotes & Intake* (quote builder with branded PDF + PO review).
 - **Customer Portals** — *Escalations*, plus the customer-facing **Portal**
   (`/portal`): order tracking and a scoped assistant.
-- **Dashboards** — *Analytics* and *Admin* (user management).
-- **Datasources** — *Database Tables* (read-only live views over every production
-  table, with CSV import/export), *Knowledge Bases*, and *SOPs* (chaptered
-  procedures with a WYSIWYG editor + deep-linkable anchors).
+- **Dashboards** — *Analytics*, *Admin* (user management), and *Logs*.
+- **Datasources** — *Database Tables* (read-only live views with CSV
+  import/export), **Data Platform** (replication freshness, runs,
+  reconciliation, warehouse KPIs, lake manifests, and the **Work Orders
+  explorer** — a read-only query builder over the certified, UUID-keyed,
+  genealogy-enriched `api.api_work_orders` contract), **MRP** (time-phased
+  supply planning from the governed `api.api_mrp_supply_plan` mart:
+  demand/supply/projected-net per item per day with shortage and
+  safety-stock highlighting plus local what-if), *Forge Facts*, and *SOPs*.
 
-Borderless dark mode (shadcn palette + Future Form purple) is the default; a light
-theme is available from the **Appearance** menu.
+Borderless dark mode (shadcn palette + Future Form purple) is the default;
+a light theme is available from the **Appearance** menu.
+
+## Data platform at a glance
+
+```
+omega Oracle (READ-ONLY, verified) ──extract (SCN-consistent, keyset)──▶
+Parquet lake (immutable, manifested) ──one publication feeds both──▶
+   ├─▶ DuckDB catalog (read-only views)  ──▶  GET /api/v1/lake/*
+   └─▶ PostgreSQL warehouse (dlt merge)  ──▶  dbt marts/api  ──▶  GET /api/v1/warehouse/*
+Watermarks commit last · drift fails closed · every load reconciled & traceable
+```
+
+Formal acceptance lives in
+[`specs/CHECKLIST.md`](specs/CHECKLIST.md)
+(marked for v1.0.0); governance, owners, SLOs, and the exceptions register
+in [`docs/data-platform.md`](docs/data-platform.md); operations in
+[`runbooks/`](runbooks/).
 
 ## Quick start
 
 ```bash
-cd src
-cp .env.example .env        # adjust secrets; set ANTHROPIC_API_KEY for real ForgeAI
+cp .env.example .env        # set secrets; ANTHROPIC_API_KEY enables real ForgeAI
 docker compose up --build
 ```
 
-- App: http://localhost:5173 — log in, then visit **Command Center** and the
-  **Factory Simulation** 3D twin.
+- App: http://localhost:5173 — sandbox login **smartforge@futureform.com /
+  futureform2026** (superuser). Seeded accounts share
+  `$SANDBOX_USER_PASSWORD`: `operator@smartforge.com`,
+  `buyer@acme-robotics.com` (routes to `/portal`).
 - API docs: http://localhost:8000/docs · ReDoc: http://localhost:8000/redoc
-- Prometheus: http://localhost:9090 · Grafana: http://localhost:3001 (admin / `$GRAFANA_PASSWORD`)
+- Prometheus: http://localhost:9090 · Grafana: http://localhost:3001
+  (admin / `$GRAFANA_PASSWORD`)
 
-Sandbox login: **smartforge@futureform.com / futureform2026** (superuser). Other
-seeded accounts share `$SANDBOX_USER_PASSWORD`: operator `operator@smartforge.com`,
-customer `buyer@acme-robotics.com` (routes to `/portal`).
+Verify credentials/connectivity any time:
+
+```bash
+cd backend && uv run python -m app.dataplatform.cli preflight --tolerate-unreachable
+```
 
 ## Testing
 
 ```bash
-cd src
-# Backend unit/integration tests
-docker compose run --rm backend pytest
+# Backend app suite (no services needed)
+cd backend && uv run pytest tests_smartforge -q
 
-# Frontend end-to-end suite (Playwright) — the image bakes the frontend at build
-# time, so rebuild it after changing frontend sources:
-docker compose build playwright
-CI=1 docker compose run --rm -e CI=1 playwright \
-  bunx playwright test smartforge validation portal admin items --reporter=list
+# Data platform suite (no services needed; mocked Oracle, real DuckDB/Parquet)
+cd backend && uv run pytest tests_dataplatform -q
+
+# Template suite (needs Postgres)
+docker compose run --rm backend bash scripts/tests-start.sh
+
+# Frontend unit + E2E
+cd frontend && bun run test:unit
+docker compose build playwright && CI=1 docker compose run --rm -e CI=1 playwright \
+  bunx playwright test --reporter=list
 ```
 
-The E2E suite (72 tests) covers the command center, 3D simulation, machine console,
-tickets, supply chain, datasources, ForgeAI citations, the customer portal, and
-auth/proxy parity.
-
-Built on the Full Stack FastAPI Template, documented below.
-
----
-
-# Full Stack FastAPI Template
-
-<a href="https://github.com/fastapi/full-stack-fastapi-template/actions?query=workflow%3A%22Test+Docker+Compose%22" target="_blank"><img src="https://github.com/fastapi/full-stack-fastapi-template/workflows/Test%20Docker%20Compose/badge.svg" alt="Test Docker Compose"></a>
-<a href="https://github.com/fastapi/full-stack-fastapi-template/actions?query=workflow%3A%22Test+Backend%22" target="_blank"><img src="https://github.com/fastapi/full-stack-fastapi-template/workflows/Test%20Backend/badge.svg" alt="Test Backend"></a>
-<a href="https://coverage-badge.samuelcolvin.workers.dev/redirect/fastapi/full-stack-fastapi-template" target="_blank"><img src="https://coverage-badge.samuelcolvin.workers.dev/fastapi/full-stack-fastapi-template.svg" alt="Coverage"></a>
-
-## Technology Stack and Features
-
-- ⚡ [**FastAPI**](https://fastapi.tiangolo.com) for the Python backend API.
-  - 🧰 [SQLModel](https://sqlmodel.tiangolo.com) for the Python SQL database interactions (ORM).
-  - 🔍 [Pydantic](https://docs.pydantic.dev), used by FastAPI, for the data validation and settings management.
-  - 💾 [PostgreSQL](https://www.postgresql.org) as the SQL database.
-- 🚀 [React](https://react.dev) for the frontend.
-  - 💃 Using TypeScript, hooks, [Vite](https://vitejs.dev), and other parts of a modern frontend stack.
-  - 🎨 [Tailwind CSS](https://tailwindcss.com) and [shadcn/ui](https://ui.shadcn.com) for the frontend components.
-  - 🤖 An automatically generated frontend client.
-  - 🧪 [Playwright](https://playwright.dev) for End-to-End testing.
-  - 🦇 Dark mode support.
-- 🐋 [Docker Compose](https://www.docker.com) for development and production.
-- 🔒 Secure password hashing by default.
-- 🔑 JWT (JSON Web Token) authentication.
-- 📫 Email based password recovery.
-- 📬 [Mailcatcher](https://mailcatcher.me) for local email testing during development.
-- ✅ Tests with [Pytest](https://pytest.org).
-- 📞 [Traefik](https://traefik.io) as a reverse proxy / load balancer.
-- 🚢 Deployment instructions using Docker Compose, including how to set up a frontend Traefik proxy to handle automatic HTTPS certificates.
-- 🏭 CI (continuous integration) and CD (continuous deployment) based on GitHub Actions.
-
-### Dashboard Login
-
-[![API docs](img/login.png)](https://github.com/fastapi/full-stack-fastapi-template)
-
-### Dashboard - Admin
-
-[![API docs](img/dashboard.png)](https://github.com/fastapi/full-stack-fastapi-template)
-
-### Dashboard - Items
-
-[![API docs](img/dashboard-items.png)](https://github.com/fastapi/full-stack-fastapi-template)
-
-### Dashboard - Dark Mode
-
-[![API docs](img/dashboard-dark.png)](https://github.com/fastapi/full-stack-fastapi-template)
-
-### Interactive API Documentation
-
-[![API docs](img/docs.png)](https://github.com/fastapi/full-stack-fastapi-template)
-
-## How To Use It
-
-You can **just fork or clone** this repository and use it as is.
-
-✨ It just works. ✨
-
-### How to Use a Private Repository
-
-If you want to have a private repository, GitHub won't allow you to simply fork it as it doesn't allow changing the visibility of forks.
-
-But you can do the following:
-
-- Create a new GitHub repo, for example `my-full-stack`.
-- Clone this repository manually, set the name with the name of the project you want to use, for example `my-full-stack`:
-
-```bash
-git clone git@github.com:fastapi/full-stack-fastapi-template.git my-full-stack
-```
-
-- Enter into the new directory:
-
-```bash
-cd my-full-stack
-```
-
-- Set the new origin to your new repository, copy it from the GitHub interface, for example:
-
-```bash
-git remote set-url origin git@github.com:octocat/my-full-stack.git
-```
-
-- Add this repo as another "remote" to allow you to get updates later:
-
-```bash
-git remote add upstream git@github.com:fastapi/full-stack-fastapi-template.git
-```
-
-- Push the code to your new repository:
-
-```bash
-git push -u origin master
-```
-
-### Update From the Original Template
-
-After cloning the repository, and after doing changes, you might want to get the latest changes from this original template.
-
-- Make sure you added the original repository as a remote, you can check it with:
-
-```bash
-git remote -v
-
-origin    git@github.com:octocat/my-full-stack.git (fetch)
-origin    git@github.com:octocat/my-full-stack.git (push)
-upstream    git@github.com:fastapi/full-stack-fastapi-template.git (fetch)
-upstream    git@github.com:fastapi/full-stack-fastapi-template.git (push)
-```
-
-- Pull the latest changes without merging:
-
-```bash
-git pull --no-commit upstream master
-```
-
-This will download the latest changes from this template without committing them, that way you can check everything is right before committing.
-
-- If there are conflicts, solve them in your editor.
-
-- Once you are done, commit the changes:
-
-```bash
-git merge --continue
-```
-
-### Configure
-
-You can then update configs in the `.env` files to customize your configurations.
-
-Before deploying it, make sure you change at least the values for:
-
-- `SECRET_KEY`
-- `FIRST_SUPERUSER_PASSWORD`
-- `POSTGRES_PASSWORD`
-
-You can (and should) pass these as environment variables from secrets.
-
-Read the [deployment.md](./deployment.md) docs for more details.
-
-### Generate Secret Keys
-
-Some environment variables in the `.env` file have a default value of `changethis`.
-
-You have to change them with a secret key, to generate secret keys you can run the following command:
-
-```bash
-python -c "import secrets; print(secrets.token_urlsafe(32))"
-```
-
-Copy the content and use that as password / secret key. And run that again to generate another secure key.
-
-## How To Use It - Alternative With Copier
-
-This repository also supports generating a new project using [Copier](https://copier.readthedocs.io).
-
-It will copy all the files, ask you configuration questions, and update the `.env` files with your answers.
-
-### Install Copier
-
-You can install Copier with:
-
-```bash
-pip install copier
-```
-
-Or better, if you have [`pipx`](https://pipx.pypa.io/), you can run it with:
-
-```bash
-pipx install copier
-```
-
-**Note**: If you have `pipx`, installing copier is optional, you could run it directly.
-
-### Generate a Project With Copier
-
-Decide a name for your new project's directory, you will use it below. For example, `my-awesome-project`.
-
-Go to the directory that will be the parent of your project, and run the command with your project's name:
-
-```bash
-copier copy https://github.com/fastapi/full-stack-fastapi-template my-awesome-project --trust
-```
-
-If you have `pipx` and you didn't install `copier`, you can run it directly:
-
-```bash
-pipx run copier copy https://github.com/fastapi/full-stack-fastapi-template my-awesome-project --trust
-```
-
-**Note** the `--trust` option is necessary to be able to execute a [post-creation script](https://github.com/fastapi/full-stack-fastapi-template/blob/master/.copier/update_dotenv.py) that updates your `.env` files.
-
-### Input Variables
-
-Copier will ask you for some data, you might want to have at hand before generating the project.
-
-But don't worry, you can just update any of that in the `.env` files afterwards.
-
-The input variables, with their default values (some auto generated) are:
-
-- `project_name`: (default: `"FastAPI Project"`) The name of the project, shown to API users (in .env).
-- `stack_name`: (default: `"fastapi-project"`) The name of the stack used for Docker Compose labels and project name (no spaces, no periods) (in .env).
-- `secret_key`: (default: `"changethis"`) The secret key for the project, used for security, stored in .env, you can generate one with the method above.
-- `first_superuser`: (default: `"admin@example.com"`) The email of the first superuser (in .env).
-- `first_superuser_password`: (default: `"changethis"`) The password of the first superuser (in .env).
-- `smtp_host`: (default: "") The SMTP server host to send emails, you can set it later in .env.
-- `smtp_user`: (default: "") The SMTP server user to send emails, you can set it later in .env.
-- `smtp_password`: (default: "") The SMTP server password to send emails, you can set it later in .env.
-- `emails_from_email`: (default: `"info@example.com"`) The email account to send emails from, you can set it later in .env.
-- `postgres_password`: (default: `"changethis"`) The password for the PostgreSQL database, stored in .env, you can generate one with the method above.
-- `sentry_dsn`: (default: "") The DSN for Sentry, if you are using it, you can set it later in .env.
-
-## Backend Development
-
-Backend docs: [backend/README.md](./backend/README.md).
-
-## Frontend Development
-
-Frontend docs: [frontend/README.md](./frontend/README.md).
-
-## Deployment
-
-Deployment docs: [deployment.md](./deployment.md).
-
-## Development
-
-General development docs: [development.md](./development.md).
-
-This includes using Docker Compose, custom local domains, `.env` configurations, etc.
-
-## Release Notes
-
-Check the file [release-notes.md](./release-notes.md).
+Coverage spans every router (RBAC, customer scoping, error bounds), the
+full pipeline lifecycle (watermark ordering, idempotent replay, drift
+fail-closed, injection resistance, read-only proofs), dbt parse for both
+engines, and 120+ Playwright E2E tests including the Data Platform page.
+See [`CLAUDE.md`](CLAUDE.md) §9 for the full matrix.
+
+## Documentation
+
+| Document | Contents |
+|---|---|
+| [`CLAUDE.md`](CLAUDE.md) | The platform guide (start here) |
+| [`specs/ARCHITECTURE.md`](specs/ARCHITECTURE.md) | The v1.0.0 LTS architectural record — formalizes the specs, blueprint, and acceptance checklist, with the failure-handling catalogue and runbook index |
+| [`QUICKSTART.md`](QUICKSTART.md) | omega Oracle credentials, seed rehearsal, and the initial migration (with [`runbooks/initial_migration.md`](runbooks/initial_migration.md)) |
+| [`specs/FEATURES.md`](specs/FEATURES.md) | v1.0.0 feature matrix by user category (GA / GA* / deferred) |
+| [`development.md`](development.md) | Local development workflow |
+| [`deployment.md`](deployment.md) | Compose/Traefik production deployment |
+| [`infra/helm/README.md`](infra/helm/README.md) · [`infra/argocd/README.md`](infra/argocd/README.md) | Kubernetes + GitOps |
+| [`docs/architecture.md`](docs/architecture.md) · [`docs/api.md`](docs/api.md) · [`docs/data-model.md`](docs/data-model.md) | Architecture, API, data model |
+| [`docs/data-platform.md`](docs/data-platform.md) | Data-platform handbook (governance, SLOs, exceptions) |
+| [`docs/compliance.md`](docs/compliance.md) | GDPR & SOC 2 control mapping, data-subject request procedures |
+| [`backend/README.md`](backend/README.md) · [`frontend/README.md`](frontend/README.md) | Per-package development guides |
+| [`release-notes.md`](release-notes.md) | Release history (v1.0.0) |
 
 ## License
 
-The Full Stack FastAPI Template is licensed under the terms of the MIT license.
+MIT. Built on the excellent
+[Full Stack FastAPI Template](https://github.com/fastapi/full-stack-fastapi-template).

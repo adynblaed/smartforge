@@ -46,6 +46,16 @@ class Settings(BaseSettings):
     # set explicit hostnames in production to block Host-header injection.
     ALLOWED_HOSTS: Annotated[list[str] | str, BeforeValidator(parse_cors)] = ["*"]
 
+    # App-layer role-aware rate limiting (API-017/SEC-012): per-minute token
+    # buckets PER PROCESS, keyed by user identity (or client IP when
+    # anonymous). Traefik's coarse per-IP limit at ingress is separate; see
+    # app/core/ratelimit.py for the tier semantics.
+    RATE_LIMIT_ENABLED: bool = True
+    RATE_LIMIT_SUPERUSER_PER_MINUTE: int = 600
+    RATE_LIMIT_INTERNAL_PER_MINUTE: int = 300
+    RATE_LIMIT_CUSTOMER_PER_MINUTE: int = 120
+    RATE_LIMIT_ANONYMOUS_PER_MINUTE: int = 30
+
     @computed_field  # type: ignore[prop-decorator]
     @property
     def all_cors_origins(self) -> list[str]:
@@ -102,7 +112,7 @@ class Settings(BaseSettings):
     # customer) accounts. Override in production or disable sandbox seeding.
     SANDBOX_USER_PASSWORD: str = "changethis"
 
-    # ---- SmartForge: Redis (cache, pub/sub, job queues) ----
+    # ---- SmartForge: Redis (pub/sub fan-out + health probe; see core/redis.py) ----
     REDIS_HOST: str = "redis"
     REDIS_PORT: int = 6379
     REDIS_PASSWORD: str | None = None
@@ -165,10 +175,16 @@ class Settings(BaseSettings):
     # Customer-portal escalation: answers below this confidence are escalated.
     ESCALATION_CONFIDENCE_THRESHOLD: float = 0.5
 
+    # Values that must never reach a shared environment: the template default
+    # plus the documented sandbox demo logins (README/QUICKSTART). Sandbox
+    # credentials are convenient locally but are public knowledge — outside
+    # `local` they are treated exactly like "changethis" (IAM-002/SEC-001).
+    _INSECURE_DEFAULTS = frozenset({"changethis", "futureform2026", "admin"})
+
     def _check_default_secret(self, var_name: str, value: str | None) -> None:
-        if value == "changethis":
+        if value in self._INSECURE_DEFAULTS:
             message = (
-                f'The value of {var_name} is "changethis", '
+                f'The value of {var_name} is "{value}" (a known default), '
                 "for security, please change it, at least for deployments."
             )
             if self.ENVIRONMENT == "local":
@@ -183,9 +199,7 @@ class Settings(BaseSettings):
         self._check_default_secret(
             "FIRST_SUPERUSER_PASSWORD", self.FIRST_SUPERUSER_PASSWORD
         )
-        self._check_default_secret(
-            "SANDBOX_USER_PASSWORD", self.SANDBOX_USER_PASSWORD
-        )
+        self._check_default_secret("SANDBOX_USER_PASSWORD", self.SANDBOX_USER_PASSWORD)
 
         return self
 

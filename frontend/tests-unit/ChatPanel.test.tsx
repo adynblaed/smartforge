@@ -15,9 +15,7 @@ const answer: AskResponse = {
 describe("ChatPanel", () => {
   it("shows suggestions and sends a question, rendering the answer + sources", async () => {
     const ask = vi.fn().mockResolvedValue(answer)
-    render(
-      <ChatPanel ask={ask} suggestions={["Why is vibration high?"]} />,
-    )
+    render(<ChatPanel ask={ask} suggestions={["Why is vibration high?"]} />)
     // Suggestion chip is shown initially.
     expect(screen.getByText("Why is vibration high?")).toBeInTheDocument()
 
@@ -27,7 +25,9 @@ describe("ChatPanel", () => {
 
     expect(ask).toHaveBeenCalledWith("What is wrong?")
     await waitFor(() =>
-      expect(screen.getByText("Check the spindle bearings.")).toBeInTheDocument(),
+      expect(
+        screen.getByText("Check the spindle bearings."),
+      ).toBeInTheDocument(),
     )
     expect(screen.getByText(/CNC Guide/)).toBeInTheDocument()
     expect(screen.getByText("Open a work order")).toBeInTheDocument()

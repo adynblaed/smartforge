@@ -1,4 +1,36 @@
-# FastAPI Project - Deployment
+# SmartForge — Deployment
+
+**SmartForge v1.0.0 LTS.**
+
+Deploy with Docker Compose behind Traefik (this guide), or on Kubernetes
+via the Helm chart and Argo CD GitOps apps — see
+[`infra/helm/README.md`](infra/helm/README.md) and
+[`infra/argocd/README.md`](infra/argocd/README.md).
+
+## SmartForge production checklist
+
+Before any production deploy:
+
+1. **Secrets** — set every `changethis` in `.env` (or your secret store):
+   `SECRET_KEY`, `POSTGRES_PASSWORD`, `FIRST_SUPERUSER_PASSWORD`,
+   `WAREHOUSE_*_PASSWORD`, `OMEGA_ORACLE_PASSWORD`. No live secrets in git
+   (CI enforces via gitleaks).
+2. **Data platform gate** — run
+   `docker compose run --rm backend python -m app.dataplatform.cli preflight`
+   and require exit 0: it verifies contracts, secrets, lake paths, the
+   read-only Oracle identity, all three warehouse roles, and the DuckDB
+   catalog.
+3. **Single-writer invariants** — never scale `worker` or `platform-worker`
+   beyond one replica (telemetry double-write / DuckDB single-writer).
+4. **Backups** — the `db-backup` service dumps both databases on
+   `BACKUP_SCHEDULE`; production should additionally enable WAL/PITR or use
+   a managed Postgres. Restore drill: `runbooks/backup_restore.md`.
+5. **Ingress guardrails** — Traefik applies rate limiting
+   (`API_RATE_LIMIT_*`) and security headers to the API router; metrics UIs
+   (Prometheus/Grafana) bind loopback-only.
+6. **Environment separation** — distinct credentials, `LAKE_ROOT`,
+   `DUCKDB_PATH`, and warehouse DB per environment
+   (`docs/data-platform.md` §3).
 
 You can deploy the project using Docker Compose to a remote server.
 
@@ -316,7 +348,7 @@ The current Github Actions workflows expect these secrets:
 
 There are GitHub Action workflows in the `.github/workflows` directory already configured for deploying to the environments (GitHub Actions runners with the labels):
 
-* `staging`: after pushing (or merging) to the branch `master`.
+* `staging`: after pushing (or merging) to the branch `main`.
 * `production`: after publishing a release.
 
 Both workflows are associated with their respective GitHub Environments, so deployments will be visible in the repository's **Environments** section and will respect any protection rules you configure.

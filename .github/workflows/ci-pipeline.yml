@@ -1,0 +1,244 @@
+name: CI Pipeline (v1.0.0)
+
+# The formal offline verification pipeline for SmartForge v1.0.0
+# (CICD-003/004/011). Zero external databases or services: the 572-test
+# matrix is fully self-contained — tests_dataplatform mocks the Oracle
+# boundary and uses real DuckDB/PyArrow in temp dirs; tests_smartforge runs
+# on in-memory SQLite; frontend unit tests run in jsdom. Every job feeds
+# the single `pipeline-confidence` gate, which is the ONE required status
+# check for branch protection.
+#
+# Complementary workflows (deliberately separate):
+#   test-backend.yml   — template suite against a real Postgres (compose)
+#   playwright.yml     — full-stack E2E (needs the running stack)
+#   security-scan.yml  — gitleaks / pip-audit / osv-scanner (+ weekly cron)
+#   pre-commit.yml     — ruff/mypy/ty/biome hook parity
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types:
+      - opened
+      - synchronize
+  workflow_dispatch:
+
+permissions: {}
+
+# One run per ref; superseded PR runs are cancelled (never cancel main).
+concurrency:
+  group: ci-pipeline-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  # ---------------------------------------------------------------- static
+  backend-quality:
+    name: Backend lint + types
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.10"
+      - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: "0.11.18"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      - name: ruff lint
+        run: uv run ruff check app tests_smartforge tests_dataplatform
+        working-directory: backend
+      - name: ruff format (drift check)
+        run: uv run ruff format --check app tests_smartforge tests_dataplatform
+        working-directory: backend
+      - name: mypy strict (104 files)
+        run: uv run mypy app
+        working-directory: backend
+
+  # ----------------------------------------------------------------- tests
+  platform-suite:
+    name: Data-platform suite (356 tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.10"
+      - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: "0.11.18"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      - name: Pipeline lifecycle, lake, DuckDB, warehouse guards, API contracts,
+              control totals, perf-regression lane
+        run: uv run pytest tests_dataplatform -q --durations=10
+        working-directory: backend
+
+  app-suite:
+    name: Application suite (122 tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Offline stand-ins — the suite runs on in-memory SQLite with real
+      # auth/RBAC dependencies; no service is contacted.
+      POSTGRES_SERVER: localhost
+      POSTGRES_USER: ci
+      POSTGRES_PASSWORD: ci-only
+      POSTGRES_DB: ci
+      FIRST_SUPERUSER: ci@futureform.com
+      FIRST_SUPERUSER_PASSWORD: ci-only
+      SECRET_KEY: ci-only-secret
+      PROJECT_NAME: SmartForge
+      SIMULATOR_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.10"
+      - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: "0.11.18"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      - name: Routers, RBAC + route-wiring sweep, rate limiting, redis helpers,
+              runtime logging, services
+        run: uv run pytest tests_smartforge -q --durations=10
+        working-directory: backend
+
+  frontend-suite:
+    name: Frontend quality + unit (94 tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+      - name: Install dependencies (runners ship Node 24; bun is the local default)
+        run: npm install --no-package-lock --no-audit --no-fund
+        working-directory: frontend
+      - name: Biome (lint drift check, no writes)
+        run: npx biome check --no-errors-on-unmatched --files-ignore-unknown=true ./src
+        working-directory: frontend
+      - name: TypeScript (route tree + strict build config)
+        run: npx tsc -p tsconfig.build.json --noEmit
+        working-directory: frontend
+      - name: Vitest (error paradigm, ApiError/request-id, badges, helpers)
+        run: npx vitest run
+        working-directory: frontend
+
+  # ---------------------------------------------------------- config gates
+  dbt-validate:
+    name: dbt dual-target parse + docs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.10"
+      - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: "0.11.18"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      - name: Parse (lake / DuckDB target)
+        run: uv run dbt parse --project-dir ../dbt --profiles-dir ../dbt --target lake
+        working-directory: backend
+      - name: Parse (warehouse / PostgreSQL target)
+        run: uv run dbt parse --project-dir ../dbt --profiles-dir ../dbt --target warehouse
+        working-directory: backend
+      - name: Docs + lineage artifacts (DBT-018)
+        run: |
+          mkdir -p /tmp/dbt-catalog
+          DUCKDB_PATH=/tmp/dbt-catalog/ci.duckdb uv run dbt docs generate --project-dir ../dbt --profiles-dir ../dbt --target lake --empty-catalog
+        working-directory: backend
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dbt-docs
+          path: |
+            dbt/target/index.html
+            dbt/target/manifest.json
+            dbt/target/catalog.json
+
+  deploy-contracts:
+    name: Compose, Helm & preflight contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.10"
+      - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: "0.11.18"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      - name: compose.yml interpolates cleanly against .env.example
+        run: |
+          cp .env.example .env
+          docker compose -f compose.yml config --quiet
+          rm .env
+      - name: Helm chart renders for every environment
+        run: |
+          helm lint infra/helm/smartforge
+          helm template infra/helm/smartforge > /dev/null
+          helm template infra/helm/smartforge -f infra/helm/smartforge/values-staging.yaml > /dev/null
+          helm template infra/helm/smartforge -f infra/helm/smartforge/values-production.yaml > /dev/null
+      - name: Workflow YAML is parseable
+        run: uv run python -c "import pathlib, yaml; [yaml.safe_load(p.read_text(encoding='utf-8')) for p in pathlib.Path('../.github/workflows').glob('*.yml')]; print('workflows ok')"
+        working-directory: backend
+      - name: Platform preflight (local gates; external services report-only)
+        run: uv run python -m app.dataplatform.cli preflight --tolerate-unreachable
+        working-directory: backend
+
+  # ------------------------------------------------------------------ gate
+  pipeline-confidence:
+    name: Pipeline confidence gate
+    # The single required status check: green only when EVERY gate above
+    # is green. `always()` ensures it reports (as failed) even when a
+    # dependency fails or is cancelled — a skipped gate is a failed gate.
+    if: always()
+    needs:
+      - backend-quality
+      - platform-suite
+      - app-suite
+      - frontend-suite
+      - dbt-validate
+      - deploy-contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Evaluate gates
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          echo "## SmartForge v1.0.0 — pipeline confidence" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Gate | Result |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          failed=0
+          for job in $(echo "$RESULTS" | python3 -c "import json,sys; print(' '.join(json.load(sys.stdin).keys()))"); do
+            result=$(echo "$RESULTS" | python3 -c "import json,sys; print(json.load(sys.stdin)['$job']['result'])")
+            echo "| $job | $result |" >> "$GITHUB_STEP_SUMMARY"
+            if [ "$result" != "success" ]; then failed=1; fi
+          done
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$failed" -eq 1 ]; then
+            echo "❌ One or more gates failed — pipeline integrity NOT confirmed." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "✅ 572 offline-verifiable tests + all static/config gates green." >> "$GITHUB_STEP_SUMMARY"

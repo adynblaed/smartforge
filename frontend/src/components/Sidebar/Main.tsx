@@ -1,8 +1,6 @@
 import { Link as RouterLink, useRouterState } from "@tanstack/react-router"
 import { ChevronRight, Star } from "lucide-react"
 import { useMemo, useState } from "react"
-
-import { cn } from "@/lib/utils"
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -13,6 +11,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { cn } from "@/lib/utils"
 import type { Item, NavGroup } from "./nav"
 
 export type { Item, NavGroup }
@@ -78,7 +77,11 @@ export function Main({ pinned, groups }: MainProps) {
         </SidebarMenuButton>
         <SidebarMenuAction
           showOnHover={!fav}
-          aria-label={fav ? `Remove ${item.title} from favorites` : `Add ${item.title} to favorites`}
+          aria-label={
+            fav
+              ? `Remove ${item.title} from favorites`
+              : `Add ${item.title} to favorites`
+          }
           title={fav ? "Remove from Favorites" : "Add to Favorites"}
           onClick={(e) => {
             e.preventDefault()
@@ -117,7 +120,11 @@ export function Main({ pinned, groups }: MainProps) {
       )}
 
       {groups.map((group) => (
-        <NavGroupSection key={group.label} group={group} renderItem={renderItem} />
+        <NavGroupSection
+          key={group.label}
+          group={group}
+          renderItem={renderItem}
+        />
       ))}
     </>
   )
@@ -152,7 +159,10 @@ function NavGroupSection({
         >
           <span>{group.label}</span>
           <ChevronRight
-            className={cn("transition-transform duration-200", open && "rotate-90")}
+            className={cn(
+              "transition-transform duration-200",
+              open && "rotate-90",
+            )}
           />
         </button>
       </SidebarGroupLabel>

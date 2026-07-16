@@ -18,7 +18,9 @@ export function AppSidebar() {
   // items (e.g. Admin) and drop any group left empty.
   const groups = NAV_GROUPS.map((g) => ({
     ...g,
-    items: g.items.filter((it) => !it.superuserOnly || currentUser?.is_superuser),
+    items: g.items.filter(
+      (it) => !it.superuserOnly || currentUser?.is_superuser,
+    ),
   })).filter((g) => g.items.length > 0)
 
   return (

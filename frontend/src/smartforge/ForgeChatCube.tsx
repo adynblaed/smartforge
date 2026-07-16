@@ -2,8 +2,8 @@ import { Environment, Float, Lightformer, RoundedBox } from "@react-three/drei"
 import { Canvas, useFrame } from "@react-three/fiber"
 import { Bloom, EffectComposer } from "@react-three/postprocessing"
 import { useEffect, useRef } from "react"
-import { Color } from "three"
 import type { Mesh, MeshStandardMaterial } from "three"
+import { Color } from "three"
 
 // "thinking" = actively streaming / running inference.
 export type CubeState = "idle" | "thinking" | "answer"
@@ -49,7 +49,9 @@ function Core({ state }: { state: CubeState }) {
       pop.current > 0.05
         ? tColor.current.set(FLARE)
         : thinking
-          ? tColor.current.set(STREAM).lerp(new Color(ACCENT), (Math.sin(t * 5) + 1) / 2)
+          ? tColor.current
+              .set(STREAM)
+              .lerp(new Color(ACCENT), (Math.sin(t * 5) + 1) / 2)
           : tColor.current.set(ACCENT)
     cur.current.lerp(dest, Math.min(1, dt * 4))
     if (coreMat.current) {
@@ -98,19 +100,53 @@ export function ForgeChatCube({ state }: { state: CubeState }) {
       style={{ background: "transparent" }}
     >
       <ambientLight intensity={0.4} />
-      <pointLight position={[3, 3, 4]} intensity={40} color={ACCENT} distance={22} />
-      <pointLight position={[-3, -2, 2]} intensity={22} color={STREAM} distance={22} />
+      <pointLight
+        position={[3, 3, 4]}
+        intensity={40}
+        color={ACCENT}
+        distance={22}
+      />
+      <pointLight
+        position={[-3, -2, 2]}
+        intensity={22}
+        color={STREAM}
+        distance={22}
+      />
       {/* lightweight inline environment → polished metal reflections (no network) */}
       <Environment resolution={64}>
-        <Lightformer intensity={2.2} position={[0, 2, 4]} scale={[7, 7, 1]} color="#bae6fd" />
-        <Lightformer intensity={1.3} position={[-3, -1, 2]} scale={[5, 5, 1]} color={STREAM} />
-        <Lightformer intensity={1} position={[3, 1, -2]} scale={[5, 5, 1]} color="#ffffff" />
+        <Lightformer
+          intensity={2.2}
+          position={[0, 2, 4]}
+          scale={[7, 7, 1]}
+          color="#bae6fd"
+        />
+        <Lightformer
+          intensity={1.3}
+          position={[-3, -1, 2]}
+          scale={[5, 5, 1]}
+          color={STREAM}
+        />
+        <Lightformer
+          intensity={1}
+          position={[3, 1, -2]}
+          scale={[5, 5, 1]}
+          color="#ffffff"
+        />
       </Environment>
-      <Float speed={state === "thinking" ? 3.2 : 1.6} rotationIntensity={0.25} floatIntensity={0.7}>
+      <Float
+        speed={state === "thinking" ? 3.2 : 1.6}
+        rotationIntensity={0.25}
+        floatIntensity={0.7}
+      >
         <Core state={state} />
       </Float>
       <EffectComposer enableNormalPass={false} multisampling={2}>
-        <Bloom intensity={0.7} luminanceThreshold={1} luminanceSmoothing={0.25} mipmapBlur />
+        <Bloom
+          intensity={0.7}
+          luminanceThreshold={1}
+          luminanceSmoothing={0.25}
+          mipmapBlur
+        />
       </EffectComposer>
     </Canvas>
   )

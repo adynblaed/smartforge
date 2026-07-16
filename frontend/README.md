@@ -1,121 +1,139 @@
-# FastAPI Project - Frontend
+# SmartForge Frontend
 
-The frontend is built with [Vite](https://vitejs.dev/), [React](https://reactjs.org/), [TypeScript](https://www.typescriptlang.org/), [TanStack Query](https://tanstack.com/query), [TanStack Router](https://tanstack.com/router) and [Tailwind CSS](https://tailwindcss.com/).
+The SmartForge web console: a factory-operations SPA covering machine intelligence, MES observability, purchase orders, the data platform, and a customer portal. Platform-wide guidance: [`../CLAUDE.md`](../CLAUDE.md); the v1.0.0 LTS specification of record: [`../specs/ARCHITECTURE.md`](../specs/ARCHITECTURE.md) (§4.7 covers these frontend surfaces).
 
-## Requirements
+## Stack
 
-- [Bun](https://bun.sh/) (recommended) or [Node.js](https://nodejs.org/)
+- [Vite](https://vitejs.dev/) + [React 19](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
+- [TanStack Router](https://tanstack.com/router) (file-based routes in `src/routes`, generated tree in `src/routeTree.gen.ts`)
+- [TanStack Query](https://tanstack.com/query) for all server state
+- [Tailwind CSS v4](https://tailwindcss.com/) + [shadcn/ui](https://ui.shadcn.com/) primitives (`src/components/ui`), dark-mode-first
+- [Recharts](https://recharts.org/) dashboards, [react-three-fiber](https://docs.pmnd.rs/react-three-fiber) 3D factory simulation
+- [Biome](https://biomejs.dev/) for lint/format, [Vitest](https://vitest.dev/) + [Playwright](https://playwright.dev/) for tests
 
-## Quick Start
+## Prerequisites
+
+- [Bun](https://bun.sh/) (preferred) or [Node.js](https://nodejs.org/) ≥ 20 with npm
+- The backend API running at `http://localhost:8000` (see the repo root `compose.yml`)
+
+## Commands
+
+| Task | Bun | npm |
+| --- | --- | --- |
+| Install | `bun install` | `npm install` |
+| Dev server (http://localhost:5173) | `bun run dev` | `npm run dev` |
+| Production build | `bun run build` | `npm run build` |
+| Lint / format | `bun run lint` | `npm run lint` |
+| Regenerate route tree | `bun run routes:generate` | `npm run routes:generate` |
+| Regenerate API SDK | `bun run generate-client` | `npm run generate-client` |
+| Unit tests | `bun run test:unit` | `npm run test:unit` |
+| E2E tests | `bunx playwright test` | `npx playwright test` |
+
+`build` runs `tsr generate && tsc -p tsconfig.build.json && vite build` — the route tree and typecheck are part of every build.
+
+## Routes
+
+Auth levels: **public** (no session), **internal** (any signed-in staff user — `/_layout` validates the token against `GET /users/me` and bounces customers to `/portal`), **superuser** (internal + `is_superuser`), **customer** (customer-role account, portal shell).
+
+All endpoints below are under `/api/v1`.
+
+### Auth & legal (public)
+
+| Path | Title | Purpose | Backend |
+| --- | --- | --- | --- |
+| `/login` | Log In - SmartForge | Sign in | `POST /login/access-token` |
+| `/signup` | Sign Up - SmartForge | Self-registration | `POST /users/signup` |
+| `/recover-password` | Recover Password - SmartForge | Request reset email | `POST /password-recovery/{email}` |
+| `/reset-password` | Reset Password - SmartForge | Set new password from token | `POST /reset-password` |
+| `/privacy` | Privacy Policy - Future Form Manufacturing | Static policy page | — |
+| `/terms` | Terms & Conditions - Future Form Manufacturing | Static terms page | — |
+
+### Internal app (`/_layout` shell: sidebar, breadcrumbs, ForgeAI agent)
+
+| Path | Title | Purpose | Backend |
+| --- | --- | --- | --- |
+| `/` | Smart Forge — Home | Mission-control launchpad over the nav groups | — |
+| `/command-center` | Command Center - SmartForge | Fleet KPIs, at-risk machines, live overview | `GET /command-center`, `GET /purchase-orders` |
+| `/factory-map` | Factory Simulation - SmartForge | 3D factory floor with live telemetry panels | `GET /machines/`, `/inventory`, `/purchase-orders`, `/machines/{id}/telemetry` |
+| `/ask-ai` | ForgeAI - Smart Forge | RAG assistant over factory knowledge | `POST /ask-ai/forge` |
+| `/machines` | Machines - SmartForge | Machine console: telemetry, alerts, tickets | `GET /machines/`, `/machines/{id}/telemetry`, `/alerts/`, `POST /tickets/from-alert/{id}` |
+| `/work-orders` | Work Orders - SmartForge | Work-order queue + approve/deny actions | `GET /work-orders/`, `POST /work-orders/{id}/{action}` |
+| `/tickets` | Tickets - SmartForge | Maintenance alert center with SOP guidance | `GET /tickets/`, `/tickets/{id}`, `POST .../acknowledge`, `.../notes`, `.../status` |
+| `/quality` | Quality - SmartForge | OEE + defect analytics, inspections | `GET /oee`, `/defects`, `POST /inspection-results`, `/defects/{id}/correlate` |
+| `/optimization` | Optimizations - SmartForge | Config recommendations + capacity what-ifs | `GET /machine-configurations`, `/recommendations`, `POST /planning/simulate` |
+| `/services` | Services - Smart Forge | Live service health board with uptime ticker | `GET /services/` |
+| `/integrations` | Integrations - SmartForge | ERP/MES sync status + manual sync triggers | `GET /integrations/status`, `/integrations/events`, `/factory/kpis`, `POST /integrations/{sys}/sync` |
+| `/incidents` | Incidents - SmartForge | Incident impact + RCA records | `GET /incidents/`, `/factories`, `/tickets/by-incident`, `/incidents/{id}/rca` |
+| `/order-tracker` | Order Tracker - SmartForge | Purchase orders joined to customer orders | `GET /purchase-orders`, `/inventory`, `/suppliers` |
+| `/supply-chain` | Supply Chain - SmartForge | Inventory risk + supplier health + reorders | `GET /inventory`, `/supply-chain/risks`, `/suppliers`, `POST /supply-chain/reorders` |
+| `/quotes` | Quotes & Intake - Smart Forge | Order intake + PO builder | `GET /quotes`, `POST /quotes/generate` |
+| `/escalations` | Escalations - SmartForge | Customer escalation triage + responses | `GET /customer/escalations`, `POST /customer/escalations/{id}/respond` |
+| `/analytics` | Analytics - SmartForge | Cross-domain dashboards | `GET /command-center`, `/oee`, `/machines/` |
+| `/admin` | Admin - SmartForge | User management (**superuser**) | generated SDK: `UsersService` (`/users/`) |
+| `/logs` | Logs - Smart Forge | Per-service log console incl. audit trail | `GET /logs/services`, `/logs/{service}` |
+| `/datasources` | Datasources - SmartForge | Read-only live views over production tables + CSV import/export | domain list endpoints, `GET /datasources/table/{name}`, `/datasources/export`, `POST /datasources/import` |
+| `/data-platform` | Data Platform - SmartForge | Replication freshness, runs, reconciliation, warehouse marts/KPIs, lake catalog + manifests, and the Work Orders explorer (read-only query builder over the certified genealogy contract) | `GET /platform/health`, `/platform/freshness`, `/platform/replication/tables`, `/platform/replication/runs`, `/platform/reconciliation`, `/warehouse/datasets`, `/warehouse/datasets/api.api_work_orders`, `/warehouse/kpis`, `/lake/datasets`, `/lake/loads` |
+| `/mrp` | MRP - SmartForge | Time-phased supply planning grid (demand/supply/projected net per item per day, shortage + safety-stock highlighting, local what-if) | `GET /warehouse/datasets/api.api_mrp_supply_plan` |
+| `/knowledge-bases` | Forge Facts - Smart Forge | Curated RAG facts CRUD + reindex | `GET/POST/PATCH/DELETE /ask-ai/knowledge-bases`, `POST .../sync` |
+| `/sops` | SOPs - Smart Forge | Chaptered standard operating procedures | `GET /sops/`, `GET/PATCH /sops/{code}` |
+| `/settings` | Settings - SmartForge | Profile, password, danger zone | generated SDK: `UsersService` |
+| `/items` | Items - SmartForge | Template demo CRUD (kept from the FastAPI template) | generated SDK: `ItemsService` (`/items/`) |
+
+The `/data-platform` sections degrade gracefully: when the platform stores are not provisioned (endpoints return 503), each section independently renders a "Data platform not provisioned" empty state pointing at `runbooks/` instead of crashing.
+
+### Customer portal (`/portal` shell, customer accounts)
+
+| Path | Title | Purpose | Backend |
+| --- | --- | --- | --- |
+| `/portal` | My Orders - SmartForge | Customer's order list | `GET /customer/orders` |
+| `/portal/ask` | Order Assistant - SmartForge | Scoped AI assistant + human escalation | `POST /customer/ask`, `POST /customer/escalate` |
+| `/portal/orders/$orderId` | Order - SmartForge | Live order detail | `GET /customer/orders/{id}`, WS `/ws/orders` |
+
+## API clients
+
+Two clients coexist — pick deliberately:
+
+1. **Generated SDK** (`src/client/**`, axios-based, generated by `@hey-api/openapi-ts`): used by the FastAPI-template routes — auth (`LoginService`, `UsersService`), `/admin`, `/settings`, `/items`. Do not hand-edit; regenerate it (below).
+2. **`sf` wrapper** (`src/smartforge/api.ts`): a thin typed `fetch` wrapper sharing the same base URL and bearer token. This is the established pattern for **all SmartForge endpoints**, including the data platform (`/platform`, `/warehouse`, `/lake`). Response types live next to the pages or in `src/smartforge/*Types.ts` (e.g. `platformTypes.ts` mirrors the backend handlers). It also provides `blob`/`upload` helpers and `wsUrl()` for authenticated WebSockets.
+
+New SmartForge features should use `sf` — no client regeneration required.
+
+### Regenerating the SDK
+
+`openapi-ts.config.ts` reads `./openapi.json` at the frontend root:
 
 ```bash
-bun install
-bun run dev
+# with the backend running
+curl http://localhost:8000/api/v1/openapi.json -o openapi.json
+bun run generate-client        # or: npm run generate-client
 ```
 
-* Then open your browser at http://localhost:5173/.
+Or run `bash ./scripts/generate-client.sh` from the repo root (activates the backend venv and does both steps).
 
-Notice that this live server is not running inside Docker, it's for local development, and that is the recommended workflow. Once you are happy with your frontend, you can build the frontend Docker image and start it, to test it in a production-like environment. But building the image at every change will not be as productive as running the local development server with live reload.
+## Environment
 
-Check the file `package.json` to see other available options.
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `VITE_API_URL` | `http://localhost:8000` | API base URL used by both clients (set in `frontend/.env` for remote APIs) |
 
-### Removing the frontend
+## Testing
 
-If you are developing an API-only app and want to remove the frontend, you can do it easily:
-
-* Remove the `./frontend` directory.
-
-* In the `compose.yml` file, remove the whole service / section `frontend`.
-
-* In the `compose.override.yml` file, remove the whole service / section `frontend` and `playwright`.
-
-Done, you have a frontend-less (api-only) app. 🤓
-
----
-
-If you want, you can also remove the `FRONTEND` environment variables from:
-
-* `.env`
-* `./scripts/*.sh`
-
-But it would be only to clean them up, leaving them won't really have any effect either way.
-
-## Generate Client
-
-### Automatically
-
-* Activate the backend virtual environment.
-* From the top level project directory, run the script:
+**Unit (Vitest + Testing Library, jsdom)** — `tests-unit/`, configured by `vitest.config.ts` (kept separate from `vite.config.ts` so the router plugin doesn't scan routes during tests):
 
 ```bash
-bash ./scripts/generate-client.sh
+bun run test:unit          # or: npm run test:unit / npx vitest run
+bun run test:unit:coverage # coverage over src/smartforge/**
 ```
 
-* Commit the changes.
+Covers the pure helpers and presentational pieces in `src/smartforge/` (API wrapper, markdown, chat panel, data-platform formatting/badges, the Work Orders query-builder grammar, the MRP grid/net-inventory/what-if math, realtime hook).
 
-### Manually
-
-* Start the Docker Compose stack.
-
-* Download the OpenAPI JSON file from `http://localhost/api/v1/openapi.json` and copy it to a new file `openapi.json` at the root of the `frontend` directory.
-
-* To generate the frontend client, run:
-
-```bash
-bun run generate-client
-```
-
-* Commit the changes.
-
-Notice that everytime the backend changes (changing the OpenAPI schema), you should follow these steps again to update the frontend client.
-
-## Using a Remote API
-
-If you want to use a remote API, you can set the environment variable `VITE_API_URL` to the URL of the remote API. For example, you can set it in the `frontend/.env` file:
-
-```env
-VITE_API_URL=https://api.my-domain.example.com
-```
-
-Then, when you run the frontend, it will use that URL as the base URL for the API.
-
-## Code Structure
-
-The frontend code is structured as follows:
-
-* `frontend/src` - The main frontend code.
-* `frontend/src/assets` - Static assets.
-* `frontend/src/client` - The generated OpenAPI client.
-* `frontend/src/components` -  The different components of the frontend.
-* `frontend/src/hooks` - Custom hooks.
-* `frontend/src/routes` - The different routes of the frontend which include the pages.
-
-## End-to-End Testing with Playwright
-
-The frontend includes initial end-to-end tests using Playwright. To run the tests, you need to have the Docker Compose stack running. Start the stack with the following command:
+**End-to-end (Playwright)** — `tests/`, configured by `playwright.config.ts`. A `setup` project logs in as the first superuser (`auth.setup.ts`) and every spec reuses that storage state. Requires the backend stack:
 
 ```bash
 docker compose up -d --wait backend
+bunx playwright test           # or: npx playwright test
+bunx playwright test --ui      # interactive mode
+docker compose down -v         # teardown + wipe test data
 ```
 
-Then, you can run the tests with the following command:
-
-```bash
-bunx playwright test
-```
-
-You can also run your tests in UI mode to see the browser and interact with it running:
-
-```bash
-bunx playwright test --ui
-```
-
-To stop and remove the Docker Compose stack and clean the data created in tests, use the following command:
-
-```bash
-docker compose down -v
-```
-
-To update the tests, navigate to the tests directory and modify the existing test files or add new ones as needed.
-
-For more information on writing and running Playwright tests, refer to the official [Playwright documentation](https://playwright.dev/docs/intro).
+Covers login/signup/reset flows, per-page data validation (`validation.spec.ts`), the customer portal, admin/user settings, and the data-platform page (`data-platform.spec.ts` — asserts the page renders either live data or the not-provisioned empty states, never a crash).

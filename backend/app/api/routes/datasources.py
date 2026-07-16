@@ -4,7 +4,7 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, File, HTTPException, Response, UploadFile
-from sqlmodel import select
+from sqlmodel import SQLModel, select
 
 from app.api.deps import InternalUser, SessionDep
 from app.models import (
@@ -29,7 +29,7 @@ router = APIRouter(prefix="/datasources", tags=["datasources"])
 
 # Operational tables browsable as generic read-only datasources. Sensitive
 # corpora (customer chat) are intentionally excluded.
-_DATASOURCE_MODELS: dict[str, type] = {
+_DATASOURCE_MODELS: dict[str, type[SQLModel]] = {
     "customer_orders": CustomerOrder,
     "customers": Customer,
     "jobs": Job,
@@ -78,8 +78,13 @@ def read_table(
 def export_snapshot(session: SessionDep, user: InternalUser) -> Response:
     """Download every operational table as one smart_forge_schema.csv snapshot."""
     csv_text = snapshot.export_csv(session)
-    write_audit(session, actor=user, action="datasources.export",
-                entity_type="snapshot", detail="csv export")
+    write_audit(
+        session,
+        actor=user,
+        action="datasources.export",
+        entity_type="snapshot",
+        detail="csv export",
+    )
     return Response(
         content=csv_text,
         media_type="text/csv",
@@ -100,6 +105,11 @@ async def import_snapshot(
         raise HTTPException(status_code=413, detail="File too large (max 20 MB).")
     try:
         summary = snapshot.import_csv(session, raw.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError) as exc:
+        # Validation errors are deliberately safe + user-actionable (bad
+        # header, malformed row/JSON, wrong encoding) — surface them.
+        session.rollback()
+        raise HTTPException(status_code=400, detail=f"Import failed: {exc}") from exc
     except Exception as exc:  # noqa: BLE001 — surface a clean 400 to the UI
         session.rollback()
         # Don't leak internal exception/stack details to the client.
@@ -108,6 +118,11 @@ async def import_snapshot(
             status_code=400,
             detail="Import failed: the file could not be parsed. Check it is a valid snapshot CSV.",
         ) from exc
-    write_audit(session, actor=user, action="datasources.import",
-                entity_type="snapshot", detail=str(summary))
+    write_audit(
+        session,
+        actor=user,
+        action="datasources.import",
+        entity_type="snapshot",
+        detail=str(summary),
+    )
     return {"message": "Snapshot imported", "summary": summary}

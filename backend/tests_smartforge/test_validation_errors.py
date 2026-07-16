@@ -10,14 +10,22 @@ def test_quote_generate_validation_error(internal_client):
 
 def test_inspection_validation_error(internal_client):
     # Missing required part_id → 422
-    assert internal_client.post("/api/v1/inspection-results", json={}).status_code == 422
+    assert (
+        internal_client.post("/api/v1/inspection-results", json={}).status_code == 422
+    )
 
 
 def test_work_order_validation_error(internal_client):
     # Missing machine_id/fault_type/recommended_task → 422
-    assert internal_client.post("/api/v1/work-orders/", json={
-        "severity": "high",
-    }).status_code == 422
+    assert (
+        internal_client.post(
+            "/api/v1/work-orders/",
+            json={
+                "severity": "high",
+            },
+        ).status_code
+        == 422
+    )
 
 
 def test_telemetry_bad_machine_404(internal_client):

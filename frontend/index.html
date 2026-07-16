@@ -13,7 +13,7 @@
     <!-- Apply the saved theme BEFORE first paint to avoid a flash of light theme
          (mirrors ThemeProvider; default "dark"). -->
     <script>
-      (function () {
+      (() => {
         try {
           var t = localStorage.getItem("vite-ui-theme") || "dark"
           if (t === "system") {
@@ -24,7 +24,7 @@
           var root = document.documentElement
           if (t === "future") root.classList.add("dark", "future")
           else root.classList.add(t)
-        } catch (e) {}
+        } catch (_e) {}
       })()
     </script>
   </head>

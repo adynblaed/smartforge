@@ -45,7 +45,11 @@ function header(doc: jsPDF, kind: string, ref: string): number {
   doc.setFontSize(7.5)
   doc.setTextColor(...FAINT)
   doc.text("SMART FACTORY SYSTEMS", MARGIN, 19.5)
-  doc.text("599 E Nugget Ave · Sparks NV 89431 · sales@futureform.com", MARGIN, 23.5)
+  doc.text(
+    "599 E Nugget Ave · Sparks NV 89431 · sales@futureform.com",
+    MARGIN,
+    23.5,
+  )
 
   // document badge (right)
   doc.setFont(FONT, "bold")
@@ -67,7 +71,13 @@ function header(doc: jsPDF, kind: string, ref: string): number {
   return 46
 }
 
-function field(doc: jsPDF, label: string, value: string, x: number, y: number): void {
+function field(
+  doc: jsPDF,
+  label: string,
+  value: string,
+  x: number,
+  y: number,
+): void {
   doc.setFont(FONT, "bold")
   doc.setFontSize(7.5)
   doc.setTextColor(...MUTED)
@@ -78,14 +88,20 @@ function field(doc: jsPDF, label: string, value: string, x: number, y: number): 
   doc.text(value || "—", x, y + 6)
 }
 
-function parties(doc: jsPDF, left: [string, string], right: [string, string], y: number): number {
+function parties(
+  doc: jsPDF,
+  left: [string, string],
+  right: [string, string],
+  y: number,
+): number {
   field(doc, left[0], left[1], MARGIN, y)
   field(doc, right[0], right[1], 112, y)
   return y + 18
 }
 
 function lineItems(doc: jsPDF, q: Quote, startY: number): number {
-  const unit = q.quantity > 0 ? q.estimated_price / q.quantity : q.estimated_price
+  const unit =
+    q.quantity > 0 ? q.estimated_price / q.quantity : q.estimated_price
   let y = startY
 
   // table header band (light) with bold dark labels
@@ -153,12 +169,21 @@ function footer(doc: jsPDF, note: string): void {
 function buildQuote(q: Quote): jsPDF {
   const doc = useFont(new jsPDF())
   let y = header(doc, "QUOTE", `Prepared for ${q.customer}`)
-  y = parties(doc, ["Bill to", q.customer], ["Lead time", `${q.timeline_days} days`], y)
+  y = parties(
+    doc,
+    ["Bill to", q.customer],
+    ["Lead time", `${q.timeline_days} days`],
+    y,
+  )
   y = lineItems(doc, q, y + 2)
   doc.setFont(FONT, "normal")
   doc.setFontSize(9.5)
   doc.setTextColor(...MUTED)
-  doc.text(`Margin estimate: ${(q.margin_estimate * 100).toFixed(0)}%`, MARGIN, y)
+  doc.text(
+    `Margin estimate: ${(q.margin_estimate * 100).toFixed(0)}%`,
+    MARGIN,
+    y,
+  )
   if (q.risk_flags) {
     y += 6
     doc.text(`Risk flags: ${q.risk_flags}`, MARGIN, y)
@@ -217,7 +242,11 @@ export function openPurchaseOrderPdf(q: Quote, poNumber: string): void {
 // Deterministic-enough PO number for a generated artifact. The customer tag
 // falls back to "FF" (never "PO") so the number never renders as "PO-PO-…".
 export function makePoNumber(q: Quote): string {
-  const tag = q.customer.replace(/[^A-Za-z]/g, "").slice(0, 3).toUpperCase() || "FF"
+  const tag =
+    q.customer
+      .replace(/[^A-Za-z]/g, "")
+      .slice(0, 3)
+      .toUpperCase() || "FF"
   const n = Math.abs(
     Array.from(q.id).reduce((a, c) => (a * 31 + c.charCodeAt(0)) | 0, 7),
   )

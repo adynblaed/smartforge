@@ -15,10 +15,13 @@ def uuid_pk() -> uuid.UUID:
 
 # Reusable timestamp column definition for tz-aware created_at fields.
 def created_at_field() -> datetime:
-    return Field(  # type: ignore[return-value]
+    # SQLModel's Field stub only accepts type[...] for sa_type, but instances
+    # (DateTime(timezone=True)) are supported at runtime — third-party stub gap.
+    field: datetime = Field(  # type: ignore[call-overload]
         default_factory=get_datetime_utc,
-        sa_type=DateTime(timezone=True),  # type: ignore[arg-type]
+        sa_type=DateTime(timezone=True),
     )
+    return field
 
 
 # Generic message

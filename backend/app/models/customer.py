@@ -87,9 +87,7 @@ class CustomerOrdersPublic(SQLModel):
 # ---- Customer messages (chatbot transcript) ----
 class CustomerMessageBase(SQLModel):
     customer_id: uuid.UUID = Field(foreign_key="customer.id", index=True)
-    order_id: uuid.UUID | None = Field(
-        default=None, foreign_key="customer_orders.id"
-    )
+    order_id: uuid.UUID | None = Field(default=None, foreign_key="customer_orders.id")
     # Encrypted at rest (chat transcript).
     question: str = Field(sa_type=EncryptedString)
 
@@ -115,9 +113,7 @@ class CustomerMessagePublic(SQLModel):
 # ---- Escalations (AI-to-human handoff) ----
 class EscalationBase(SQLModel):
     customer_id: uuid.UUID = Field(foreign_key="customer.id", index=True)
-    order_id: uuid.UUID | None = Field(
-        default=None, foreign_key="customer_orders.id"
-    )
+    order_id: uuid.UUID | None = Field(default=None, foreign_key="customer_orders.id")
     question: str = Field(max_length=2048)
     ai_confidence: float = Field(default=0.0)
     reason: str | None = Field(default=None, max_length=512)

@@ -6,8 +6,8 @@ import { useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { sf } from "@/smartforge/api"
-import { POLL } from "@/smartforge/constants"
 import { HEX, Loading, PageHeader } from "@/smartforge/components"
+import { POLL } from "@/smartforge/constants"
 import { Gauge, Heartbeat } from "@/smartforge/widgets"
 
 export const Route = createFileRoute("/_layout/datasources")({
@@ -43,7 +43,8 @@ const avg = (rows: Row[], k: string) =>
   rows.length ? rows.reduce((a, r) => a + num(r[k]), 0) / rows.length : 0
 const maxOf = (rows: Row[], k: string) =>
   rows.reduce((m, r) => Math.max(m, num(r[k])), 0)
-const countWhere = (rows: Row[], fn: (r: Row) => boolean) => rows.filter(fn).length
+const countWhere = (rows: Row[], fn: (r: Row) => boolean) =>
+  rows.filter(fn).length
 
 // Live, read-only production tables exposed for inspection — each with the
 // gauges that summarize it (all computed from the real rows).
@@ -63,8 +64,16 @@ const DATASOURCES: Datasource[] = [
     ],
     metrics: (r) => [
       { label: "Avg Health", value: avg(r, "health_score"), max: 100 },
-      { label: "Running", value: countWhere(r, (x) => x.status === "running"), max: r.length || 1 },
-      { label: "Faults", value: countWhere(r, (x) => !!x.last_fault_code), max: r.length || 1 },
+      {
+        label: "Running",
+        value: countWhere(r, (x) => x.status === "running"),
+        max: r.length || 1,
+      },
+      {
+        label: "Faults",
+        value: countWhere(r, (x) => !!x.last_fault_code),
+        max: r.length || 1,
+      },
     ],
   },
   {
@@ -79,13 +88,24 @@ const DATASOURCES: Datasource[] = [
       { key: "created_at", label: "Created", type: "date" },
     ],
     metrics: (r) => [
-      { label: "Active", value: countWhere(r, (x) => x.status === "active"), max: r.length || 1 },
       {
-        label: "Critical",
-        value: countWhere(r, (x) => x.severity === "critical" || x.severity === "high"),
+        label: "Active",
+        value: countWhere(r, (x) => x.status === "active"),
         max: r.length || 1,
       },
-      { label: "Resolved", value: countWhere(r, (x) => x.status === "resolved"), max: r.length || 1 },
+      {
+        label: "Critical",
+        value: countWhere(
+          r,
+          (x) => x.severity === "critical" || x.severity === "high",
+        ),
+        max: r.length || 1,
+      },
+      {
+        label: "Resolved",
+        value: countWhere(r, (x) => x.status === "resolved"),
+        max: r.length || 1,
+      },
     ],
   },
   {
@@ -102,13 +122,24 @@ const DATASOURCES: Datasource[] = [
       { key: "fiix_sync_state", label: "Fiix Sync" },
     ],
     metrics: (r) => [
-      { label: "Open", value: countWhere(r, (x) => x.status !== "completed"), max: r.length || 1 },
       {
-        label: "High sev",
-        value: countWhere(r, (x) => x.severity === "high" || x.severity === "critical"),
+        label: "Open",
+        value: countWhere(r, (x) => x.status !== "completed"),
         max: r.length || 1,
       },
-      { label: "Done", value: countWhere(r, (x) => x.status === "completed"), max: r.length || 1 },
+      {
+        label: "High sev",
+        value: countWhere(
+          r,
+          (x) => x.severity === "high" || x.severity === "critical",
+        ),
+        max: r.length || 1,
+      },
+      {
+        label: "Done",
+        value: countWhere(r, (x) => x.status === "completed"),
+        max: r.length || 1,
+      },
     ],
   },
   {
@@ -126,8 +157,18 @@ const DATASOURCES: Datasource[] = [
     ],
     metrics: (r) => [
       { label: "OEE", value: avg(r, "oee") * 100, max: 100, suffix: "%" },
-      { label: "Availability", value: avg(r, "availability") * 100, max: 100, suffix: "%" },
-      { label: "Quality", value: avg(r, "quality") * 100, max: 100, suffix: "%" },
+      {
+        label: "Availability",
+        value: avg(r, "availability") * 100,
+        max: 100,
+        suffix: "%",
+      },
+      {
+        label: "Quality",
+        value: avg(r, "quality") * 100,
+        max: 100,
+        suffix: "%",
+      },
     ],
   },
   {
@@ -146,7 +187,12 @@ const DATASOURCES: Datasource[] = [
       return [
         { label: "Scrap", value: scrap, max: r.length || 1 },
         { label: "Clean", value: r.length - scrap, max: r.length || 1 },
-        { label: "Scrap rate", value: r.length ? (scrap / r.length) * 100 : 0, max: 100, suffix: "%" },
+        {
+          label: "Scrap rate",
+          value: r.length ? (scrap / r.length) * 100 : 0,
+          max: 100,
+          suffix: "%",
+        },
       ]
     },
   },
@@ -166,7 +212,11 @@ const DATASOURCES: Datasource[] = [
       return [
         { label: "Low stock", value: below, max: r.length || 1 },
         { label: "Healthy", value: r.length - below, max: r.length || 1 },
-        { label: "Avg qty", value: avg(r, "quantity"), max: maxOf(r, "quantity") || 1 },
+        {
+          label: "Avg qty",
+          value: avg(r, "quantity"),
+          max: maxOf(r, "quantity") || 1,
+        },
       ]
     },
   },
@@ -181,9 +231,21 @@ const DATASOURCES: Datasource[] = [
       { key: "shop_floor_ready", label: "Ready?", type: "bool" },
     ],
     metrics: (r) => [
-      { label: "Open", value: countWhere(r, (x) => x.status === "open"), max: r.length || 1 },
-      { label: "Received", value: countWhere(r, (x) => x.status === "received"), max: r.length || 1 },
-      { label: "Ready", value: countWhere(r, (x) => !!x.shop_floor_ready), max: r.length || 1 },
+      {
+        label: "Open",
+        value: countWhere(r, (x) => x.status === "open"),
+        max: r.length || 1,
+      },
+      {
+        label: "Received",
+        value: countWhere(r, (x) => x.status === "received"),
+        max: r.length || 1,
+      },
+      {
+        label: "Ready",
+        value: countWhere(r, (x) => !!x.shop_floor_ready),
+        max: r.length || 1,
+      },
     ],
   },
   {
@@ -205,7 +267,11 @@ const DATASOURCES: Datasource[] = [
       const total = r.reduce((a, x) => a + num(x.amount), 0)
       return [
         { label: "Active POs", value: r.length, max: r.length || 1 },
-        { label: "Open", value: countWhere(r, (x) => x.status === "open"), max: r.length || 1 },
+        {
+          label: "Open",
+          value: countWhere(r, (x) => x.status === "open"),
+          max: r.length || 1,
+        },
         { label: "Total Value", value: total, max: total || 1, suffix: "$" },
       ]
     },
@@ -220,9 +286,22 @@ const DATASOURCES: Datasource[] = [
       { key: "lead_time_days", label: "Lead (days)", type: "num" },
     ],
     metrics: (r) => [
-      { label: "Healthy", value: countWhere(r, (x) => x.status === "ok"), max: r.length || 1 },
-      { label: "At risk", value: countWhere(r, (x) => x.status !== "ok"), max: r.length || 1 },
-      { label: "Avg lead", value: avg(r, "lead_time_days"), max: 30, suffix: "d" },
+      {
+        label: "Healthy",
+        value: countWhere(r, (x) => x.status === "ok"),
+        max: r.length || 1,
+      },
+      {
+        label: "At risk",
+        value: countWhere(r, (x) => x.status !== "ok"),
+        max: r.length || 1,
+      },
+      {
+        label: "Avg lead",
+        value: avg(r, "lead_time_days"),
+        max: 30,
+        suffix: "d",
+      },
     ],
   },
   {
@@ -238,9 +317,22 @@ const DATASOURCES: Datasource[] = [
       { key: "resolved", label: "Resolved?", type: "bool" },
     ],
     metrics: (r) => [
-      { label: "Open", value: countWhere(r, (x) => !x.resolved), max: r.length || 1 },
-      { label: "Resolved", value: countWhere(r, (x) => !!x.resolved), max: r.length || 1 },
-      { label: "Avg cost", value: avg(r, "estimated_cost"), max: maxOf(r, "estimated_cost") || 1, suffix: "$" },
+      {
+        label: "Open",
+        value: countWhere(r, (x) => !x.resolved),
+        max: r.length || 1,
+      },
+      {
+        label: "Resolved",
+        value: countWhere(r, (x) => !!x.resolved),
+        max: r.length || 1,
+      },
+      {
+        label: "Avg cost",
+        value: avg(r, "estimated_cost"),
+        max: maxOf(r, "estimated_cost") || 1,
+        suffix: "$",
+      },
     ],
   },
   {
@@ -255,9 +347,22 @@ const DATASOURCES: Datasource[] = [
       { key: "outcome_impact", label: "Impact", type: "num" },
     ],
     metrics: (r) => [
-      { label: "Pending", value: countWhere(r, (x) => x.status === "pending"), max: r.length || 1 },
-      { label: "Accepted", value: countWhere(r, (x) => x.status === "accepted"), max: r.length || 1 },
-      { label: "Confidence", value: avg(r, "confidence") * 100, max: 100, suffix: "%" },
+      {
+        label: "Pending",
+        value: countWhere(r, (x) => x.status === "pending"),
+        max: r.length || 1,
+      },
+      {
+        label: "Accepted",
+        value: countWhere(r, (x) => x.status === "accepted"),
+        max: r.length || 1,
+      },
+      {
+        label: "Confidence",
+        value: avg(r, "confidence") * 100,
+        max: 100,
+        suffix: "%",
+      },
     ],
   },
   {
@@ -274,7 +379,11 @@ const DATASOURCES: Datasource[] = [
       { key: "created_at", label: "Created", type: "date" },
     ],
     metrics: (r) => [
-      { label: "Open", value: countWhere(r, (x) => x.status === "open"), max: r.length || 1 },
+      {
+        label: "Open",
+        value: countWhere(r, (x) => x.status === "open"),
+        max: r.length || 1,
+      },
       {
         label: "Acknowledged",
         value: countWhere(r, (x) => x.status === "acknowledged"),
@@ -327,8 +436,16 @@ const DATASOURCES: Datasource[] = [
     ],
     metrics: (r) => [
       { label: "Orders", value: r.length, max: r.length || 1 },
-      { label: "Delayed", value: countWhere(r, (x) => !!x.delayed), max: r.length || 1 },
-      { label: "Shipped", value: countWhere(r, (x) => x.stage === "shipped"), max: r.length || 1 },
+      {
+        label: "Delayed",
+        value: countWhere(r, (x) => !!x.delayed),
+        max: r.length || 1,
+      },
+      {
+        label: "Shipped",
+        value: countWhere(r, (x) => x.stage === "shipped"),
+        max: r.length || 1,
+      },
     ],
   },
   {
@@ -340,7 +457,9 @@ const DATASOURCES: Datasource[] = [
       { key: "contact_email", label: "Contact" },
       { key: "created_at", label: "Onboarded", type: "date" },
     ],
-    metrics: (r) => [{ label: "Accounts", value: r.length, max: r.length || 1 }],
+    metrics: (r) => [
+      { label: "Accounts", value: r.length, max: r.length || 1 },
+    ],
   },
   {
     key: "jobs",
@@ -355,8 +474,16 @@ const DATASOURCES: Datasource[] = [
     ],
     metrics: (r) => [
       { label: "Jobs", value: r.length, max: r.length || 1 },
-      { label: "Scheduled", value: countWhere(r, (x) => x.status === "scheduled"), max: r.length || 1 },
-      { label: "In prod", value: countWhere(r, (x) => x.status === "in_production"), max: r.length || 1 },
+      {
+        label: "Scheduled",
+        value: countWhere(r, (x) => x.status === "scheduled"),
+        max: r.length || 1,
+      },
+      {
+        label: "In prod",
+        value: countWhere(r, (x) => x.status === "in_production"),
+        max: r.length || 1,
+      },
     ],
   },
   {
@@ -372,8 +499,16 @@ const DATASOURCES: Datasource[] = [
     ],
     metrics: (r) => [
       { label: "Runs", value: r.length, max: r.length || 1 },
-      { label: "Avg actual", value: avg(r, "actual_units"), max: maxOf(r, "planned_units") || 1 },
-      { label: "Avg downtime", value: avg(r, "downtime_minutes"), max: maxOf(r, "downtime_minutes") || 1 },
+      {
+        label: "Avg actual",
+        value: avg(r, "actual_units"),
+        max: maxOf(r, "planned_units") || 1,
+      },
+      {
+        label: "Avg downtime",
+        value: avg(r, "downtime_minutes"),
+        max: maxOf(r, "downtime_minutes") || 1,
+      },
     ],
   },
   {
@@ -389,8 +524,17 @@ const DATASOURCES: Datasource[] = [
     ],
     metrics: (r) => [
       { label: "Inspected", value: r.length, max: r.length || 1 },
-      { label: "Defects", value: countWhere(r, (x) => !!x.defect_detected), max: r.length || 1 },
-      { label: "Avg conf", value: avg(r, "confidence") * 100, max: 100, suffix: "%" },
+      {
+        label: "Defects",
+        value: countWhere(r, (x) => !!x.defect_detected),
+        max: r.length || 1,
+      },
+      {
+        label: "Avg conf",
+        value: avg(r, "confidence") * 100,
+        max: 100,
+        suffix: "%",
+      },
     ],
   },
   {
@@ -407,8 +551,16 @@ const DATASOURCES: Datasource[] = [
     ],
     metrics: (r) => [
       { label: "Configs", value: r.length, max: r.length || 1 },
-      { label: "Current", value: countWhere(r, (x) => !!x.is_current), max: r.length || 1 },
-      { label: "Recommended", value: countWhere(r, (x) => !!x.is_recommended), max: r.length || 1 },
+      {
+        label: "Current",
+        value: countWhere(r, (x) => !!x.is_current),
+        max: r.length || 1,
+      },
+      {
+        label: "Recommended",
+        value: countWhere(r, (x) => !!x.is_recommended),
+        max: r.length || 1,
+      },
     ],
   },
   {
@@ -423,8 +575,16 @@ const DATASOURCES: Datasource[] = [
     ],
     metrics: (r) => [
       { label: "Total", value: r.length, max: r.length || 1 },
-      { label: "Open", value: countWhere(r, (x) => x.status === "open"), max: r.length || 1 },
-      { label: "Resolved", value: countWhere(r, (x) => x.status === "resolved"), max: r.length || 1 },
+      {
+        label: "Open",
+        value: countWhere(r, (x) => x.status === "open"),
+        max: r.length || 1,
+      },
+      {
+        label: "Resolved",
+        value: countWhere(r, (x) => x.status === "resolved"),
+        max: r.length || 1,
+      },
     ],
   },
   {
@@ -439,8 +599,16 @@ const DATASOURCES: Datasource[] = [
     ],
     metrics: (r) => [
       { label: "Docs", value: r.length, max: r.length || 1 },
-      { label: "SOPs", value: countWhere(r, (x) => x.kind === "sop"), max: r.length || 1 },
-      { label: "Troubleshooting", value: countWhere(r, (x) => x.kind === "troubleshooting"), max: r.length || 1 },
+      {
+        label: "SOPs",
+        value: countWhere(r, (x) => x.kind === "sop"),
+        max: r.length || 1,
+      },
+      {
+        label: "Troubleshooting",
+        value: countWhere(r, (x) => x.kind === "troubleshooting"),
+        max: r.length || 1,
+      },
     ],
   },
   {
@@ -516,7 +684,10 @@ function DataTable({ columns, rows }: { columns: Column[]; rows: Row[] }) {
             </td>
             {columns.map((c) => {
               const numeric =
-                c.type && c.type !== "text" && c.type !== "date" && c.type !== "bool"
+                c.type &&
+                c.type !== "text" &&
+                c.type !== "date" &&
+                c.type !== "bool"
               return (
                 <td
                   key={c.key}
@@ -566,11 +737,21 @@ function GlobalCard({ ds }: { ds: Datasource }) {
         <Heartbeat color={HEX.success} bpm={bpm} label="live" />
         <div className="grid grid-cols-3 gap-2">
           {metrics.map((m) => (
-            <Gauge key={m.label} value={m.value} max={m.max} label={m.label} suffix={m.suffix} />
+            <Gauge
+              key={m.label}
+              value={m.value}
+              max={m.max}
+              label={m.label}
+              suffix={m.suffix}
+            />
           ))}
         </div>
         <div className="max-h-56 overflow-auto rounded-md border">
-          {isLoading ? <Loading label="Loading…" /> : <DataTable columns={ds.columns} rows={rows} />}
+          {isLoading ? (
+            <Loading label="Loading…" />
+          ) : (
+            <DataTable columns={ds.columns} rows={rows} />
+          )}
         </div>
       </div>
     </div>
@@ -659,39 +840,52 @@ function DatasourcesPage() {
         title="Datasources"
         description="Read-only, live views over the production database."
         actions={
-        <div className="flex flex-wrap items-center gap-2">
-          {io && <span className="text-xs text-muted-foreground">{io}</span>}
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".csv"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0]
-              if (f) importSnapshot(f)
-              e.target.value = ""
-            }}
-          />
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={busy}
-            onClick={() => fileRef.current?.click()}
-          >
-            <Upload size={14} /> Import
-          </Button>
-          <Button size="sm" variant="outline" disabled={busy} onClick={exportSnapshot}>
-            <Download size={14} /> Export
-          </Button>
-          <div className="flex items-center gap-1 rounded-lg border bg-card p-1">
-            <TabBtn active={tab === "global"} onClick={() => setTab("global")} label="Global">
-              <LayoutGrid size={14} /> Global
-            </TabBtn>
-            <TabBtn active={tab === "browse"} onClick={() => setTab("browse")} label="Database Tables">
-              <Table2 size={14} /> Database Tables
-            </TabBtn>
+          <div className="flex flex-wrap items-center gap-2">
+            {io && <span className="text-xs text-muted-foreground">{io}</span>}
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".csv"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                if (f) importSnapshot(f)
+                e.target.value = ""
+              }}
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={busy}
+              onClick={() => fileRef.current?.click()}
+            >
+              <Upload size={14} /> Import
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={busy}
+              onClick={exportSnapshot}
+            >
+              <Download size={14} /> Export
+            </Button>
+            <div className="flex items-center gap-1 rounded-lg border bg-card p-1">
+              <TabBtn
+                active={tab === "global"}
+                onClick={() => setTab("global")}
+                label="Global"
+              >
+                <LayoutGrid size={14} /> Global
+              </TabBtn>
+              <TabBtn
+                active={tab === "browse"}
+                onClick={() => setTab("browse")}
+                label="Database Tables"
+              >
+                <Table2 size={14} /> Database Tables
+              </TabBtn>
+            </div>
           </div>
-        </div>
         }
       />
 
@@ -727,8 +921,10 @@ function DatasourcesPage() {
               <div>
                 <h2 className="text-base font-semibold">{active.label}</h2>
                 <p className="text-xs text-muted-foreground">
-                  <code className="rounded bg-muted px-1">{active.endpoint}</code> ·{" "}
-                  {rows.length} rows · read-only
+                  <code className="rounded bg-muted px-1">
+                    {active.endpoint}
+                  </code>{" "}
+                  · {rows.length} rows · read-only
                 </p>
               </div>
             </div>
@@ -764,7 +960,9 @@ function TabBtn({
       aria-label={label}
       className={cn(
         "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-        active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent",
+        active
+          ? "bg-primary text-primary-foreground"
+          : "text-muted-foreground hover:bg-accent",
       )}
     >
       {children}

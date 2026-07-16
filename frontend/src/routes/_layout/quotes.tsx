@@ -6,7 +6,12 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { sf } from "@/smartforge/api"
-import { KpiTile, OrderStatusBadge, PageHeader, Panel } from "@/smartforge/components"
+import {
+  KpiTile,
+  OrderStatusBadge,
+  PageHeader,
+  Panel,
+} from "@/smartforge/components"
 import {
   downloadPurchaseOrderPdf,
   downloadQuotePdf,
@@ -50,7 +55,10 @@ function POReview() {
         {data?.data.map((q) => {
           const po = makePoNumber(q)
           return (
-            <li key={q.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+            <li
+              key={q.id}
+              className="flex flex-wrap items-center justify-between gap-3 py-3"
+            >
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <OrderStatusBadge status={q.status} />
@@ -63,10 +71,18 @@ function POReview() {
                 </p>
               </div>
               <div className="flex shrink-0 gap-2">
-                <Button size="sm" variant="outline" onClick={() => openPurchaseOrderPdf(q, po)}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => openPurchaseOrderPdf(q, po)}
+                >
                   <Eye size={14} /> View
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => downloadPurchaseOrderPdf(q, po)}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => downloadPurchaseOrderPdf(q, po)}
+                >
                   <Download size={14} /> Download
                 </Button>
               </div>
@@ -74,7 +90,9 @@ function POReview() {
           )
         })}
         {data?.data.length === 0 && (
-          <li className="py-3 text-sm text-muted-foreground">No purchase orders yet.</li>
+          <li className="py-3 text-sm text-muted-foreground">
+            No purchase orders yet.
+          </li>
         )}
       </ul>
     </Panel>
@@ -122,7 +140,9 @@ function QuoteBuilder() {
             type="number"
             placeholder="Quantity"
             value={form.quantity}
-            onChange={(e) => setForm({ ...form, quantity: Number(e.target.value) })}
+            onChange={(e) =>
+              setForm({ ...form, quantity: Number(e.target.value) })
+            }
           />
           <label className="flex items-center gap-2 text-sm">
             <input
@@ -141,17 +161,35 @@ function QuoteBuilder() {
       {generate.data && (
         <div className="mb-4 space-y-3">
           <div className="grid grid-cols-3 gap-2">
-            <KpiTile label="Price" value={`$${generate.data.estimated_price.toFixed(0)}`} />
-            <KpiTile label="Margin" value={`${(generate.data.margin_estimate * 100).toFixed(0)}%`} />
-            <KpiTile label="Timeline" value={`${generate.data.timeline_days}d`} />
+            <KpiTile
+              label="Price"
+              value={`$${generate.data.estimated_price.toFixed(0)}`}
+            />
+            <KpiTile
+              label="Margin"
+              value={`${(generate.data.margin_estimate * 100).toFixed(0)}%`}
+            />
+            <KpiTile
+              label="Timeline"
+              value={`${generate.data.timeline_days}d`}
+            />
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="outline" onClick={() => downloadQuotePdf(generate.data!)}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => downloadQuotePdf(generate.data!)}
+            >
               <FileText size={14} /> Download Draft
             </Button>
             <Button
               size="sm"
-              onClick={() => downloadPurchaseOrderPdf(generate.data!, makePoNumber(generate.data!))}
+              onClick={() =>
+                downloadPurchaseOrderPdf(
+                  generate.data!,
+                  makePoNumber(generate.data!),
+                )
+              }
             >
               <FileDown size={14} /> Export PDF
             </Button>
@@ -173,11 +211,15 @@ function QuoteBuilder() {
           {data?.data.map((q) => (
             <tr key={q.id} className="border-b">
               <td className="py-2 pr-4">{q.customer}</td>
-              <td className="py-2 pr-4">{q.part_type} ×{q.quantity}</td>
+              <td className="py-2 pr-4">
+                {q.part_type} ×{q.quantity}
+              </td>
               <td className="py-2 pr-4">
                 <OrderStatusBadge status={q.status} />
               </td>
-              <td className="py-2 pr-4 tabular-nums">${q.estimated_price.toFixed(0)}</td>
+              <td className="py-2 pr-4 tabular-nums">
+                ${q.estimated_price.toFixed(0)}
+              </td>
               <td className="py-2">
                 <div className="flex gap-2">
                   <button

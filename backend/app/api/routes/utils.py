@@ -1,3 +1,9 @@
+"""Operational utility APIs: SMTP test email and a liveness health check.
+
+Sending test email is superuser-only; the health check is unauthenticated
+and side-effect free so probes can call it freely.
+"""
+
 from fastapi import APIRouter, Depends
 from pydantic.networks import EmailStr
 

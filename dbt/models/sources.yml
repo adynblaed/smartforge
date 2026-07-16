@@ -1,0 +1,86 @@
+version: 2
+
+sources:
+  - name: omega_raw
+    description: >
+      Raw replicas of the omega (Oracle) source, landed through the
+      canonical Parquet lake. On the warehouse target this is the
+      raw_oracle schema maintained by dlt merges; on the lake target these
+      are DuckDB views over the published Parquet tree. Rows carry
+      ingestion metadata (_source_scn, _load_id, _extracted_at,
+      _is_deleted) per Checklist DCT-012.
+    schema: raw_oracle
+    loaded_at_field: _extracted_at
+    freshness:  # hourly default (Specs §21.3)
+      warn_after: {count: 75, period: minute}
+      error_after: {count: 120, period: minute}
+    tables:
+      - name: machines
+        freshness:  # daily cadence
+          warn_after: {count: 26, period: hour}
+          error_after: {count: 30, period: hour}
+        columns:
+          - name: machine_id
+            data_tests: [unique, not_null]
+      - name: work_orders
+        columns:
+          - name: work_order_id
+            data_tests: [unique, not_null]
+          - name: work_order_uid
+            description: Deterministic UUIDv5 stamped at extraction (DCT-011).
+            data_tests: [unique, not_null]
+      - name: sales_order_lines
+        description: Open-order backlog lines (composite key order_no+line_no).
+      - name: mrp_pegging
+        freshness:  # daily cadence (MRP regeneration)
+          warn_after: {count: 26, period: hour}
+          error_after: {count: 30, period: hour}
+        columns:
+          - name: pegging_id
+            data_tests: [unique, not_null]
+      - name: production_runs
+        columns:
+          - name: run_id
+            data_tests: [unique, not_null]
+      - name: telemetry_events
+        columns:
+          - name: event_id
+            data_tests: [unique, not_null]
+      - name: quality_inspections
+        columns:
+          - name: inspection_id
+            data_tests: [unique, not_null]
+      - name: defects
+        columns:
+          - name: defect_id
+            data_tests: [unique, not_null]
+      - name: inventory_items
+        freshness:
+          warn_after: {count: 26, period: hour}
+          error_after: {count: 30, period: hour}
+        columns:
+          - name: item_id
+            data_tests: [unique, not_null]
+      - name: purchase_orders
+        columns:
+          - name: po_id
+            data_tests: [unique, not_null]
+      - name: purchase_order_lines
+      - name: suppliers
+        freshness:
+          warn_after: {count: 26, period: hour}
+          error_after: {count: 30, period: hour}
+        columns:
+          - name: supplier_id
+            data_tests: [unique, not_null]
+      - name: customers
+        freshness:
+          warn_after: {count: 26, period: hour}
+          error_after: {count: 30, period: hour}
+        columns:
+          - name: customer_id
+            data_tests: [unique, not_null]
+      - name: status_lookup
+        freshness:
+          warn_after: {count: 26, period: hour}
+          error_after: {count: 30, period: hour}

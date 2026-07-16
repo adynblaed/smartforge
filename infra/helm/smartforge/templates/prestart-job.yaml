@@ -1,0 +1,75 @@
+# Prestart hook — wait for the DB, run alembic migrations, seed initial data
+# (`bash scripts/prestart.sh`, exactly as the compose `prestart` service).
+#
+# Runs as a Helm pre-install/pre-upgrade hook so it completes BEFORE any new
+# pods roll. Argo CD maps these annotations to a PreSync hook, so under GitOps
+# the ordering is identical. hook-delete-policy before-hook-creation keeps the
+# last Job around for debugging and replaces it on the next release.
+#
+# Because pre-* hooks run before the release's regular resources exist, the
+# Job cannot reference the release ConfigMap on first install — it gets its
+# own hook-scoped copy of the shared config (weight -5 < 0 orders it first,
+# alongside the dev Secrets in secrets.yaml).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "smartforge.fullname" . }}-prestart-config
+  labels:
+    {{- include "smartforge.labels" . | nindent 4 }}
+    app.kubernetes.io/component: prestart
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-5"
+    helm.sh/hook-delete-policy: before-hook-creation
+data:
+  {{- include "smartforge.configData" . | nindent 2 }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "smartforge.fullname" . }}-prestart
+  labels:
+    {{- include "smartforge.labels" . | nindent 4 }}
+    app.kubernetes.io/component: prestart
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  backoffLimit: {{ .Values.prestart.backoffLimit }}
+  activeDeadlineSeconds: {{ .Values.prestart.activeDeadlineSeconds }}
+  template:
+    metadata:
+      labels:
+        {{- include "smartforge.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: prestart
+    spec:
+      restartPolicy: Never
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      automountServiceAccountToken: false
+      {{- include "smartforge.pythonPodSecurityContext" . | nindent 6 }}
+      containers:
+        - name: prestart
+          image: {{ include "smartforge.backendImage" . | quote }}
+          imagePullPolicy: {{ .Values.image.backend.pullPolicy }}
+          command: ["bash", "scripts/prestart.sh"]
+          envFrom:
+            - configMapRef:
+                name: {{ include "smartforge.fullname" . }}-prestart-config
+          env:
+            - name: HOME
+              value: /tmp
+            {{- include "smartforge.appSecretEnv" . | nindent 12 }}
+            {{- include "smartforge.postgresSecretEnv" . | nindent 12 }}
+          {{- include "smartforge.pythonContainerSecurityContext" . | nindent 10 }}
+          resources:
+            {{- toYaml .Values.prestart.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

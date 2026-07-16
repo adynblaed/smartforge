@@ -2,7 +2,6 @@ import { Link as RouterLink } from "@tanstack/react-router"
 import { ChevronsUpDown, LogIn, LogOut, Settings } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import logo from "/favicon.svg"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +18,7 @@ import {
 } from "@/components/ui/sidebar"
 import useAuth from "@/hooks/useAuth"
 import { getInitials } from "@/utils"
+import logo from "/favicon.svg"
 
 interface UserInfoProps {
   fullName?: string

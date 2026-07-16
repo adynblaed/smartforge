@@ -1,0 +1,58 @@
+# SmartForge — production. Deliberately conservative:
+#   * prune: false    — nothing is ever deleted without an operator
+#   * selfHeal: false — manual drift is surfaced as OutOfSync, not reverted
+# New commits still auto-sync (apply-only). For a strictly manual gate, remove
+# the `automated:` block entirely and sync by hand:
+#   argocd app sync smartforge-production
+#
+#   kubectl apply -n argocd -f application-production.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: smartforge-production
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: smartforge
+
+  source:
+    repoURL: https://github.com/futureform/smartforge.git
+    # Consider pinning to a release tag (targetRevision: v1.0.0) if you want
+    # production to move only on tagged releases rather than main.
+    targetRevision: main
+    path: infra/helm/smartforge
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-production.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: smartforge-production
+
+  # Migrations: the chart's prestart Job is a helm pre-install/pre-upgrade
+  # hook -> Argo CD PreSync hook. No extra sync waves needed; a failed
+  # migration fails the sync before any pod rolls.
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: false
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 2
+      backoff:
+        duration: 1m
+        factor: 2
+        maxDuration: 10m
+
+  # backend.hpa.enabled=true in production — the HPA owns /spec/replicas.
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas
+
+  revisionHistoryLimit: 10

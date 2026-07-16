@@ -1,9 +1,11 @@
 # SmartForge Deployment
 
+**SmartForge v1.0.0 LTS.**
+
 ## Local sandbox (Docker Compose)
 
 ```bash
-cd src
+# from the repo root
 docker compose up --build
 ```
 
@@ -21,7 +23,7 @@ deterministic offline fallback is used).
 ## Frontend dev
 
 ```bash
-cd src/frontend
+cd frontend
 bun install            # installs three / @react-three/fiber / drei / recharts
 bun run generate-client  # regenerate typed client from openapi.json (optional)
 bun run dev
@@ -43,7 +45,7 @@ Internal/customer sandbox accounts use `SANDBOX_USER_PASSWORD` (default
 overrides; no DB or services required, never touches the sandbox data):
 
 ```bash
-cd src/backend
+cd backend
 uv run coverage run -m pytest tests_smartforge && uv run coverage report
 ```
 
@@ -59,7 +61,7 @@ The original template suite (`tests/`) runs against Postgres via
 **Frontend** — unit tests (Vitest + Testing Library) and E2E (Playwright):
 
 ```bash
-cd src/frontend
+cd frontend
 bun install
 bun run test:unit          # vitest: api wrapper, health helpers, ChatPanel, realtime hook
 bun run test               # playwright: internal flows + customer portal (needs the stack up)

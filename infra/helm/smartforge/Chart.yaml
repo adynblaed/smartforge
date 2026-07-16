@@ -1,0 +1,18 @@
+apiVersion: v2
+name: smartforge
+description: >-
+  SmartForge — predictive-maintenance platform: FastAPI backend, dashboard
+  frontend, telemetry worker, data-platform scheduler (Oracle -> Parquet lake
+  -> DuckDB + PostgreSQL warehouse), Redis and Qdrant.
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+kubeVersion: ">=1.27.0-0"
+home: https://github.com/futureform/smartforge
+maintainers:
+  - name: SmartForge Platform Team
+    email: admin@futureform.com
+keywords:
+  - smartforge
+  - predictive-maintenance
+  - fastapi

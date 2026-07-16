@@ -1,0 +1,24 @@
+# dbt profiles for the SmartForge analytics platform.
+# Safe to commit: every credential is injected from the environment
+# (SEC-001). Two targets, one project (Specs §19.4):
+#   warehouse -> PostgreSQL (served marts, api views)
+#   lake      -> DuckDB (models over the published Parquet lake)
+
+smartforge_analytics:
+  target: warehouse
+  outputs:
+    warehouse:
+      type: postgres
+      host: "{{ env_var('POSTGRES_SERVER', 'localhost') }}"
+      port: "{{ env_var('POSTGRES_PORT', '5432') | as_number }}"
+      user: "{{ env_var('WAREHOUSE_DBT_USER', 'warehouse_transformer') }}"
+      password: "{{ env_var('WAREHOUSE_DBT_PASSWORD', '') }}"
+      dbname: "{{ env_var('WAREHOUSE_DB', 'warehouse') }}"
+      schema: staging
+      threads: 4
+      connect_timeout: 10
+    lake:
+      type: duckdb
+      path: "{{ env_var('DUCKDB_PATH', './data/catalog/smartforge_lake.duckdb') }}"
+      schema: staging
+      threads: 4

@@ -91,7 +91,10 @@ function HomePage() {
         <div
           aria-hidden
           className="pointer-events-none absolute -right-24 -top-24 size-72 rounded-full opacity-30 blur-3xl"
-          style={{ background: "radial-gradient(circle, var(--primary), transparent 70%)" }}
+          style={{
+            background:
+              "radial-gradient(circle, var(--primary), transparent 70%)",
+          }}
         />
         <div className="relative flex flex-col gap-3">
           <span className="text-xs font-semibold uppercase tracking-[0.3em] text-info">

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
+from typing import cast
 
 from sqlmodel import Session, desc, func, select
 
@@ -18,15 +20,21 @@ from app.models import (
 )
 from app.models.base import get_datetime_utc
 
-ERP_ENTITIES = ["work_orders", "jobs", "inventory", "production_runs", "purchase_orders"]
+ERP_ENTITIES = [
+    "work_orders",
+    "jobs",
+    "inventory",
+    "production_runs",
+    "purchase_orders",
+]
 MES_ENTITIES = ["machine_states", "production_runs", "jobs"]
 
 
-def run_sync(session: Session, system: str) -> list:
+def run_sync(session: Session, system: str) -> list[ErpSyncEvent | MesSyncEvent]:
     """Mock a bidirectional sync pass, recording one event per entity type."""
     model = ErpSyncEvent if system == "erp" else MesSyncEvent
     entities = ERP_ENTITIES if system == "erp" else MES_ENTITIES
-    events = []
+    events: list[ErpSyncEvent | MesSyncEvent] = []
     for i, entity in enumerate(entities):
         # Deterministically fail one record to exercise the failure UI.
         status = SyncStatus.failed if (i == len(entities) - 1) else SyncStatus.success
@@ -45,16 +53,23 @@ def run_sync(session: Session, system: str) -> list:
     return events
 
 
-def _status_for(session: Session, model) -> IntegrationStatus:
+def _status_for(
+    session: Session, model: type[ErpSyncEvent] | type[MesSyncEvent]
+) -> IntegrationStatus:
     total = session.exec(select(func.count()).select_from(model)).one()
     failed = session.exec(
         select(func.count()).select_from(model).where(model.status == SyncStatus.failed)
     ).one()
-    last_ok = session.exec(
-        select(model)
-        .where(model.status == SyncStatus.success)
-        .order_by(desc(model.created_at))
-    ).first()
+    # select(model) joins the union to the shared base, so restore the
+    # concrete row type (both concrete models carry created_at).
+    last_ok = cast(
+        "ErpSyncEvent | MesSyncEvent | None",
+        session.exec(
+            select(model)
+            .where(model.status == SyncStatus.success)
+            .order_by(desc(model.created_at))
+        ).first(),
+    )
     return IntegrationStatus(
         system="erp" if model is ErpSyncEvent else "mes",
         connected=True,
@@ -81,5 +96,5 @@ def sync_fiix(session: Session, work_order: WorkOrder) -> WorkOrder:
     return work_order
 
 
-def now():
+def now() -> datetime:
     return get_datetime_utc()

@@ -1,0 +1,26 @@
+{{- if not .Values.lake.storage.existingClaim -}}
+# Shared lake volume: canonical Parquet lake + DuckDB catalog under /srv/data.
+# Written ONLY by platform-worker; mounted read-mostly by the backend.
+#
+# ReadWriteOnce (default): single-node attach — the chart co-schedules backend
+# and platform-worker via podAffinity (see smartforge.lakeAffinity).
+# ReadWriteMany (recommended for production): requires an RWX StorageClass
+# (EFS/Filestore/CephFS/NFS); lifts the co-scheduling constraint. Either way
+# the single-writer invariant stands: only platform-worker writes.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "smartforge.fullname" . }}-lake
+  labels:
+    {{- include "smartforge.labels" . | nindent 4 }}
+    app.kubernetes.io/component: lake
+spec:
+  accessModes:
+    - {{ .Values.lake.storage.accessMode }}
+  {{- with .Values.lake.storage.className }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.lake.storage.size }}
+{{- end }}

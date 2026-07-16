@@ -6,7 +6,11 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { sf } from "@/smartforge/api"
-import { CapacityPlanner, type SimResult, SimulationStudio } from "@/smartforge/CapacitySim"
+import {
+  CapacityPlanner,
+  type SimResult,
+  SimulationStudio,
+} from "@/smartforge/CapacitySim"
 import { PageHeader, Panel, StatusBadge } from "@/smartforge/components"
 import type {
   Machine,
@@ -35,7 +39,8 @@ function OptimizationPage() {
   })
   const { data: configs } = useQuery({
     queryKey: ["configs"],
-    queryFn: () => sf.get<Page<MachineConfiguration>>("/machine-configurations"),
+    queryFn: () =>
+      sf.get<Page<MachineConfiguration>>("/machine-configurations"),
   })
   const { data: recs } = useQuery({
     queryKey: ["recommendations"],
@@ -97,17 +102,23 @@ function OptimizationPage() {
       <Panel title="Continuous Improvement Feed">
         <ul className="divide-y">
           {recs?.data.map((r) => (
-            <li key={r.id} className="flex flex-wrap items-start justify-between gap-3 py-3">
+            <li
+              key={r.id}
+              className="flex flex-wrap items-start justify-between gap-3 py-3"
+            >
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <StatusBadge value={r.status} />
                   <span className="text-sm font-medium">{r.title}</span>
                   <span className="text-xs text-muted-foreground">
-                    {nameOf(r.machine_id)} · {Math.round(r.confidence * 100)}% conf
+                    {nameOf(r.machine_id)} · {Math.round(r.confidence * 100)}%
+                    conf
                   </span>
                 </div>
                 {r.detail && (
-                  <p className="mt-1 text-xs text-muted-foreground">{r.detail}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {r.detail}
+                  </p>
                 )}
                 {r.outcome_impact != null && (
                   <p className="mt-1 text-xs text-success">
@@ -117,11 +128,17 @@ function OptimizationPage() {
               </div>
               {r.status === "pending" && (
                 <div className="flex gap-2">
-                  <Button size="sm" onClick={() => decide.mutate({ id: r.id, accept: true })}>
+                  <Button
+                    size="sm"
+                    onClick={() => decide.mutate({ id: r.id, accept: true })}
+                  >
                     Accept
                   </Button>
-                  <Button size="sm" variant="outline"
-                    onClick={() => decide.mutate({ id: r.id, accept: false })}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => decide.mutate({ id: r.id, accept: false })}
+                  >
                     Reject
                   </Button>
                 </div>
@@ -136,11 +153,14 @@ function OptimizationPage() {
         <div>
           <h2 className="text-lg font-semibold">What If — Scenario Planning</h2>
           <p className="text-sm text-muted-foreground">
-            Run profiled what-if scenarios across scheduling, capacity, and per-machine
-            production runs.
+            Run profiled what-if scenarios across scheduling, capacity, and
+            per-machine production runs.
           </p>
         </div>
-        <Button onClick={() => runWhatIf.mutate()} disabled={runWhatIf.isPending}>
+        <Button
+          onClick={() => runWhatIf.mutate()}
+          disabled={runWhatIf.isPending}
+        >
           {runWhatIf.isPending ? "Running…" : "Run what-if schedule"}
         </Button>
       </div>
@@ -199,11 +219,19 @@ function MachineConfigRow({
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
         {recommended && (
-          <Button size="sm" onClick={() => onApprove(recommended.id)} disabled={approving}>
+          <Button
+            size="sm"
+            onClick={() => onApprove(recommended.id)}
+            disabled={approving}
+          >
             Approve recommended config
           </Button>
         )}
-        <Button size="sm" variant="outline" onClick={() => setEditing((e) => !e)}>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setEditing((e) => !e)}
+        >
           <Pencil size={14} /> {editing ? "Done editing" : "Edit Config"}
         </Button>
       </div>
@@ -247,7 +275,9 @@ function ConfigEditor({ current }: { current?: MachineConfiguration }) {
   return (
     <div className="rounded-md border border-primary/50 p-3 text-sm">
       <div className="mb-2 flex items-center justify-between text-xs">
-        <span className="uppercase tracking-wide text-muted-foreground">Edit current</span>
+        <span className="uppercase tracking-wide text-muted-foreground">
+          Edit current
+        </span>
         <span className={projected >= 0 ? "text-success" : "text-danger"}>
           {projected >= 0 ? "+" : ""}
           {projected.toFixed(1)}% projected
@@ -257,7 +287,10 @@ function ConfigEditor({ current }: { current?: MachineConfiguration }) {
         {EDIT_FIELDS.map((f) => {
           const change = pct(f.k)
           return (
-            <div key={f.k} className="grid grid-cols-[1fr_84px_52px] items-center gap-2 text-xs">
+            <div
+              key={f.k}
+              className="grid grid-cols-[1fr_84px_52px] items-center gap-2 text-xs"
+            >
               <span className="text-muted-foreground">{f.label}</span>
               <input
                 type="number"
@@ -271,7 +304,11 @@ function ConfigEditor({ current }: { current?: MachineConfiguration }) {
               <span
                 className={cn(
                   "text-right tabular-nums",
-                  change > 0 ? "text-success" : change < 0 ? "text-danger" : "text-muted-foreground",
+                  change > 0
+                    ? "text-success"
+                    : change < 0
+                      ? "text-danger"
+                      : "text-muted-foreground",
                 )}
               >
                 {change > 0 ? "+" : ""}
@@ -298,7 +335,9 @@ function ConfigCard({
   highlight?: boolean
 }) {
   return (
-    <div className={`rounded-md border p-3 text-sm ${highlight ? "border-primary/50" : ""}`}>
+    <div
+      className={`rounded-md border p-3 text-sm ${highlight ? "border-primary/50" : ""}`}
+    >
       <div className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">
         {label}
       </div>

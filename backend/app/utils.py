@@ -12,7 +12,8 @@ from jwt.exceptions import InvalidTokenError
 from app.core import security
 from app.core.config import settings
 
-logging.basicConfig(level=logging.INFO)
+# Logging is configured centrally per process entrypoint
+# (app.core.logging_config.setup_logging) — never as an import side effect.
 logger = logging.getLogger(__name__)
 
 

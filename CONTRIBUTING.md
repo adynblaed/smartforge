@@ -1,68 +1,74 @@
-# Contributing
+# Contributing to SmartForge
 
-Thank you for your interest in contributing to the Full Stack FastAPI Template! 🙇
+**SmartForge v1.0.0 LTS** — thank you for contributing. This guide covers
+the workflow for changes to this repository; platform knowledge lives in
+[`CLAUDE.md`](CLAUDE.md) and the specification of record in
+[`specs/ARCHITECTURE.md`](specs/ARCHITECTURE.md).
 
-## Discussions First
+## Before you start
 
-For **big changes** (new features, architectural changes, significant refactoring), please start by opening a [GitHub Discussion](https://github.com/fastapi/full-stack-fastapi-template/discussions) first. This allows the community and maintainers to provide feedback on the approach before you invest significant time in implementation.
+- **Big changes** (new features, architectural changes, new replication
+  contracts, schema changes to certified `api_*`/mart models): open a
+  discussion/issue first. Changes to the analytics platform must respect
+  the invariants in `CLAUDE.md` §7.3 and the acceptance checklist
+  ([`specs/CHECKLIST.md`](specs/CHECKLIST.md)) — anything that would
+  re-mark a checklist item needs a reviewer from Data Platform Engineering.
+- **Small changes** (typos, lint fixes, small reproducible bug fixes) can
+  go straight to a PR.
+- Dependency changes require review: backend pins live in
+  `backend/pyproject.toml` + `uv.lock`, frontend in
+  `frontend/package.json` (linters pinned exactly). See
+  `runbooks/operations.md` §Dependency upgrades for the DuckDB/dbt lanes.
 
-For small, straightforward changes, you can go directly to a Pull Request without starting a discussion first. This includes:
+## Development setup
 
-- Typos and grammatical fixes
-- Small reproducible bug fixes
-- Fixing lint warnings or type errors
-- Minor code improvements (e.g., removing unused code)
+See the [Development Guide](development.md). Quick loop:
 
-Note that PRs from non-team members are not allowed to modify `pyproject.toml` or `uv.lock`, to prevent supply chain risk.
-If you would like to add a new dependency, create a new [Discussion](https://github.com/fastapi/full-stack-fastapi-template/discussions) to explain why.
+```bash
+cd backend && uv sync && uv run pytest tests_smartforge tests_dataplatform -q
+cd frontend && bun install && bun run lint && bun run test:unit
+```
 
-## Developing
+## The bar every PR must clear
 
-For detailed instructions on setting up your development environment, running the stack, linting, pre-commit hooks, and more, see the [Development Guide](development.md).
+The **`ci-pipeline`** workflow is the merge gate — its single
+`pipeline-confidence` status must be green. It runs, with zero external
+services: backend ruff + mypy, the full offline test matrix
+(356 platform + 122 app + 94 frontend unit = **572 tests**), dbt parse on
+both targets + docs artifact, and the compose/Helm/preflight contract
+checks. Run everything locally first (`CLAUDE.md` §9 has the commands).
 
-## Pull Requests
+Additional expectations:
 
-When submitting a pull request:
+1. Keep PRs focused on a single change; update tests with functionality.
+2. Follow the conventions in `CLAUDE.md` §10 (docstrings state purpose and
+   constraint with checklist IDs; comments explain *why*; dialect-neutral
+   dbt SQL; secrets never in code/config/logs).
+3. New governed datasets: contract in `config/tables.yml` → dbt model +
+   `schema.yml` tests → exposure registration → offline tests.
+4. `.env.example` is test-pinned to code defaults
+   (`tests_dataplatform/test_config_drift.py`) — change both together.
 
-1. Make sure all tests pass before submitting.
-2. Keep PRs focused on a single change.
-3. Update tests if you're changing functionality.
-4. Reference any related issues in your PR description.
+## Versioning
 
-## Automated Code and AI
+Semver; **v1.0.0 is the LTS baseline**. One version, everywhere: the API
+(`/api/v1`, FastAPI `version`), `backend/pyproject.toml`,
+`frontend/package.json`, the Helm chart (`version`/`appVersion`), and the
+dbt project all state `1.0.0`. Breaking API changes ship under a new
+version prefix with deprecation guidance (API-016); release notes in
+[`release-notes.md`](release-notes.md); the acceptance checklist is
+re-reviewed each major release.
 
-You are encouraged to use all the tools you want to do your work and contribute as efficiently as possible, this includes AI (LLM) tools, etc. Nevertheless, contributions should have meaningful human intervention, judgement, context, etc.
+## Automated code and AI
 
-If the **human effort** put in a PR, e.g. writing LLM prompts, is **less** than the **effort we would need to put** to **review it**, please **don't** submit the PR.
+Use whatever tools make you effective, including AI — but contributions
+must reflect meaningful human judgement. If the human effort in a PR is
+less than the effort required to review it, don't submit it. Low-effort
+automated PRs and comments will be closed.
 
-Think of it this way: we can already write LLM prompts or run automated tools ourselves, and that would be faster than reviewing external PRs.
+## Provenance
 
-### Closing Automated and AI PRs
-
-If we see PRs that seem AI generated or automated in similar ways, we'll flag them and close them.
-
-The same applies to comments and descriptions, please don't copy paste the content generated by an LLM.
-
-### Human Effort Denial of Service
-
-Using automated tools and AI to submit PRs or comments that we have to carefully review and handle would be the equivalent of a [Denial-of-service attack](https://en.wikipedia.org/wiki/Denial-of-service_attack) on our human effort.
-
-It would be very little effort from the person submitting the PR (an LLM prompt) that generates a large amount of effort on our side (carefully reviewing code).
-
-Please don't do that.
-
-We'll need to block accounts that spam us with repeated automated PRs or comments.
-
-### Use Tools Wisely
-
-As Uncle Ben said:
-
-> With great ~~power~~ **tools** comes great responsibility.
-
-Avoid inadvertently doing harm.
-
-You have amazing tools at hand, use them wisely to help effectively.
-
-## Questions?
-
-If you have questions about contributing, feel free to open a [GitHub Discussion](https://github.com/fastapi/full-stack-fastapi-template/discussions).
+Built on the excellent
+[Full Stack FastAPI Template](https://github.com/fastapi/full-stack-fastapi-template)
+(MIT); template-inherited workflows keep upstream conventions where they
+still apply.

@@ -61,15 +61,18 @@ def read_suppliers(session: SessionDep, _user: InternalUser) -> Any:
 @router.get("/supply-chain/risks")
 def read_risks(session: SessionDep, _user: InternalUser) -> Any:
     low_stock = sc.inventory_below_threshold(session)
-    delayed = list(session.exec(
-        select(Supplier).where(Supplier.status != "ok")
-    ).all())
+    delayed = list(session.exec(select(Supplier).where(Supplier.status != "ok")).all())
     return {
-        "low_stock_materials": [InventoryItemPublic.model_validate(
-            i, from_attributes=True, update={"below_threshold": True}) for i in low_stock],
+        "low_stock_materials": [
+            InventoryItemPublic.model_validate(
+                i, from_attributes=True, update={"below_threshold": True}
+            )
+            for i in low_stock
+        ],
         "delayed_suppliers": delayed,
-        "jobs_at_risk": list(session.exec(
-            select(Job).where(Job.status == JobStatus.scheduled)).all()),
+        "jobs_at_risk": list(
+            session.exec(select(Job).where(Job.status == JobStatus.scheduled)).all()
+        ),
         "suggested_reorders": [i.sku for i in low_stock],
     }
 
@@ -189,8 +192,13 @@ def generate_quote(
     session.add(quote)
     session.commit()
     session.refresh(quote)
-    write_audit(session, actor=user, action="quote.generate",
-                entity_type="quote", entity_id=quote.id)
+    write_audit(
+        session,
+        actor=user,
+        action="quote.generate",
+        entity_type="quote",
+        entity_id=quote.id,
+    )
     return quote
 
 
@@ -204,8 +212,7 @@ def read_jobs(session: SessionDep, _user: InternalUser) -> Any:
 @router.post("/jobs", response_model=JobPublic)
 def create_job(payload: JobCreate, session: SessionDep, _user: InternalUser) -> Any:
     job = Job.model_validate(payload)
-    missing = [f for f in ("part_type", "quantity", "due_date")
-               if not getattr(job, f)]
+    missing = [f for f in ("part_type", "quantity", "due_date") if not getattr(job, f)]
     job.missing_info = ",".join(missing) or None
     job.suggested_priority = job.priority
     session.add(job)
@@ -230,9 +237,7 @@ _INTAKE_SCHEMA = {
 
 
 @router.post("/jobs/intake", response_model=JobPublic)
-async def intake_job(
-    raw_text: str, session: SessionDep, _user: InternalUser
-) -> Any:
+async def intake_job(raw_text: str, session: SessionDep, _user: InternalUser) -> Any:
     """Parse a free-text order into a structured job (Claude-assisted, §4A)."""
     try:
         data = await llm.extract_json(
@@ -268,6 +273,7 @@ def approve_job(job_id: uuid.UUID, session: SessionDep, user: InternalUser) -> A
     session.add(job)
     session.commit()
     session.refresh(job)
-    write_audit(session, actor=user, action="job.approve",
-                entity_type="job", entity_id=job.id)
+    write_audit(
+        session, actor=user, action="job.approve", entity_type="job", entity_id=job.id
+    )
     return job

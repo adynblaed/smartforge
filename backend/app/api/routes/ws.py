@@ -10,6 +10,7 @@ import asyncio
 import contextlib
 import json
 from collections.abc import Callable
+from typing import Any
 
 import jwt
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
@@ -49,7 +50,7 @@ async def _pump(
     websocket: WebSocket,
     channel: str,
     *,
-    allow: Callable[[dict], bool] | None = None,
+    allow: Callable[[dict[str, Any]], bool] | None = None,
 ) -> None:
     await websocket.accept()
     client = redis.get_redis()
@@ -78,7 +79,8 @@ async def _pump(
     finally:
         with contextlib.suppress(Exception):
             await pubsub.unsubscribe(channel)
-            await pubsub.aclose()
+            # redis-py's PubSub.aclose is untyped in the shipped stubs.
+            await pubsub.aclose()  # type: ignore[no-untyped-call]
 
 
 @router.websocket("/ws/telemetry")
@@ -96,7 +98,7 @@ async def ws_orders(websocket: WebSocket) -> None:
     if not user:
         await websocket.close(code=1008)
         return
-    allow: Callable[[dict], bool] | None = None
+    allow: Callable[[dict[str, Any]], bool] | None = None
     if user.role not in INTERNAL_ROLES:
         # Customers only receive events for their OWN orders.
         cid = str(user.customer_id) if user.customer_id else "__none__"

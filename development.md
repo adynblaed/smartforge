@@ -1,4 +1,53 @@
-# FastAPI Project - Development
+# SmartForge — Development
+
+**SmartForge v1.0.0 LTS.**
+
+General development workflow for the whole stack. Platform-wide guidance
+(prerequisites, service catalogue, data lifecycles, testing matrix) lives in
+[`CLAUDE.md`](CLAUDE.md); per-package guides in
+[`backend/README.md`](backend/README.md) and
+[`frontend/README.md`](frontend/README.md).
+
+## SmartForge essentials
+
+```bash
+# Backend deps + app suite (no services required)
+cd backend && uv sync && uv run pytest tests_smartforge -q
+
+# Data platform suite + connectivity check
+uv run pytest tests_dataplatform -q
+uv run python -m app.dataplatform.cli preflight --tolerate-unreachable
+
+# dbt (both engines)
+uv run dbt parse --project-dir ../dbt --profiles-dir ../dbt --target lake
+uv run dbt parse --project-dir ../dbt --profiles-dir ../dbt --target warehouse
+
+# Frontend (bun preferred; npm works)
+cd ../frontend && bun install && bun run test:unit && bun run dev
+```
+
+The analytics platform is driven by the `platform-worker` compose service
+(hourly dispatch) or manually via
+`uv run python -m app.dataplatform.cli dispatch`. Never run two dispatchers
+against the same lake (single-writer invariant; an advisory lock enforces
+single-flight, but don't rely on it as a scheduler).
+
+**Light up the platform locally (no Oracle needed):** with the compose
+stack running,
+
+```bash
+docker compose exec backend python -m app.dataplatform.cli bootstrap
+docker compose exec backend python -m app.dataplatform.cli sample-seed
+```
+
+runs the *real* seed pipeline over the deterministic in-repo sample
+dataset (work-order genealogy, open-order backlog, MRP pegging) and then
+`dbt build` on both targets — the Data Platform page, Work Orders
+explorer, and MRP page all serve live data afterwards. Development only
+(`PLATFORM_ENV=development`); idempotent, rerun freely. Each run logs the
+migration KPI summary (rows, bytes, duration, rows/s, Mbps, success rate)
+and updates the Prometheus pipeline metrics (Grafana → "Data Platform
+Pipeline").
 
 ## Docker Compose
 

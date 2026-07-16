@@ -36,7 +36,9 @@ def read_machines(
 
 
 @router.get("/{machine_id}", response_model=MachinePublic)
-def read_machine(machine_id: uuid.UUID, session: SessionDep, _user: InternalUser) -> Any:
+def read_machine(
+    machine_id: uuid.UUID, session: SessionDep, _user: InternalUser
+) -> Any:
     machine = session.get(Machine, machine_id)
     if not machine:
         raise HTTPException(status_code=404, detail="Machine not found")

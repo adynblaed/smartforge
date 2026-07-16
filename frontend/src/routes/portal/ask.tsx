@@ -14,7 +14,10 @@ export const Route = createFileRoute("/portal/ask")({
 
 function PortalAsk() {
   const escalate = async (question: string) => {
-    await sf.post("/customer/escalate", { question, ai_confidence: ESCALATION_CONFIDENCE })
+    await sf.post("/customer/escalate", {
+      question,
+      ai_confidence: ESCALATION_CONFIDENCE,
+    })
     toast.success("Your question was escalated to our support team.")
   }
 

@@ -4,8 +4,13 @@ import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { sf } from "@/smartforge/api"
+import {
+  KpiTile,
+  PageHeader,
+  Panel,
+  StatusBadge,
+} from "@/smartforge/components"
 import { POLL } from "@/smartforge/constants"
-import { KpiTile, PageHeader, Panel, StatusBadge } from "@/smartforge/components"
 import type { IntegrationsStatus, Page, SyncEvent } from "@/smartforge/types"
 
 export const Route = createFileRoute("/_layout/integrations")({
@@ -23,7 +28,8 @@ function IntegrationsPage() {
   })
   const { data: events } = useQuery({
     queryKey: ["integration-events", system],
-    queryFn: () => sf.get<Page<SyncEvent>>(`/integrations/events?system=${system}`),
+    queryFn: () =>
+      sf.get<Page<SyncEvent>>(`/integrations/events?system=${system}`),
   })
   const { data: kpis } = useQuery({
     queryKey: ["factory-kpis"],
@@ -52,12 +58,16 @@ function IntegrationsPage() {
             <Panel
               key={sys}
               title={`${sys.toUpperCase()} Adapter`}
-              action={<StatusBadge value={s?.connected ? "running" : "offline"} />}
+              action={
+                <StatusBadge value={s?.connected ? "running" : "offline"} />
+              }
             >
               <div className="grid grid-cols-3 gap-3 text-sm">
                 <div>
                   <div className="text-xs text-muted-foreground">Events</div>
-                  <div className="text-lg font-semibold">{s?.total_events ?? 0}</div>
+                  <div className="text-lg font-semibold">
+                    {s?.total_events ?? 0}
+                  </div>
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground">Failed</div>
@@ -89,7 +99,10 @@ function IntegrationsPage() {
 
       <Panel title="Operations Overview">
         <div className="grid gap-4 sm:grid-cols-4">
-          <KpiTile label="Open Work Orders" value={kpis?.open_work_orders ?? 0} />
+          <KpiTile
+            label="Open Work Orders"
+            value={kpis?.open_work_orders ?? 0}
+          />
           <KpiTile label="Active Alerts" value={kpis?.active_alerts ?? 0} />
           <KpiTile
             label="Avg OEE"
@@ -131,9 +144,13 @@ function IntegrationsPage() {
                 <td className="py-2 pr-4">{e.entity_type}</td>
                 <td className="py-2 pr-4 capitalize">{e.direction}</td>
                 <td className="py-2 pr-4">
-                  <StatusBadge value={e.status === "failed" ? "high" : "running"} />
+                  <StatusBadge
+                    value={e.status === "failed" ? "high" : "running"}
+                  />
                 </td>
-                <td className="py-2 text-muted-foreground">{e.detail ?? "—"}</td>
+                <td className="py-2 text-muted-foreground">
+                  {e.detail ?? "—"}
+                </td>
               </tr>
             ))}
             {events?.data.length === 0 && (

@@ -1,6 +1,6 @@
 [project]
 name = "app"
-version = "0.1.0"
+version = "1.0.0"
 description = ""
 requires-python = ">=3.10,<4.0"
 dependencies = [
@@ -24,6 +24,16 @@ dependencies = [
     "anthropic>=0.40.0",
     "qdrant-client[fastembed]>=1.14.2",
     "cryptography>=42.0.0",
+    # ---- Data platform (omega Oracle -> Parquet lake -> Postgres warehouse) ----
+    "oracledb>=2.4.0,<4.0.0",         # thin mode; no Instant Client (Specs D8)
+    "sqlalchemy>=2.0.0,<3.0.0",
+    "pyarrow>=17.0.0,<21.0.0",
+    "duckdb>=1.1.0,<2.0.0",           # pin minor in uv.lock (DDB-008)
+    "dlt[postgres,parquet]>=1.3.0,<2.0.0",
+    "dbt-core>=1.8.0,<2.0.0",
+    "dbt-postgres>=1.8.0,<2.0.0",
+    "dbt-duckdb>=1.8.0,<2.0.0",
+    "pyyaml>=6.0.0",
 ]
 
 [dependency-groups]
@@ -43,6 +53,12 @@ build-backend = "hatchling.build"
 [tool.mypy]
 strict = true
 exclude = ["venv", ".venv", "alembic"]
+
+# pyarrow ships no py.typed marker and yaml stubs are not installed in the
+# uv-managed environment; treat both as untyped rather than failing strict.
+[[tool.mypy.overrides]]
+module = ["yaml", "yaml.*", "pyarrow", "pyarrow.*"]
+ignore_missing_imports = true
 
 [tool.ruff]
 target-version = "py310"

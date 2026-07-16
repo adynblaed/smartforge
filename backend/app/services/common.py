@@ -6,6 +6,7 @@ import uuid
 from typing import Any
 
 from sqlmodel import Session, func, select
+from sqlmodel.sql.expression import SelectOfScalar
 
 from app.models import AuditLog, User
 
@@ -43,7 +44,7 @@ def list_and_count(
 ) -> tuple[list[Any], int]:
     """Return (rows, total_count) for a model with optional filter + ordering."""
     count_stmt = select(func.count()).select_from(model)
-    data_stmt = select(model)
+    data_stmt: SelectOfScalar[Any] = select(model)
     if where is not None:
         count_stmt = count_stmt.where(where)
         data_stmt = data_stmt.where(where)

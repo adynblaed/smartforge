@@ -1,0 +1,16 @@
+# Build-context hygiene for backend/Dockerfile and frontend/Dockerfile
+# (both build from the repo root). Keeps local artifacts, caches, and
+# secrets out of images and build layers.
+.git
+.env
+.venv
+**/__pycache__
+**/node_modules
+backend/htmlcov
+data
+# dbt local artifacts — the image gets the project sources only
+dbt/target
+dbt/logs
+dbt/dbt_packages
+# Local generated discovery output (runtime artifact, git-ignored)
+config/generated

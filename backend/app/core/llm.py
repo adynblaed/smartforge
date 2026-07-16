@@ -8,7 +8,7 @@ turn into a graceful, deterministic fallback so the platform still runs offline.
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, cast
 
 from app.core import privacy
 from app.core.config import settings
@@ -36,7 +36,7 @@ def get_client() -> Any:
 def _first_text(message: Any) -> str:
     for block in message.content:
         if getattr(block, "type", None) == "text":
-            return block.text
+            return cast(str, block.text)
     return ""
 
 

@@ -1,3 +1,9 @@
+"""Item CRUD APIs (template resource).
+
+Non-superusers can only read, modify, or delete items they own — every
+handler enforces the ownership check before touching a row.
+"""
+
 import uuid
 from typing import Any
 

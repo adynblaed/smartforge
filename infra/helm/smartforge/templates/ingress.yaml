@@ -1,0 +1,48 @@
+{{- if .Values.ingress.enabled -}}
+# api.<domain>      -> backend :8000
+# dashboard.<domain> -> frontend :80
+# TLS via cert-manager: set e.g.
+#   ingress.annotations."cert-manager.io/cluster-issuer": letsencrypt-prod
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "smartforge.fullname" . }}
+  labels:
+    {{- include "smartforge.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ include "smartforge.apiHost" . }}
+        - {{ include "smartforge.dashboardHost" . }}
+      secretName: {{ default (printf "%s-tls" (include "smartforge.fullname" .)) .Values.ingress.tls.secretName }}
+  {{- end }}
+  rules:
+    - host: {{ include "smartforge.apiHost" . }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "smartforge.fullname" . }}-backend
+                port:
+                  name: http
+    - host: {{ include "smartforge.dashboardHost" . }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "smartforge.fullname" . }}-frontend
+                port:
+                  name: http
+{{- end }}

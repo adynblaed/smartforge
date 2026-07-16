@@ -35,8 +35,9 @@ router = APIRouter(prefix="/ask-ai", tags=["ask-ai"])
 @router.post("/ask", response_model=AskResponse)
 async def ask(payload: AskRequest, session: SessionDep, user: InternalUser) -> Any:
     if payload.session_id is None:
-        thread = AskaiSession(user_id=user.id, machine_id=payload.machine_id,
-                              title=payload.question[:80])
+        thread = AskaiSession(
+            user_id=user.id, machine_id=payload.machine_id, title=payload.question[:80]
+        )
         session.add(thread)
         session.commit()
         session.refresh(thread)
@@ -46,8 +47,13 @@ async def ask(payload: AskRequest, session: SessionDep, user: InternalUser) -> A
     resp = await askai.answer(session, payload.question, machine_id=payload.machine_id)
     resp.session_id = session_id
     # Privacy: audit the event, not the raw question text.
-    write_audit(session, actor=user, action="askai.answer",
-                entity_type="askai_session", entity_id=session_id)
+    write_audit(
+        session,
+        actor=user,
+        action="askai.answer",
+        entity_type="askai_session",
+        entity_id=session_id,
+    )
     return resp
 
 
@@ -74,8 +80,14 @@ def ingest_document(
     session.add(doc)
     session.commit()
     session.refresh(doc)
-    write_audit(session, actor=user, action="askai.ingest_document",
-                entity_type="knowledge_document", entity_id=doc.id, detail=doc.title)
+    write_audit(
+        session,
+        actor=user,
+        action="askai.ingest_document",
+        entity_type="knowledge_document",
+        entity_id=doc.id,
+        detail=doc.title,
+    )
     return doc
 
 
@@ -111,8 +123,14 @@ def create_knowledge_base(
     session.refresh(kb)
     # Auto-vectorize into Qdrant for RAG in the background (no-op if offline).
     tasks.add_task(vector_store.upsert_kb, kb.id, kb.name, kb.content)
-    write_audit(session, actor=user, action="askai.create_knowledge_base",
-                entity_type="knowledge_base", entity_id=kb.id, detail=kb.name)
+    write_audit(
+        session,
+        actor=user,
+        action="askai.create_knowledge_base",
+        entity_type="knowledge_base",
+        entity_id=kb.id,
+        detail=kb.name,
+    )
     return kb
 
 
@@ -135,8 +153,14 @@ def update_knowledge_base(
     session.refresh(kb)
     # Re-sync the vector store with the updated content (background).
     tasks.add_task(vector_store.upsert_kb, kb.id, kb.name, kb.content)
-    write_audit(session, actor=user, action="askai.update_knowledge_base",
-                entity_type="knowledge_base", entity_id=kb.id, detail=kb.name)
+    write_audit(
+        session,
+        actor=user,
+        action="askai.update_knowledge_base",
+        entity_type="knowledge_base",
+        entity_id=kb.id,
+        detail=kb.name,
+    )
     return kb
 
 
@@ -154,8 +178,14 @@ def delete_knowledge_base(
     session.delete(kb)
     session.commit()
     tasks.add_task(vector_store.delete_kb, kb_id)
-    write_audit(session, actor=user, action="askai.delete_knowledge_base",
-                entity_type="knowledge_base", entity_id=kb_id, detail=name)
+    write_audit(
+        session,
+        actor=user,
+        action="askai.delete_knowledge_base",
+        entity_type="knowledge_base",
+        entity_id=kb_id,
+        detail=name,
+    )
     return Message(message="Knowledge base deleted")
 
 
@@ -165,9 +195,13 @@ def sync_knowledge_bases(session: SessionDep, user: InternalUser) -> Any:
     into Qdrant from scratch. Retrieval works deterministically regardless; this
     rebuilds the semantic-search/rerank layer on top of it."""
     result = askai.reindex_rag(session)
-    write_audit(session, actor=user, action="askai.sync_rag",
-                entity_type="knowledge_base",
-                detail=f"sop_chunks={result['sop_chunks']}, fact_chunks={result['fact_chunks']}")
+    write_audit(
+        session,
+        actor=user,
+        action="askai.sync_rag",
+        entity_type="knowledge_base",
+        detail=f"sop_chunks={result['sop_chunks']}, fact_chunks={result['fact_chunks']}",
+    )
     if not vector_store.available:
         return Message(
             message="Vector store unavailable — retrieval still runs deterministically."

@@ -1,0 +1,52 @@
+# SmartForge — staging. Fully automated GitOps: every merge to main that
+# touches the chart or the staging values is synced (with prune + selfHeal).
+#   kubectl apply -n argocd -f application-staging.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: smartforge-staging
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: smartforge
+
+  source:
+    repoURL: https://github.com/futureform/smartforge.git
+    targetRevision: main
+    path: infra/helm/smartforge
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-staging.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: smartforge-staging
+
+  # Ordering note: DB migrations need no sync waves — the chart's prestart Job
+  # carries helm pre-install/pre-upgrade hook annotations, which Argo CD maps
+  # to a PreSync hook. Migrations therefore always complete before the rollout.
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 5m
+
+  # The HPA owns backend replica count when backend.hpa.enabled=true; ignore
+  # it so Argo CD never reports drift (or fights the autoscaler).
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas
+
+  revisionHistoryLimit: 10

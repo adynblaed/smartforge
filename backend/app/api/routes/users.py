@@ -1,3 +1,9 @@
+"""User management APIs.
+
+Listing, creating, and deleting other accounts is superuser-only; regular
+users may only register and read/update/delete their own account.
+"""
+
 import uuid
 from typing import Any
 

@@ -74,8 +74,10 @@
   --input: oklch(0 0 0 / 10%);
   --ring: oklch(0.708 0 0);
   /* Soft elevation shadows for a glassy, layered surface treatment. */
-  --shadow-soft: 0 1px 2px oklch(0 0 0 / 6%), 0 8px 24px -12px oklch(0 0 0 / 12%);
-  --shadow-glass: 0 1px 0 oklch(1 0 0 / 6%) inset, 0 10px 30px -16px oklch(0 0 0 / 45%);
+  --shadow-soft:
+    0 1px 2px oklch(0 0 0 / 6%), 0 8px 24px -12px oklch(0 0 0 / 12%);
+  --shadow-glass:
+    0 1px 0 oklch(1 0 0 / 6%) inset, 0 10px 30px -16px oklch(0 0 0 / 45%);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -189,7 +191,7 @@
 
 /* Reusable, theme-agnostic motion primitives. Apply via the matching class; the
    reduced-motion preference is honored per-utility (see @media below). Built on
-   the --ease-*/--dur-* tokens so new themes/components share one vocabulary. */
+   the --ease- and --dur- tokens so new themes/components share one vocabulary. */
 @keyframes sf-fade-in {
   from {
     opacity: 0;
@@ -346,7 +348,11 @@
      or light theme and brighten slightly on hover. */
   * {
     scrollbar-width: thin;
-    scrollbar-color: color-mix(in oklch, var(--muted-foreground) 35%, transparent)
+    scrollbar-color: color-mix(
+        in oklch,
+        var(--muted-foreground) 35%,
+        transparent
+      )
       transparent;
   }
   ::-webkit-scrollbar {
@@ -357,13 +363,21 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background-color: color-mix(in oklch, var(--muted-foreground) 30%, transparent);
+    background-color: color-mix(
+      in oklch,
+      var(--muted-foreground) 30%,
+      transparent
+    );
     border-radius: 9999px;
     border: 2px solid transparent;
     background-clip: padding-box;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background-color: color-mix(in oklch, var(--muted-foreground) 55%, transparent);
+    background-color: color-mix(
+      in oklch,
+      var(--muted-foreground) 55%,
+      transparent
+    );
   }
   ::-webkit-scrollbar-corner {
     background: transparent;

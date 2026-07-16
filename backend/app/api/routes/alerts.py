@@ -24,7 +24,11 @@ def read_alerts(
 ) -> Any:
     where = (Alert.status == status) if status else None
     rows, count = list_and_count(
-        session, Alert, skip=skip, limit=limit, where=where,
+        session,
+        Alert,
+        skip=skip,
+        limit=limit,
+        where=where,
         order_by=desc(Alert.created_at),
     )
     return AlertsPublic(data=rows, count=count)
@@ -42,8 +46,13 @@ def acknowledge_alert(
     session.add(alert)
     session.commit()
     session.refresh(alert)
-    write_audit(session, actor=user, action="alert.acknowledge",
-                entity_type="alert", entity_id=alert.id)
+    write_audit(
+        session,
+        actor=user,
+        action="alert.acknowledge",
+        entity_type="alert",
+        entity_id=alert.id,
+    )
     return alert
 
 
@@ -57,6 +66,11 @@ def resolve_alert(alert_id: uuid.UUID, session: SessionDep, user: InternalUser) 
     session.add(alert)
     session.commit()
     session.refresh(alert)
-    write_audit(session, actor=user, action="alert.resolve",
-                entity_type="alert", entity_id=alert.id)
+    write_audit(
+        session,
+        actor=user,
+        action="alert.resolve",
+        entity_type="alert",
+        entity_id=alert.id,
+    )
     return alert

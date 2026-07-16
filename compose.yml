@@ -120,6 +120,15 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - QDRANT_URL=http://qdrant:6333
       - QDRANT_API_KEY=${QDRANT_API_KEY:-}
+      # Data platform (read-only consumers: warehouse api role + DuckDB read_only)
+      - PLATFORM_ENV=${PLATFORM_ENV:-development}
+      - WAREHOUSE_DB=${WAREHOUSE_DB:-warehouse}
+      - WAREHOUSE_API_USER=${WAREHOUSE_API_USER:-warehouse_api_reader}
+      - WAREHOUSE_API_PASSWORD=${WAREHOUSE_API_PASSWORD:-}
+      - LAKE_ROOT=/srv/data/lake
+      - DUCKDB_PATH=/srv/data/catalog/smartforge_lake.duckdb
+    volumes:
+      - app-lake-data:/srv/data
 
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/utils/health-check/"]
@@ -144,6 +153,18 @@ services:
       - traefik.http.routers.${STACK_NAME?Variable not set}-backend-https.entrypoints=https
       - traefik.http.routers.${STACK_NAME?Variable not set}-backend-https.tls=true
       - traefik.http.routers.${STACK_NAME?Variable not set}-backend-https.tls.certresolver=le
+
+      # Ingress guardrails (SEC-012/SEC-013): per-client rate limiting so one
+      # analytical consumer cannot exhaust API workers or database pools, and
+      # baseline security headers at the proxy.
+      - traefik.http.middlewares.${STACK_NAME?Variable not set}-ratelimit.ratelimit.average=${API_RATE_LIMIT_AVERAGE:-100}
+      - traefik.http.middlewares.${STACK_NAME?Variable not set}-ratelimit.ratelimit.burst=${API_RATE_LIMIT_BURST:-200}
+      - traefik.http.middlewares.${STACK_NAME?Variable not set}-secure-headers.headers.stsSeconds=31536000
+      - traefik.http.middlewares.${STACK_NAME?Variable not set}-secure-headers.headers.stsIncludeSubdomains=true
+      - traefik.http.middlewares.${STACK_NAME?Variable not set}-secure-headers.headers.contentTypeNosniff=true
+      - traefik.http.middlewares.${STACK_NAME?Variable not set}-secure-headers.headers.frameDeny=true
+      - traefik.http.middlewares.${STACK_NAME?Variable not set}-secure-headers.headers.referrerPolicy=strict-origin-when-cross-origin
+      - traefik.http.routers.${STACK_NAME?Variable not set}-backend-https.middlewares=${STACK_NAME?Variable not set}-ratelimit,${STACK_NAME?Variable not set}-secure-headers
 
       # Enable redirection for HTTP and HTTPS
       - traefik.http.routers.${STACK_NAME?Variable not set}-backend-http.middlewares=https-redirect
@@ -180,6 +201,7 @@ services:
       - traefik.http.routers.${STACK_NAME?Variable not set}-frontend-https.entrypoints=https
       - traefik.http.routers.${STACK_NAME?Variable not set}-frontend-https.tls=true
       - traefik.http.routers.${STACK_NAME?Variable not set}-frontend-https.tls.certresolver=le
+      - traefik.http.routers.${STACK_NAME?Variable not set}-frontend-https.middlewares=${STACK_NAME?Variable not set}-secure-headers
 
       # Enable redirection for HTTP and HTTPS
       - traefik.http.routers.${STACK_NAME?Variable not set}-frontend-http.middlewares=https-redirect
@@ -228,6 +250,69 @@ services:
       - FIRST_SUPERUSER=${FIRST_SUPERUSER?Variable not set}
       - FIRST_SUPERUSER_PASSWORD=${FIRST_SUPERUSER_PASSWORD?Variable not set}
 
+  platform-worker:
+    image: '${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}'
+    restart: always
+    # Single writer for the Parquet lake + DuckDB catalog — do NOT scale
+    # (DuckDB single-writer, DDB-002; single-flight enforced via advisory lock).
+    stop_grace_period: 60s
+    depends_on:
+      db:
+        condition: service_healthy
+      prestart:
+        condition: service_completed_successfully
+    command: python -m app.dataplatform.scheduler
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_SERVER=db
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_USER=${POSTGRES_USER?Variable not set}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
+      - PLATFORM_ENV=${PLATFORM_ENV:-development}
+      - WAREHOUSE_DB=${WAREHOUSE_DB:-warehouse}
+      - WAREHOUSE_LOADER_USER=${WAREHOUSE_LOADER_USER:-warehouse_loader}
+      - WAREHOUSE_LOADER_PASSWORD=${WAREHOUSE_LOADER_PASSWORD:-}
+      - WAREHOUSE_DBT_USER=${WAREHOUSE_DBT_USER:-warehouse_transformer}
+      - WAREHOUSE_DBT_PASSWORD=${WAREHOUSE_DBT_PASSWORD:-}
+      - WAREHOUSE_API_USER=${WAREHOUSE_API_USER:-warehouse_api_reader}
+      - WAREHOUSE_API_PASSWORD=${WAREHOUSE_API_PASSWORD:-}
+      - OMEGA_ORACLE_USER=${OMEGA_ORACLE_USER:-omega_analytics_reader}
+      - OMEGA_ORACLE_PASSWORD=${OMEGA_ORACLE_PASSWORD:-}
+      - OMEGA_ORACLE_HOST=${OMEGA_ORACLE_HOST:-}
+      - OMEGA_ORACLE_PORT=${OMEGA_ORACLE_PORT:-1521}
+      - OMEGA_ORACLE_SERVICE_NAME=${OMEGA_ORACLE_SERVICE_NAME:-}
+      - OMEGA_ORACLE_SID=${OMEGA_ORACLE_SID:-}
+      - LAKE_ROOT=/srv/data/lake
+      - DUCKDB_PATH=/srv/data/catalog/smartforge_lake.duckdb
+    volumes:
+      - app-lake-data:/srv/data
+
+  db-backup:
+    # Scheduled logical backups of the transactional DB and the analytics
+    # warehouse (PG-009/DR-002). Restore procedure: runbooks/backup_restore.md.
+    # Production should ALSO enable WAL archiving / PITR on the Postgres host
+    # or use a managed database service; this sidecar is the portable baseline.
+    image: prodrigestivill/postgres-backup-local:17
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - app-db-backups:/backups
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_USER=${POSTGRES_USER?Variable not set}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
+      # Both logical databases: application + analytics warehouse
+      - POSTGRES_DB=${POSTGRES_DB?Variable not set},${WAREHOUSE_DB:-warehouse}
+      - SCHEDULE=${BACKUP_SCHEDULE:-@daily}
+      - BACKUP_KEEP_DAYS=${BACKUP_KEEP_DAYS:-7}
+      - BACKUP_KEEP_WEEKS=${BACKUP_KEEP_WEEKS:-4}
+      - BACKUP_KEEP_MONTHS=${BACKUP_KEEP_MONTHS:-6}
+      - HEALTHCHECK_PORT=8080
+
   prometheus:
     image: prom/prometheus:latest
     restart: always
@@ -244,7 +329,7 @@ services:
     image: grafana/grafana:latest
     restart: always
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD?Variable not set}
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
@@ -262,6 +347,10 @@ volumes:
   app-qdrant-data:
   app-prometheus-data:
   app-grafana-data:
+  # Canonical Parquet lake + DuckDB catalog (written only by platform-worker)
+  app-lake-data:
+  # Rotated pg_dump archives (db-backup service) — see runbooks/backup_restore.md
+  app-db-backups:
 
 networks:
   traefik-public:
