@@ -208,7 +208,7 @@ services:
 
   # ---- SmartForge services ----
   redis:
-    image: redis:7-alpine
+    image: redis:8-alpine
     restart: always
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -293,7 +293,7 @@ services:
     # warehouse (PG-009/DR-002). Restore procedure: runbooks/backup_restore.md.
     # Production should ALSO enable WAL archiving / PITR on the Postgres host
     # or use a managed database service; this sidecar is the portable baseline.
-    image: prodrigestivill/postgres-backup-local:17
+    image: prodrigestivill/postgres-backup-local:18
     restart: always
     depends_on:
       db:
