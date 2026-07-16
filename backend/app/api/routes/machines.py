@@ -56,7 +56,7 @@ def read_telemetry(
         .limit(limit)
     )
     rows = list(session.exec(stmt).all())
-    return TelemetryEventsPublic(data=rows, count=len(rows))
+    return TelemetryEventsPublic(data=list(rows), count=len(rows))
 
 
 @router.get("/{machine_id}/health", response_model=MachineHealthScorePublic)

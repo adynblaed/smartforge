@@ -40,7 +40,7 @@ def my_orders(session: SessionDep, user: CustomerUser) -> Any:
             .order_by(desc(CustomerOrder.created_at))
         ).all()
     )
-    return CustomerOrdersPublic(data=rows, count=len(rows))
+    return CustomerOrdersPublic(data=list(rows), count=len(rows))
 
 
 @router.get("/orders/{order_id}", response_model=CustomerOrderPublic)
@@ -122,7 +122,7 @@ def list_escalations(session: SessionDep, _user: InternalUser) -> Any:
     rows = list(
         session.exec(select(Escalation).order_by(desc(Escalation.created_at))).all()
     )
-    return EscalationsPublic(data=rows, count=len(rows))
+    return EscalationsPublic(data=list(rows), count=len(rows))
 
 
 @router.post("/escalations/{escalation_id}/respond", response_model=EscalationPublic)

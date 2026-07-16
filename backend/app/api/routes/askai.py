@@ -68,7 +68,7 @@ async def forge(payload: AskRequest, session: SessionDep, user: InternalUser) ->
 @router.get("/documents", response_model=KnowledgeDocumentsPublic)
 def list_documents(session: SessionDep, _user: InternalUser) -> Any:
     rows = list(session.exec(select(KnowledgeDocument)).all())
-    return KnowledgeDocumentsPublic(data=rows, count=len(rows))
+    return KnowledgeDocumentsPublic(data=list(rows), count=len(rows))
 
 
 @router.post("/documents", response_model=KnowledgeDocumentPublic)
@@ -107,7 +107,7 @@ def list_sessions(session: SessionDep, user: InternalUser) -> Any:
 @router.get("/knowledge-bases", response_model=KnowledgeBasesPublic)
 def list_knowledge_bases(session: SessionDep, _user: InternalUser) -> Any:
     rows = list(session.exec(select(KnowledgeBase).order_by(KnowledgeBase.name)).all())
-    return KnowledgeBasesPublic(data=rows, count=len(rows))
+    return KnowledgeBasesPublic(data=list(rows), count=len(rows))
 
 
 @router.post("/knowledge-bases", response_model=KnowledgeBasePublic)

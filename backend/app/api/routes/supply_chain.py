@@ -55,7 +55,7 @@ def read_inventory(session: SessionDep, _user: InternalUser) -> Any:
 @router.get("/suppliers", response_model=SuppliersPublic)
 def read_suppliers(session: SessionDep, _user: InternalUser) -> Any:
     rows = list(session.exec(select(Supplier)).all())
-    return SuppliersPublic(data=rows, count=len(rows))
+    return SuppliersPublic(data=list(rows), count=len(rows))
 
 
 @router.get("/supply-chain/risks")
@@ -88,7 +88,7 @@ def read_reorders(session: SessionDep, _user: InternalUser) -> Any:
             select(MaterialReorder).order_by(desc(MaterialReorder.created_at))
         ).all()
     )
-    return MaterialReordersPublic(data=rows, count=len(rows))
+    return MaterialReordersPublic(data=list(rows), count=len(rows))
 
 
 @router.post("/supply-chain/reorders", response_model=MaterialReorderPublic)

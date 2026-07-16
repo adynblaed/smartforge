@@ -75,13 +75,13 @@ def _kpis(session: SessionDep) -> dict[str, Any]:
 @router.get("/factories", response_model=FactoriesPublic)
 def read_factories(session: SessionDep, _user: InternalUser) -> Any:
     rows = list(session.exec(select(Factory)).all())
-    return FactoriesPublic(data=rows, count=len(rows))
+    return FactoriesPublic(data=list(rows), count=len(rows))
 
 
 @router.get("/lines", response_model=LinesPublic)
 def read_lines(session: SessionDep, _user: InternalUser) -> Any:
     rows = list(session.exec(select(Line)).all())
-    return LinesPublic(data=rows, count=len(rows))
+    return LinesPublic(data=list(rows), count=len(rows))
 
 
 @router.get("/factory/kpis")

@@ -53,7 +53,7 @@ def read_rca(incident_id: uuid.UUID, session: SessionDep, _user: InternalUser) -
             select(RcaRecord).where(RcaRecord.incident_id == incident_id)
         ).all()
     )
-    return RcaRecordsPublic(data=rows, count=len(rows))
+    return RcaRecordsPublic(data=list(rows), count=len(rows))
 
 
 @router.post("/{incident_id}/rca", response_model=RcaRecordPublic)

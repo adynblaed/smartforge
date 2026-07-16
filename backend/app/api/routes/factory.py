@@ -147,7 +147,7 @@ def read_trends(session: SessionDep, _user: InternalUser, limit: int = 200) -> A
 @router.get("/machine-configurations", response_model=MachineConfigurationsPublic)
 def read_configs(session: SessionDep, _user: InternalUser) -> Any:
     rows = list(session.exec(select(MachineConfiguration)).all())
-    return MachineConfigurationsPublic(data=rows, count=len(rows))
+    return MachineConfigurationsPublic(data=list(rows), count=len(rows))
 
 
 @router.post("/machine-configurations", response_model=MachineConfigurationPublic)
@@ -201,7 +201,7 @@ def read_recommendations(session: SessionDep, _user: InternalUser) -> Any:
             select(Recommendation).order_by(desc(Recommendation.created_at))
         ).all()
     )
-    return RecommendationsPublic(data=rows, count=len(rows))
+    return RecommendationsPublic(data=list(rows), count=len(rows))
 
 
 @router.post("/recommendations/{rec_id}/decision", response_model=RecommendationPublic)

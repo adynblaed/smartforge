@@ -29,18 +29,18 @@ def events(session: SessionDep, _user: InternalUser, system: str = "erp") -> Any
     rows = list(
         session.exec(select(model).order_by(desc(model.created_at)).limit(100)).all()
     )
-    return SyncEventsPublic(data=rows, count=len(rows))
+    return SyncEventsPublic(data=list(rows), count=len(rows))
 
 
 @router.post("/erp/sync", response_model=SyncEventsPublic)
 def sync_erp(session: SessionDep, user: InternalUser) -> Any:
     rows = integrations.run_sync(session, "erp")
     write_audit(session, actor=user, action="integration.erp_sync", entity_type="erp")
-    return SyncEventsPublic(data=rows, count=len(rows))
+    return SyncEventsPublic(data=list(rows), count=len(rows))
 
 
 @router.post("/mes/sync", response_model=SyncEventsPublic)
 def sync_mes(session: SessionDep, user: InternalUser) -> Any:
     rows = integrations.run_sync(session, "mes")
     write_audit(session, actor=user, action="integration.mes_sync", entity_type="mes")
-    return SyncEventsPublic(data=rows, count=len(rows))
+    return SyncEventsPublic(data=list(rows), count=len(rows))
