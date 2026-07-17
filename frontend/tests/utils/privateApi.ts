@@ -2,7 +2,9 @@
 // for local environments
 import { OpenAPI, PrivateService } from "../../src/client"
 
-OpenAPI.BASE = `${process.env.VITE_API_URL}`
+// Same base-URL rule as the app: explicit VITE_API_URL, else the local
+// backend (an unset env var must never produce a literal "undefined" URL).
+OpenAPI.BASE = process.env.VITE_API_URL ?? "http://localhost:8000"
 
 export const createUser = async ({
   email,

@@ -1,5 +1,11 @@
 import type { APIRequestContext } from "@playwright/test"
 
+// Same rule as the other test utils: explicit env wins, else the compose
+// stack's published mailcatcher UI — an unset env var must never produce a
+// literal "undefined" URL that silently hits the SPA instead.
+export const MAILCATCHER_HOST =
+  process.env.MAILCATCHER_HOST ?? "http://localhost:1080"
+
 type Email = {
   id: number
   recipients: string[]
@@ -13,7 +19,7 @@ async function findEmail({
   request: APIRequestContext
   filter?: (email: Email) => boolean
 }) {
-  const response = await request.get(`${process.env.MAILCATCHER_HOST}/messages`)
+  const response = await request.get(`${MAILCATCHER_HOST}/messages`)
 
   let emails = await response.json()
 
