@@ -13,6 +13,16 @@ from tests_dataplatform.conftest import FakeEngine, FakeResult, assert_clean_err
 
 
 @pytest.fixture(autouse=True)
+def _isolated_sync_coordinator(monkeypatch):
+    """Force the sync coordinator into per-process memory mode (never a
+    live Redis) and start each test with a clean slate."""
+    monkeypatch.setattr(
+        platform_routes._sync_coordinator, "_degraded_until", float("inf")
+    )
+    platform_routes._sync_coordinator._memory.clear()
+
+
+@pytest.fixture(autouse=True)
 def _stub_pipeline_lock(monkeypatch):
     """seed/confirm and sync/run take the single-flight lock (INC-013);
     offline tests stub it — test_single_flight.py proves the guard."""
@@ -62,6 +72,7 @@ class TestAuth:
                 },
             ),
             ("post", "/api/v1/platform/sync/run", {"cadences": ["hourly"]}),
+            ("post", "/api/v1/platform/sync/table", {"table": "OMEGA.MACHINES"}),
         ],
     )
     def test_mutating_endpoints_require_superuser(
@@ -73,6 +84,164 @@ class TestAuth:
 
     def test_read_endpoints_allow_internal_users(self, internal_client, healthy_engine):
         assert internal_client.get("/api/v1/platform/health").status_code == 200
+
+    def test_rapid_table_sync_triggers_enqueue_without_conflict(
+        self, monkeypatch, superuser_client, platform_env
+    ):
+        """Back-to-back sync clicks must NEVER 409: the first enqueues, an
+        overlapping duplicate dedupes to already_queued, and the worker
+        drains sequentially (executor patched out — no pipeline runs)."""
+        import app.api.routes.platform as platform_routes
+
+        ran: list[str] = []
+        monkeypatch.setattr(platform_routes, "_run_table_sync", ran.append)
+        monkeypatch.setattr(
+            platform_routes, "_audit_sync_trigger", lambda *_: None
+        )
+
+        first = superuser_client.post(
+            "/api/v1/platform/sync/table", json={"table": "OMEGA.MACHINES"}
+        )
+        second = superuser_client.post(
+            "/api/v1/platform/sync/table", json={"table": "OMEGA.MACHINES"}
+        )
+        assert first.status_code == 200
+        assert first.json()["status"] in ("queued", "already_queued")
+        assert second.status_code == 200  # never a 409
+        platform_routes._sync_queue.join()
+        assert "OMEGA.MACHINES" in ran
+
+    def test_table_sync_retries_then_succeeds_with_self_heal(
+        self, monkeypatch, superuser_client, internal_client, platform_env
+    ):
+        """Transient failures self-heal: two failing attempts trigger the
+        healing hook + backoff, the third succeeds — status ends
+        'succeeded' with the attempt count, and no failure is audited."""
+        import app.api.routes.platform as platform_routes
+
+        attempts: list[str] = []
+        healed: list[int] = []
+        failures_audited: list[str] = []
+
+        def flaky(qualified: str) -> None:
+            attempts.append(qualified)
+            if len(attempts) < 3:
+                raise RuntimeError("transient store hiccup")
+
+        monkeypatch.setattr(platform_routes, "_run_table_sync", flaky)
+        monkeypatch.setattr(
+            platform_routes,
+            "_self_heal_sync",
+            lambda _q, attempt: healed.append(attempt),
+        )
+        monkeypatch.setattr(
+            platform_routes,
+            "_audit_sync_failure",
+            lambda q, _s: failures_audited.append(q),
+        )
+        monkeypatch.setattr(
+            platform_routes, "_audit_sync_trigger", lambda *_: None
+        )
+        monkeypatch.setattr(
+            platform_routes, "_SYNC_RETRY_BACKOFF_SECONDS", (0.0, 0.0)
+        )
+
+        response = superuser_client.post(
+            "/api/v1/platform/sync/table", json={"table": "OMEGA.MACHINES"}
+        )
+        assert response.status_code == 200
+        platform_routes._sync_queue.join()
+
+        assert len(attempts) == 3
+        assert healed == [1, 2]
+        assert failures_audited == []
+        status = internal_client.get("/api/v1/platform/sync/status")
+        assert status.status_code == 200
+        entries = {e["table"]: e for e in status.json()["data"]}
+        assert entries["OMEGA.MACHINES"]["status"] == "succeeded"
+        assert entries["OMEGA.MACHINES"]["attempts"] == 3
+        assert entries["OMEGA.MACHINES"]["error"] is None
+
+    def test_table_sync_fails_safely_after_three_attempts(
+        self, monkeypatch, superuser_client, internal_client, platform_env
+    ):
+        """A sync that exhausts its three attempts fails GRACEFULLY:
+        status='failed' exposes only the exception class (API-009), the
+        failure is audited for the Logs streams, and the table leaves the
+        pending set so the user can simply trigger it again."""
+        import app.api.routes.platform as platform_routes
+
+        failures_audited: list[str] = []
+
+        def always_down(_qualified: str) -> None:
+            raise ConnectionError("dsn=postgres://secret@host/warehouse")
+
+        monkeypatch.setattr(platform_routes, "_run_table_sync", always_down)
+        monkeypatch.setattr(
+            platform_routes, "_self_heal_sync", lambda *_: None
+        )
+        monkeypatch.setattr(
+            platform_routes,
+            "_audit_sync_failure",
+            lambda _q, summary: failures_audited.append(summary),
+        )
+        monkeypatch.setattr(
+            platform_routes, "_audit_sync_trigger", lambda *_: None
+        )
+        monkeypatch.setattr(
+            platform_routes, "_SYNC_RETRY_BACKOFF_SECONDS", (0.0, 0.0)
+        )
+
+        response = superuser_client.post(
+            "/api/v1/platform/sync/table", json={"table": "OMEGA.MACHINES"}
+        )
+        assert response.status_code == 200
+        platform_routes._sync_queue.join()
+
+        entries = {
+            e["table"]: e
+            for e in internal_client.get(
+                "/api/v1/platform/sync/status"
+            ).json()["data"]
+        }
+        entry = entries["OMEGA.MACHINES"]
+        assert entry["status"] == "failed"
+        assert entry["attempts"] == 3
+        # Safe error body: the exception CLASS only, never its message.
+        assert entry["error"] == "ConnectionError"
+        assert "secret" not in str(entry)
+        assert failures_audited and "3 attempts" in failures_audited[0]
+        # The table is retryable immediately — a terminal status ends the
+        # in-flight claim, so the next trigger enqueues fresh.
+        assert not platform_routes._sync_coordinator.in_flight(
+            "OMEGA.MACHINES"
+        )
+
+    def test_sync_status_requires_auth(self, anon_client, platform_env):
+        assert (
+            anon_client.get("/api/v1/platform/sync/status").status_code == 401
+        )
+
+    def test_sync_estimate_shape_and_allowlist(
+        self, internal_client, healthy_engine, platform_env
+    ):
+        """Estimates derive from the control tables only (API-001 — never
+        the source) and refuse non-contracted tables."""
+        response = internal_client.get(
+            "/api/v1/platform/sync/estimate?table=OMEGA.MACHINES"
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["table"] == "OMEGA.MACHINES"
+        assert isinstance(body["current_rows"], int)
+        assert isinstance(body["estimated_new_rows"], int)
+        assert body["estimated_seconds"] >= 5
+        assert (
+            internal_client.get(
+                "/api/v1/platform/sync/estimate?table=OMEGA.NOPE"
+            ).status_code
+            == 404
+        )
 
 
 class TestHealth:
