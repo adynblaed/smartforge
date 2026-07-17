@@ -23,7 +23,10 @@ import { PasswordInput } from "@/components/ui/password-input"
 import useAuth, { isLoggedIn } from "@/hooks/useAuth"
 
 const formSchema = z.object({
-  username: z.email(),
+  // Explicit message: zod v4's default copy comes from a locale registry
+  // whose side-effect registration can be dropped by production bundling
+  // (falling back to a generic "Invalid input").
+  username: z.email({ message: "Invalid email address" }),
   password: z
     .string()
     .min(1, { message: "Password is required" })

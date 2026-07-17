@@ -36,7 +36,9 @@ export const Route = createFileRoute("/_layout")({
       role = (await sf.get<{ role?: string }>("/users/me")).role
     } catch (err) {
       const msg = err instanceof Error ? err.message : ""
-      if (/Unauthorized \((401|403)\)/.test(msg)) {
+      // 401 only: an expired/invalid token forces relogin. A 403 here
+      // would be an authorization gate, not a bad session.
+      if (/Unauthorized \(401\)/.test(msg)) {
         localStorage.removeItem("access_token")
         throw redirect({ to: "/login" })
       }
@@ -56,7 +58,11 @@ function Layout() {
     <ForgeAgentProvider>
       <SidebarProvider>
         <AppSidebar />
-        <SidebarInset>
+        {/* min-w-0: as flex children, the inset and main must be allowed to
+            shrink below their content's min-width — otherwise a wide panel
+            (chart, KPI row) pushes the whole pane past the viewport and
+            controls land off-screen. */}
+        <SidebarInset className="min-w-0">
           <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur-md">
             <SidebarTrigger className="-ml-1 text-muted-foreground" />
             <Separator orientation="vertical" className="mr-1 h-5" />
@@ -71,8 +77,8 @@ function Layout() {
               <NavUserMenu />
             </div>
           </header>
-          <main className="flex-1 p-6 md:p-8">
-            <div className="mx-auto max-w-7xl">
+          <main className="min-w-0 flex-1 p-6 md:p-8">
+            <div className="mx-auto min-w-0 max-w-7xl">
               {/* Render throws in page components keep the app shell (sidebar,
                   header) and offer a reset instead of blanking the screen. */}
               <ErrorBoundary

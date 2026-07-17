@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { LineChart, Pencil } from "lucide-react"
 import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -50,6 +51,8 @@ function OptimizationPage() {
   const approve = useMutation({
     mutationFn: (id: string) =>
       sf.post(`/machine-configurations/${id}/approve`),
+    onError: (error) =>
+      toast.error(error instanceof Error ? error.message : "Approval failed"),
     onSettled: () => qc.invalidateQueries({ queryKey: ["configs"] }),
   })
   const decide = useMutation({
@@ -57,6 +60,8 @@ function OptimizationPage() {
       sf.post(
         `/recommendations/${id}/decision?accept=${accept}${accept ? "&outcome_impact=5" : ""}`,
       ),
+    onError: (error) =>
+      toast.error(error instanceof Error ? error.message : "Decision failed"),
     onSettled: () => qc.invalidateQueries({ queryKey: ["recommendations"] }),
   })
 

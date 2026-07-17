@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import { sf, wsUrl } from "@/smartforge/api"
+import { openAuthedWebSocket, sf } from "@/smartforge/api"
 import { PageHeader, Panel } from "@/smartforge/components"
 import { POLL } from "@/smartforge/constants"
 import type { CustomerOrder } from "@/smartforge/types"
@@ -37,7 +37,7 @@ function OrderDetail() {
     let ws: WebSocket | null = null
     let closed = false
     try {
-      ws = new WebSocket(wsUrl("/ws/orders"))
+      ws = openAuthedWebSocket("/ws/orders")
       ws.onopen = () => {
         if (!closed) setLive(true)
       }

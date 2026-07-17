@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { wsUrl } from "./api"
+import { openAuthedWebSocket } from "./api"
 import { WS_RECONNECT_MS } from "./constants"
 
 export interface TelemetryTick {
@@ -31,7 +31,7 @@ export function useTelemetryStream(): {
     const connect = () => {
       if (closed) return
       try {
-        const ws = new WebSocket(wsUrl("/ws/telemetry"))
+        const ws = openAuthedWebSocket("/ws/telemetry")
         wsRef.current = ws
         ws.onopen = () => {
           if (!closed) setConnected(true)

@@ -154,11 +154,18 @@ const MODEL_REGISTRY: Record<string, string> = {
 
 function FbxModel({ url }: { url: string }) {
   const fbx = useFBX(url)
-  const clone = useMemo(() => fbx.clone(), [fbx])
-  clone.traverse((o) => {
-    o.castShadow = true
-    o.receiveShadow = true
-  })
+  // Clone + shadow flags together, once per source model — mutating the
+  // clone in the render body would re-traverse the whole hierarchy on
+  // every render. Geometries/materials are SHARED with drei's cached FBX
+  // (never disposed here — the cache owns them).
+  const clone = useMemo(() => {
+    const instance = fbx.clone()
+    instance.traverse((o) => {
+      o.castShadow = true
+      o.receiveShadow = true
+    })
+    return instance
+  }, [fbx])
   return <primitive object={clone} />
 }
 

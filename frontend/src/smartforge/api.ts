@@ -2,8 +2,15 @@
 // bearer token as the generated client (VITE_API_URL + localStorage token), so
 // it composes with the existing auth flow without requiring client regeneration.
 
-const BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000"
-const API = `${BASE}/api/v1`
+/** ONE base-URL rule for every client (sf wrapper AND the generated
+ * OpenAPI client import this): explicit VITE_API_URL wins; otherwise dev
+ * servers target the local backend and production builds go same-origin
+ * ("" — nginx proxies /api), so a missing env var can never silently split
+ * auth and data across two different origins. */
+export const API_BASE_URL: string =
+  import.meta.env.VITE_API_URL ??
+  (import.meta.env.DEV ? "http://localhost:8000" : "")
+const API = `${API_BASE_URL}/api/v1`
 
 // Typed error for `sf` calls. Carries the HTTP status (and the server's
 // `detail` when parseable) while keeping the "401 Unauthorized"-style message
@@ -51,10 +58,13 @@ function authHeaders(): HeadersInit {
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
-// On an auth failure, mirror the generated client: clear the token and bounce
-// to /login (except for customer-portal calls, which handle 401 themselves).
+// On an AUTHENTICATION failure (401: missing/expired token), mirror the
+// generated client: clear the token and bounce to /login (except for
+// customer-portal calls, which handle 401 themselves). 403 is
+// AUTHORIZATION — a validly-logged-in user lacking a permission — and must
+// surface as an error, never nuke the session.
 function handleUnauthorized(res: Response, path: string): void {
-  if (res.status === 401 || res.status === 403) {
+  if (res.status === 401) {
     if (!path.startsWith("/customer")) {
       localStorage.removeItem("access_token")
       window.location.href = "/login"
@@ -135,15 +145,25 @@ export const sf = {
     }
     return body as T
   },
-  base: BASE,
+  base: API_BASE_URL,
 }
 
 export function wsUrl(path: string): string {
   const u = new URL(`${API}${path}`, window.location.href)
   u.protocol = u.protocol.replace("http", "ws")
-  // The browser WebSocket API can't set Authorization headers, so the JWT is
-  // passed as a query param and validated server-side before the socket opens.
-  const token = localStorage.getItem("access_token")
-  if (token) u.searchParams.set("token", token)
   return u.toString()
+}
+
+/** Subprotocol label offered alongside the JWT — must match the backend's
+ * BEARER_SUBPROTOCOL (app/api/routes/ws.py). */
+const WS_BEARER_SUBPROTOCOL = "smartforge.bearer"
+
+/** Open an authenticated WebSocket. The browser API can't set an
+ * Authorization header, so the JWT travels in the Sec-WebSocket-Protocol
+ * handshake header (never the URL — URLs land in access logs). */
+export function openAuthedWebSocket(path: string): WebSocket {
+  const token = localStorage.getItem("access_token")
+  return token
+    ? new WebSocket(wsUrl(path), [WS_BEARER_SUBPROTOCOL, token])
+    : new WebSocket(wsUrl(path))
 }

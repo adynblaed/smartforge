@@ -25,7 +25,8 @@ import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 
 const formSchema = z.object({
-  email: z.email(),
+  // Explicit message — never rely on zod's locale default (see login.tsx).
+  email: z.email({ message: "Invalid email address" }),
 })
 
 type FormData = z.infer<typeof formSchema>

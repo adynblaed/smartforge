@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { sf } from "@/smartforge/api"
@@ -22,6 +23,10 @@ function WorkOrdersPage() {
   const act = useMutation({
     mutationFn: ({ id, path }: { id: string; path: string }) =>
       sf.post(`/work-orders/${id}/${path}`),
+    onError: (error) =>
+      toast.error(
+        error instanceof Error ? error.message : "Work order action failed",
+      ),
     onSettled: () => qc.invalidateQueries({ queryKey: ["work-orders"] }),
   })
 

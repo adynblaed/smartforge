@@ -14,13 +14,15 @@ import { ThemeProvider } from "./components/theme-provider"
 import { Toaster } from "./components/ui/sonner"
 import "./index.css"
 import { routeTree } from "./routeTree.gen"
-import { ApiError } from "./smartforge/api"
+import { API_BASE_URL, ApiError } from "./smartforge/api"
 import {
   installGlobalErrorLogging,
   logClientError,
 } from "./smartforge/clientLog"
 
-OpenAPI.BASE = import.meta.env.VITE_API_URL
+// One base-URL rule for BOTH clients (generated + sf wrapper): explicit
+// VITE_API_URL, else localhost in dev / same-origin in production builds.
+OpenAPI.BASE = API_BASE_URL
 OpenAPI.TOKEN = async () => {
   return localStorage.getItem("access_token") || ""
 }
@@ -37,15 +39,13 @@ const statusOf = (error: Error): number | undefined => {
   return undefined
 }
 
-// Treat both typed ApiErrors and the legacy "Unauthorized (401/403)" message
-// shape (kept for backward compatibility) as auth failures.
+// AUTHENTICATION failures only (401: missing/expired credentials) — these
+// force a clean relogin. 403 is AUTHORIZATION (a logged-in user lacking a
+// permission, e.g. a feature gate); logging the user out for it would
+// punish valid sessions, so 403 surfaces to the owning screen instead.
 const isAuthError = (error: Error): boolean => {
   const status = statusOf(error)
-  return (
-    status === 401 ||
-    status === 403 ||
-    /Unauthorized \((401|403)\)/.test(error.message)
-  )
+  return status === 401 || /Unauthorized \(401\)/.test(error.message)
 }
 
 const handleApiError = (error: Error, scope: "query" | "mutation") => {

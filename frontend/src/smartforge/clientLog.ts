@@ -2,9 +2,12 @@
 // through logClientError so a real reporter (e.g. Sentry) can be attached
 // later in exactly one spot. Never logs auth tokens.
 
-// Redact anything that looks like a bearer token before it reaches the console.
+// Redact anything that looks like a credential before it reaches the
+// console: bearer headers AND token-bearing query strings (legacy ws URLs).
 function scrub(text: string): string {
-  return text.replace(/Bearer\s+[\w.~+/=-]+/gi, "Bearer [redacted]")
+  return text
+    .replace(/Bearer\s+[\w.~+/=-]+/gi, "Bearer [redacted]")
+    .replace(/([?&]token=)[\w.~+/=-]+/gi, "$1[redacted]")
 }
 
 function messageOf(error: unknown): string {
