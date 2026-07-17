@@ -21,3 +21,7 @@ dbt/target/
 dbt/dbt_packages/
 dbt/logs/
 dbt/.user.yml
+
+# Local visualization reference material (an unrelated app kept for design
+# inspiration only — never part of the SmartForge build or releases).
+refs/
