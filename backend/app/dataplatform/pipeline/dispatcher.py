@@ -178,31 +178,45 @@ def dispatch(
             logger.warning("another pipeline run holds the lock; skipping tick")
             return {"status": "skipped", "reason": "pipeline lock held"}
 
-        summary: dict[str, Any] = {"cadences": cadences}
-        sync_result = run_incremental(cadences, registry=registry)
-        summary["sync"] = sync_result
-
-        if "weekly" in cadences or "daily" in cadences:
-            summary["delete_reconciliation"] = run_delete_reconciliation(
-                registry=registry, cadences=cadences
-            )
-
-        if with_dbt and sync_result["synced"]:
-            try:
-                summary["dbt"] = run_dbt()
-            except (RuntimeError, FileNotFoundError, subprocess.TimeoutExpired) as exc:
-                summary["dbt"] = {"error": str(exc)}
-                summary["status"] = "partial"
-                return summary
-
-        # Post-dbt housekeeping under the same lock; never fails the tick
-        # and never runs on a lock-skipped tick (LAKE-011).
+        # The lock MUST be released explicitly on every exit path: closing
+        # a pooled connection only returns it to the pool with the session
+        # (and its advisory lock) alive — a leaked lock wedges every future
+        # tick and user sync until the process exits.
         try:
-            summary["lake_maintenance"] = lake_maintenance(registry)
-        except Exception as exc:
-            logger.warning("lake maintenance failed; dispatch unaffected: %s", exc)
-            summary["lake_maintenance"] = {"error": str(exc)}
+            summary: dict[str, Any] = {"cadences": cadences}
+            sync_result = run_incremental(cadences, registry=registry)
+            summary["sync"] = sync_result
 
-        summary["status"] = "succeeded" if not sync_result["failures"] else "partial"
-        # The advisory lock releases when this connection closes.
-        return summary
+            if "weekly" in cadences or "daily" in cadences:
+                summary["delete_reconciliation"] = run_delete_reconciliation(
+                    registry=registry, cadences=cadences
+                )
+
+            if with_dbt and sync_result["synced"]:
+                try:
+                    summary["dbt"] = run_dbt()
+                except (
+                    RuntimeError,
+                    FileNotFoundError,
+                    subprocess.TimeoutExpired,
+                ) as exc:
+                    summary["dbt"] = {"error": str(exc)}
+                    summary["status"] = "partial"
+                    return summary
+
+            # Post-dbt housekeeping under the same lock; never fails the
+            # tick and never runs on a lock-skipped tick (LAKE-011).
+            try:
+                summary["lake_maintenance"] = lake_maintenance(registry)
+            except Exception as exc:
+                logger.warning(
+                    "lake maintenance failed; dispatch unaffected: %s", exc
+                )
+                summary["lake_maintenance"] = {"error": str(exc)}
+
+            summary["status"] = (
+                "succeeded" if not sync_result["failures"] else "partial"
+            )
+            return summary
+        finally:
+            state.release_pipeline_lock(lock_connection)

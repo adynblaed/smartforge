@@ -115,6 +115,60 @@ class TestDispatchLocking:
         assert result["status"] == "partial"
         assert "dbt build failed" in result["dbt"]["error"]
 
+    def test_lock_released_on_every_exit_path(self, monkeypatch, registry):
+        """Regression (the 'syncing forever' wedge): closing a POOLED
+        connection keeps its DB session — and a session-scoped advisory
+        lock — alive in the pool, so the dispatcher must release the lock
+        EXPLICITLY on success, on the dbt-partial early return, and on an
+        unexpected crash; a skipped tick never acquired, so never releases."""
+        engine = FakeEngine()
+        monkeypatch.setattr(dispatcher, "loader_engine", lambda: engine)
+        monkeypatch.setattr(dispatcher, "load_registry", lambda: registry)
+        releases: list[object] = []
+        monkeypatch.setattr(
+            state,
+            "release_pipeline_lock",
+            lambda conn, name="smartforge_pipeline": releases.append(conn),
+        )
+        monkeypatch.setattr(state, "acquire_pipeline_lock", lambda conn, name="x": True)
+        monkeypatch.setattr(
+            dispatcher,
+            "run_incremental",
+            lambda cadences, registry: {"synced": [], "failures": []},
+        )
+        dispatcher.dispatch(cadences=["hourly"], with_dbt=False)
+        assert len(releases) == 1
+
+        # dbt failure takes the early `return summary` — still releases.
+        monkeypatch.setattr(
+            dispatcher,
+            "run_incremental",
+            lambda cadences, registry: {"synced": [{"table": "T"}], "failures": []},
+        )
+
+        def failing_dbt(_targets=None):
+            raise RuntimeError("dbt build failed")
+
+        monkeypatch.setattr(dispatcher, "run_dbt", failing_dbt)
+        dispatcher.dispatch(cadences=["hourly"], with_dbt=True)
+        assert len(releases) == 2
+
+        # an unexpected crash propagates AND releases.
+        def crashing_sync(cadences, registry):  # noqa: ARG001
+            raise ValueError("unexpected")
+
+        monkeypatch.setattr(dispatcher, "run_incremental", crashing_sync)
+        with pytest.raises(ValueError):
+            dispatcher.dispatch(cadences=["hourly"], with_dbt=False)
+        assert len(releases) == 3
+
+        # a skipped tick never acquired the lock — nothing to release.
+        monkeypatch.setattr(
+            state, "acquire_pipeline_lock", lambda conn, name="x": False
+        )
+        dispatcher.dispatch(cadences=["hourly"], with_dbt=False)
+        assert len(releases) == 3
+
     def test_dbt_skipped_when_nothing_synced(self, monkeypatch, registry):
         engine = FakeEngine()
         monkeypatch.setattr(dispatcher, "loader_engine", lambda: engine)

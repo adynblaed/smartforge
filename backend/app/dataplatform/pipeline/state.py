@@ -273,6 +273,33 @@ def acquire_pipeline_lock(
     )
 
 
+def release_pipeline_lock(
+    connection: sa.Connection, name: str = "smartforge_pipeline"
+) -> None:
+    """Explicitly release the session-scoped lock — ALWAYS required.
+
+    Closing a POOLED connection does not end its database session: the
+    connection returns to the pool with the advisory lock still held,
+    which silently wedges every future pipeline run (the exact failure
+    behind 'syncing forever'). So the unlock is explicit, and if it cannot
+    be executed the underlying session is invalidated so the lock dies
+    with it instead of leaking into the pool.
+    """
+    try:
+        connection.execute(
+            sa.text("SELECT pg_advisory_unlock(:key)"), {"key": _lock_key(name)}
+        )
+    except Exception:
+        logger.warning(
+            "pipeline lock release failed; invalidating the connection so "
+            "the lock dies with its session instead of leaking into the pool"
+        )
+        try:
+            connection.invalidate()
+        except Exception:  # pragma: no cover - already broken beyond repair
+            pass
+
+
 class PipelineBusyError(RuntimeError):
     """Another pipeline run holds the single-flight lock (INC-013)."""
 
@@ -290,8 +317,9 @@ def pipeline_lock(name: str = "smartforge_pipeline") -> Iterator[None]:
 
     Raises PipelineBusyError immediately when the lock is held elsewhere
     (callers surface 409/skip — nobody queues behind a running pipeline).
-    The session-scoped lock is released explicitly on exit and implicitly
-    by connection close on any failure path.
+    The session-scoped lock is ALWAYS released explicitly on exit —
+    closing a pooled connection would return it to the pool with the lock
+    still held (see release_pipeline_lock).
     """
     engine = loader_engine()
     with engine.connect() as connection:
@@ -303,6 +331,4 @@ def pipeline_lock(name: str = "smartforge_pipeline") -> Iterator[None]:
         try:
             yield
         finally:
-            connection.execute(
-                sa.text("SELECT pg_advisory_unlock(:key)"), {"key": _lock_key(name)}
-            )
+            release_pipeline_lock(connection, name)
