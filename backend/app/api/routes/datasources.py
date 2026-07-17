@@ -3,10 +3,11 @@
 import logging
 from typing import Any
 
-from fastapi import APIRouter, File, HTTPException, Response, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
 from sqlmodel import SQLModel, select
 
 from app.api.deps import InternalUser, SessionDep
+from app.core.features import require_feature
 from app.models import (
     AuditLog,
     Customer,
@@ -74,7 +75,9 @@ def read_table(
     return {"data": data, "count": len(data)}
 
 
-@router.get("/export")
+@router.get(
+    "/export", dependencies=[Depends(require_feature("data_exchange"))]
+)
 def export_snapshot(session: SessionDep, user: InternalUser) -> Response:
     """Download every operational table as one smart_forge_schema.csv snapshot."""
     csv_text = snapshot.export_csv(session)
@@ -94,7 +97,9 @@ def export_snapshot(session: SessionDep, user: InternalUser) -> Response:
     )
 
 
-@router.post("/import")
+@router.post(
+    "/import", dependencies=[Depends(require_feature("data_exchange"))]
+)
 async def import_snapshot(
     session: SessionDep, user: InternalUser, file: UploadFile = File(...)
 ) -> Any:

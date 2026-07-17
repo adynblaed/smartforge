@@ -84,6 +84,30 @@ def internal_client_fixture(session, engine) -> Generator[TestClient, None, None
     app.dependency_overrides.clear()
 
 
+@pytest.fixture(name="admin_client")
+def admin_client_fixture(session, engine) -> Generator[TestClient, None, None]:  # noqa: ARG001
+    yield _client_for(engine, "admin@smartforge.com")
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture(name="leadership_client")
+def leadership_client_fixture(session, engine) -> Generator[TestClient, None, None]:  # noqa: ARG001
+    yield _client_for(engine, "leadership@smartforge.com")
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture(name="developer_client")
+def developer_client_fixture(session, engine) -> Generator[TestClient, None, None]:  # noqa: ARG001
+    yield _client_for(engine, "developer@smartforge.com")
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture(name="beta_client")
+def beta_client_fixture(session, engine) -> Generator[TestClient, None, None]:  # noqa: ARG001
+    yield _client_for(engine, "beta@smartforge.com")
+    app.dependency_overrides.clear()
+
+
 @pytest.fixture(name="customer_client")
 def customer_client_fixture(session, engine) -> Generator[TestClient, None, None]:  # noqa: ARG001
     yield _client_for(engine, "buyer@acme-robotics.com")

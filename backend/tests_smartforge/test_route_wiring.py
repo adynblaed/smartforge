@@ -154,6 +154,11 @@ def test_every_parameterless_get_is_healthy(superuser_client: TestClient) -> Non
         allowed = {200, 400, 403, 422}
         if route.path.startswith(degraded_ok):
             allowed.add(503)
+        # /platform/seed/plan legitimately 404s when the warehouse IS
+        # reachable (e.g. a developer's compose stack) but no seed plan has
+        # been proposed — a healthy empty state, not a wiring error.
+        if route.path == "/api/v1/platform/seed/plan":
+            allowed.add(404)
         assert response.status_code in allowed, (
             f"GET {route.path} -> {response.status_code}: {response.text[:200]}"
         )

@@ -13,11 +13,20 @@ if TYPE_CHECKING:
 
 
 class UserRole(str, Enum):
+    """Assignable roles; each maps onto the site-wide tier ladder
+    (app/core/features.py). Stored as a plain varchar, so extending this
+    enum is additive — no migration (column default stays `operator`)."""
+
+    user = "user"
     admin = "admin"
     operator = "operator"
     maintenance = "maintenance"
     planner = "planner"
     customer = "customer"
+    leadership = "leadership"
+    developer = "developer"
+    # Operator-tier access PLUS the beta audience (early-access features).
+    beta_client = "beta_client"
 
 
 # Shared properties

@@ -51,7 +51,35 @@ from app.services.factory_intelligence import compute_oee_from_run, vision_verdi
 _RNG = random.Random(42)
 
 
+def _seed_tier_users(session: Session) -> None:
+    """Sandbox internal users, one per tier of the site-wide feature-gate
+    ladder (app/core/features.py) — idempotent per user, and deliberately
+    OUTSIDE the already-seeded guard so a new tier account appears in
+    existing sandboxes on the next restart."""
+    for email, role in [
+        ("user@smartforge.com", UserRole.user),
+        ("operator@smartforge.com", UserRole.operator),
+        ("maintenance@smartforge.com", UserRole.maintenance),
+        ("planner@smartforge.com", UserRole.planner),
+        ("admin@smartforge.com", UserRole.admin),
+        ("leadership@smartforge.com", UserRole.leadership),
+        ("developer@smartforge.com", UserRole.developer),
+        ("beta@smartforge.com", UserRole.beta_client),
+    ]:
+        if not crud.get_user_by_email(session=session, email=email):
+            crud.create_user(
+                session=session,
+                user_create=UserCreate(
+                    email=email,
+                    password=settings.SANDBOX_USER_PASSWORD,
+                    full_name=role.value.replace("_", " ").title(),
+                    role=role,
+                ),
+            )
+
+
 def seed_sandbox(session: Session) -> None:
+    _seed_tier_users(session)
     if session.exec(select(Factory)).first():
         return  # already seeded
 
@@ -107,23 +135,6 @@ def seed_sandbox(session: Session) -> None:
     session.commit()
     for m in machines:
         session.refresh(m)
-
-    # Sandbox internal users per role
-    for email, role in [
-        ("operator@smartforge.com", UserRole.operator),
-        ("maintenance@smartforge.com", UserRole.maintenance),
-        ("planner@smartforge.com", UserRole.planner),
-    ]:
-        if not crud.get_user_by_email(session=session, email=email):
-            crud.create_user(
-                session=session,
-                user_create=UserCreate(
-                    email=email,
-                    password=settings.SANDBOX_USER_PASSWORD,
-                    full_name=role.value.title(),
-                    role=role,
-                ),
-            )
 
     # Customers + portal users
     acme = Customer(name="Acme Robotics", contact_email="ops@acme-robotics.com")
