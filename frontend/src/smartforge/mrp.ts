@@ -28,6 +28,17 @@ export interface MrpGrid {
 
 const isoDate = (value: string) => value.slice(0, 10)
 
+/**
+ * Postgres NUMERIC survives the JSON boundary as a precision-preserving
+ * string, whatever the TypeScript contract says. Coerce once at every
+ * ingestion point so downstream math is arithmetic, never concatenation
+ * ("28" + "0120.0000" is how a projected net reaches 28 billion).
+ */
+export const planQty = (value: unknown): number => {
+  const n = Number(value)
+  return Number.isFinite(n) ? n : 0
+}
+
 /** Pivot flat plan rows into items × dates with demand/supply series. */
 export function buildGrid(rows: MrpPlanRow[]): MrpGrid {
   const dates = Array.from(
@@ -43,8 +54,8 @@ export function buildGrid(rows: MrpPlanRow[]): MrpGrid {
         description: row.item_description ?? "",
         itemType: row.item_type ?? "",
         uom: row.uom ?? "",
-        openingQty: row.opening_qty ?? 0,
-        safetyStock: row.safety_stock ?? 0,
+        openingQty: planQty(row.opening_qty),
+        safetyStock: planQty(row.safety_stock),
         demand: dates.map(() => 0),
         supply: dates.map(() => 0),
       }
@@ -52,8 +63,8 @@ export function buildGrid(rows: MrpPlanRow[]): MrpGrid {
     }
     const at = index.get(isoDate(row.plan_date))
     if (at !== undefined) {
-      item.demand[at] += row.demand_qty ?? 0
-      item.supply[at] += row.supply_qty ?? 0
+      item.demand[at] += planQty(row.demand_qty)
+      item.supply[at] += planQty(row.supply_qty)
     }
   }
   return {

@@ -5,7 +5,7 @@
 
 import { type UseQueryResult, useQuery } from "@tanstack/react-query"
 import { DatabaseZap } from "lucide-react"
-import type { ReactNode } from "react"
+import { type ReactNode, useEffect, useRef } from "react"
 
 import { cn } from "@/lib/utils"
 import { sf } from "@/smartforge/api"
@@ -78,20 +78,38 @@ export interface Col<T> {
 }
 
 // Same visual grammar as the Datasources tables: sticky muted header,
-// zebra rows, its own scroll container.
+// zebra rows, its own scroll container. Optional row selection (used by the
+// Work Orders Explorer to correlate 3D graph nodes with table records).
 export function MiniTable<T>({
   cols,
   rows,
   rowKey,
   empty,
+  selectedKey,
+  onRowClick,
+  maxHeightClass = "max-h-96",
 }: {
   cols: Col<T>[]
   rows: T[]
   rowKey: (row: T, index: number) => string
   empty: string
+  selectedKey?: string | null
+  onRowClick?: (row: T, index: number) => void
+  /** Scroll threshold (Tailwind max-h class), e.g. ~16 rows = max-h-[35rem]. */
+  maxHeightClass?: string
 }) {
+  const container = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!selectedKey) return
+    container.current
+      ?.querySelector('[data-row-selected="true"]')
+      ?.scrollIntoView({ block: "nearest", behavior: "smooth" })
+  }, [selectedKey])
   return (
-    <div className="max-h-96 overflow-auto rounded-md border">
+    <div
+      ref={container}
+      className={cn("overflow-auto rounded-md border", maxHeightClass)}
+    >
       <table className="w-full border-collapse text-sm">
         <thead className="sticky top-0 z-10 bg-muted/95 backdrop-blur">
           <tr>
@@ -122,7 +140,14 @@ export function MiniTable<T>({
           {rows.map((row, i) => (
             <tr
               key={rowKey(row, i)}
-              className="odd:bg-muted/20 hover:bg-accent/40"
+              data-row-selected={selectedKey === rowKey(row, i) || undefined}
+              className={cn(
+                "odd:bg-muted/20 hover:bg-accent/40",
+                onRowClick && "cursor-pointer",
+                selectedKey === rowKey(row, i) &&
+                  "bg-primary/15 odd:bg-primary/15 hover:bg-primary/20",
+              )}
+              onClick={onRowClick && (() => onRowClick(row, i))}
             >
               {cols.map((c) => (
                 <td

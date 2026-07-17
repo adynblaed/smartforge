@@ -115,6 +115,22 @@ export interface ReconciliationResponse {
   count: number
 }
 
+/** One user-triggered table sync's live state (GET /platform/sync/status).
+ * queued → running (attempts 1..3 with self-heal between) → succeeded or
+ * failed. `error` is the exception CLASS only — never a message. */
+export interface SyncStatusEntry {
+  table: string
+  status: "queued" | "running" | "succeeded" | "failed"
+  attempts: number
+  error: string | null
+  updated_at: string
+}
+
+export interface SyncStatusResponse {
+  data: SyncStatusEntry[]
+  count: number
+}
+
 /** GET /warehouse/datasets entry — allowlisted marts/api relations. */
 export interface WarehouseDataset {
   dataset: string
@@ -122,7 +138,11 @@ export interface WarehouseDataset {
   name: string
   engine: "postgres"
   certified: boolean
+  /** Contract version ("v1") for certified datasets; null for marts. */
+  version: string | null
   column_count: number
+  /** Planner row estimate (tables/matviews); null for plain views. */
+  row_estimate: number | null
 }
 
 export interface WarehouseDatasetsResponse {
@@ -142,6 +162,8 @@ export interface WarehouseRowsResponse<T> {
   count: number
   meta: {
     dataset: string
+    /** Contract version ("v1") for certified datasets; null for marts. */
+    version: string | null
     engine: "postgres"
     generated_at: string
     limit: number
@@ -152,7 +174,7 @@ export interface WarehouseRowsResponse<T> {
 }
 
 /**
- * One row of api.api_work_orders (dbt models/api/api_work_orders.sql) — the
+ * One row of the work_orders contract (v1; physical api.api_work_orders) (dbt models/api/api_work_orders.sql) — the
  * certified, genealogy-enriched work-order contract behind the explorer.
  */
 export interface ApiWorkOrderRow {
@@ -187,7 +209,7 @@ export interface ApiWorkOrderRow {
 }
 
 /**
- * One row of api.api_mrp_supply_plan (dbt models/api/api_mrp_supply_plan.sql):
+ * One row of the mrp_supply_plan contract (v1; physical api.api_mrp_supply_plan) (dbt models/api/api_mrp_supply_plan.sql):
  * item × plan-date grain with demand/supply rollups and the projected
  * running balance classified against safety stock.
  */
@@ -212,11 +234,14 @@ export interface MrpPlanRow {
 
 /** GET /lake/datasets entry — DuckDB relations over the published Parquet lake. */
 export interface LakeDataset {
+  /** Canonical id (`omega.{table}` for replicated source views). */
   dataset: string
   schema: string
   name: string
   engine: "duckdb"
   type: string
+  /** Contract version ("v1") for replicated omega views; null otherwise. */
+  version: string | null
 }
 
 export interface LakeDatasetsResponse {

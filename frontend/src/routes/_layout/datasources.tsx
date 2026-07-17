@@ -4,6 +4,7 @@ import { Database, Download, LayoutGrid, Table2, Upload } from "lucide-react"
 import { useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
+import { useFeatures } from "@/hooks/useFeatures"
 import { cn } from "@/lib/utils"
 import { sf } from "@/smartforge/api"
 import { HEX, Loading, PageHeader } from "@/smartforge/components"
@@ -34,6 +35,8 @@ interface Datasource {
   endpoint: string
   columns: Column[]
   metrics: (rows: Row[]) => GaugeMetric[]
+  /** Optional display transform applied to each fetched row. */
+  mapRow?: (row: Row) => Row
 }
 
 /* ----------------------------------------------------------- aggregations */
@@ -565,7 +568,7 @@ const DATASOURCES: Datasource[] = [
   },
   {
     key: "escalations",
-    label: "Escalations",
+    label: "Feedback",
     endpoint: "/datasources/table/escalations",
     columns: [
       { key: "status", label: "Status" },
@@ -622,6 +625,60 @@ const DATASOURCES: Datasource[] = [
       { key: "created_at", label: "When", type: "date" },
     ],
     metrics: (r) => [{ label: "Events", value: r.length, max: r.length || 1 }],
+  },
+  // Analytics platform serving layers — live from the governed endpoints
+  // (certified warehouse marts/api schemas; DuckDB views over published
+  // Parquet). Same read-only inspection grammar as the app tables above.
+  {
+    key: "warehouse-datasets",
+    label: "Data Warehouse",
+    endpoint: "/warehouse/datasets",
+    columns: [
+      { key: "dataset", label: "Dataset" },
+      { key: "schema", label: "Schema" },
+      { key: "column_count", label: "Columns", type: "num" },
+      { key: "certified", label: "Certified", type: "bool" },
+    ],
+    metrics: (r) => [
+      { label: "Datasets", value: r.length, max: r.length || 1 },
+      {
+        label: "Certified",
+        value: countWhere(r, (x) => !!x.certified),
+        max: r.length || 1,
+      },
+      {
+        label: "API Views",
+        value: countWhere(r, (x) => x.schema === "api"),
+        max: r.length || 1,
+      },
+    ],
+  },
+  {
+    key: "lake-datasets",
+    label: "Data Lake",
+    endpoint: "/lake/datasets",
+    columns: [
+      { key: "dataset", label: "Dataset" },
+      { key: "type", label: "Type" },
+      { key: "engine", label: "Engine" },
+    ],
+    // Canonical ids straight from the API (omega.*) — no client aliasing.
+    mapRow: (row) => row,
+    metrics: (r) => [
+      { label: "Relations", value: r.length, max: r.length || 1 },
+      {
+        label: "Views",
+        value: countWhere(r, (x) =>
+          String(x.type).toUpperCase().includes("VIEW"),
+        ),
+        max: r.length || 1,
+      },
+      {
+        label: "Raw",
+        value: countWhere(r, (x) => String(x.dataset).startsWith("omega.")),
+        max: r.length || 1,
+      },
+    ],
   },
 ]
 
@@ -717,7 +774,7 @@ function GlobalCard({ ds }: { ds: Datasource }) {
     queryFn: () => sf.get<{ data: Row[]; count: number }>(ds.endpoint),
     refetchInterval: POLL.slow,
   })
-  const rows = data?.data ?? []
+  const rows = (data?.data ?? []).map(ds.mapRow ?? ((row) => row))
   const metrics = ds.metrics(rows)
   const bpm = 62 + (rows.length % 24)
 
@@ -764,6 +821,8 @@ type Tab = "global" | "browse"
 
 function DatasourcesPage() {
   const qc = useQueryClient()
+  const { enabled: featureEnabled } = useFeatures()
+  const canExchange = featureEnabled("data_exchange")
   const [tab, setTab] = useState<Tab>("global")
   const [active, setActive] = useState(DATASOURCES[0])
   const fileRef = useRef<HTMLInputElement>(null)
@@ -832,7 +891,7 @@ function DatasourcesPage() {
     refetchInterval: POLL.medium,
     enabled: tab === "browse",
   })
-  const rows = browse.data?.data ?? []
+  const rows = (browse.data?.data ?? []).map(active.mapRow ?? ((row) => row))
 
   return (
     <div className="flex flex-col gap-6">
@@ -853,22 +912,28 @@ function DatasourcesPage() {
                 e.target.value = ""
               }}
             />
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={busy}
-              onClick={() => fileRef.current?.click()}
-            >
-              <Upload size={14} /> Import
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={busy}
-              onClick={exportSnapshot}
-            >
-              <Download size={14} /> Export
-            </Button>
+            {/* CSV data exchange is admin-tier gated (data_exchange) —
+                the backend enforces the same gate on both endpoints. */}
+            {canExchange && (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() => fileRef.current?.click()}
+                >
+                  <Upload size={14} /> Import
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={busy}
+                  onClick={exportSnapshot}
+                >
+                  <Download size={14} /> Export
+                </Button>
+              </>
+            )}
             <div className="flex items-center gap-1 rounded-lg border bg-card p-1">
               <TabBtn
                 active={tab === "global"}
@@ -880,9 +945,9 @@ function DatasourcesPage() {
               <TabBtn
                 active={tab === "browse"}
                 onClick={() => setTab("browse")}
-                label="Database Tables"
+                label="Service Tables"
               >
-                <Table2 size={14} /> Database Tables
+                <Table2 size={14} /> Service Tables
               </TabBtn>
             </div>
           </div>

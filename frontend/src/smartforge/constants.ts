@@ -11,7 +11,17 @@ export const POLL = {
   slow: 15000,
   /** Polling fallback when the realtime socket is unavailable. */
   realtimeFallback: 4000,
+  /** Live sync-status watch while a user-triggered table sync is running. */
+  syncStatus: 4000,
 } as const
+
+/** How long an in-flight sync spinner may run before the UI falls back to
+ * the last-known state (matches the server's lock-wait budget). */
+export const SYNC_SPINNER_FALLBACK_MS = 600_000
+
+/** Post-trigger delay before refreshing catalogue/log queries — long enough
+ * for a queued sync to start writing control-table evidence. */
+export const SYNC_REFRESH_DELAY_MS = 6000
 
 /** WebSocket reconnect backoff. */
 export const WS_RECONNECT_MS = 4000
