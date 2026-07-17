@@ -50,7 +50,12 @@ timeout, `limit ≤ 1000`, allowlisted filters/order_by):
 `GET /warehouse/kpis`.
 
 Lake (exploratory DuckDB views over published Parquet, read-only
-connection, bound parameters): `GET /lake/datasets`,
+connection, bound parameters, one connection scope per read): the SAME
+request/response contract as `/warehouse` — canonical `omega.{table}` ids
+with `version` metadata (`raw_oracle.*` accepted as the deprecated alias,
+API-016), the shared `column[__op]=value` filter grammar with typed binds
+(op ∈ eq/neq/gt/gte/lt/lte/contains), `order_by`/`order_dir`, `limit ≤
+1000`, and query timeout → 504 on BOTH engines. `GET /lake/datasets`,
 `GET /lake/datasets/{dataset}`, `GET /lake/loads` (manifest provenance).
 
 ## Contract policy
@@ -58,8 +63,9 @@ connection, bound parameters): `GET /lake/datasets`,
 - Everything is versioned under `/api/v1`; breaking changes ship under a
   new version prefix with a deprecation window and migration notes in
   `release-notes.md` (API-016).
-- Responses from `/warehouse` and `/lake` carry `meta` provenance (engine,
-  generated_at; freshness via `/platform/freshness` or the
+- Responses from `/warehouse` and `/lake` carry the same `meta` provenance
+  (dataset, version, engine, generated_at, filters, limit/offset,
+  elapsed_ms; freshness via `/platform/freshness` or the
   `api_replication_freshness` dataset).
 - GET endpoints are safe/idempotent; there is no server-side result cache —
   any client/proxy cache key must include the bearer identity, dataset,

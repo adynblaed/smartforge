@@ -14,7 +14,7 @@ DATASET_COLUMNS = [
     ("marts", "fct_work_orders", "status", "text"),
     ("marts", "fct_work_orders", "due_at", "timestamp without time zone"),
     ("marts", "fct_work_orders", "qty_ordered", "numeric"),
-    ("api", "v_kpis", "kpi", "text"),
+    ("api", "api_work_orders", "status", "text"),
 ]
 
 
@@ -53,9 +53,15 @@ class TestListDatasets:
         assert response.status_code == 200
         body = response.json()
         datasets = {d["dataset"]: d for d in body["data"]}
-        assert set(datasets) == {"marts.fct_work_orders", "api.v_kpis"}
-        assert datasets["api.v_kpis"]["certified"] is True
+        # Certified contracts advertise the bare resource name (the API
+        # version lives once in the URL prefix, and again as explicit
+        # metadata) — never the redundant physical `api.api_*` spelling;
+        # marts keep their dbt layer-qualified names.
+        assert set(datasets) == {"marts.fct_work_orders", "work_orders"}
+        assert datasets["work_orders"]["certified"] is True
+        assert datasets["work_orders"]["version"] == "v1"
         assert datasets["marts.fct_work_orders"]["certified"] is False
+        assert datasets["marts.fct_work_orders"]["version"] is None
         assert datasets["marts.fct_work_orders"]["column_count"] == 4
 
     def test_unreachable_warehouse_503(
@@ -113,10 +119,34 @@ class TestReadDataset:
         assert body["meta"]["engine"] == "postgres"
         assert body["meta"]["dataset"] == "marts.fct_work_orders"
 
+    def test_contract_resource_name_resolves(self, internal_client, fake_warehouse):
+        response = internal_client.get("/api/v1/warehouse/datasets/work_orders")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["meta"]["dataset"] == "work_orders"
+        assert body["meta"]["version"] == "v1"
+
+    def test_legacy_physical_id_still_resolves_canonically(
+        self, internal_client, fake_warehouse
+    ):
+        """API-016: the old spelling keeps working, but provenance and
+        telemetry always report the canonical resource name."""
+        response = internal_client.get(
+            "/api/v1/warehouse/datasets/api.api_work_orders"
+        )
+        assert response.status_code == 200
+        assert response.json()["meta"]["dataset"] == "work_orders"
+
     def test_unknown_dataset_404(self, internal_client, fake_warehouse):
         response = internal_client.get("/api/v1/warehouse/datasets/marts.secret_table")
         assert response.status_code == 404
         assert_clean_error_body(response.json())
+        assert (
+            internal_client.get(
+                "/api/v1/warehouse/datasets/secret_table"
+            ).status_code
+            == 404
+        )
 
     def test_schema_outside_allowlist_404(self, internal_client, fake_warehouse):
         # control/raw_oracle relations are never discoverable (API-003).
@@ -411,6 +441,7 @@ class TestKpis:
         assert set(body["kpis"]) == {
             "production_runs_30d",
             "open_work_orders",
+            "closed_work_orders_30d",
             "machines_tracked",
             "quality_pass_rate_30d",
             "open_backlog_value",

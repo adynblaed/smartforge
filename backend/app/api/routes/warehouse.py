@@ -21,8 +21,10 @@ from __future__ import annotations
 import datetime as dt
 import decimal
 import logging
+import threading
 import time
 from typing import Any
+from weakref import WeakKeyDictionary
 
 import sqlalchemy as sa
 from fastapi import APIRouter, HTTPException, Query, Request
@@ -36,6 +38,25 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/warehouse", tags=["warehouse"])
 
 _ALLOWED_SCHEMAS = ("marts", "api")
+
+# Dataset naming convention (industry-standard URI versioning, applied
+# once): the API version lives solely in the route prefix (/api/v1/…) —
+# never repeated inside resource ids. Certified contracts from the `api`
+# schema are addressed by their bare resource name (`work_orders`; the
+# physical `api.api_{name}` spelling is redundant) and carry an explicit
+# `version` metadata field. Physical marts keep their dbt layer-qualified
+# names (`marts.fct_*`) — they are the modeling layer, not the contract.
+# Legacy `api.api_*` ids remain accepted so existing clients keep working
+# (API-016: deprecate with migration, never break).
+_CONTRACT_SCHEMA = "api"
+_CONTRACT_TABLE_PREFIX = "api_"
+_CONTRACT_VERSION = "v1"
+
+
+def _canonical_dataset_id(schema: str, table: str) -> str:
+    if schema == _CONTRACT_SCHEMA:
+        return table.removeprefix(_CONTRACT_TABLE_PREFIX)
+    return f"{schema}.{table}"
 
 # Query-builder operator allowlist (IQ-004). Filter params are `column`
 # (equality) or `column__op`; anything else is rejected with 422.
@@ -115,6 +136,22 @@ def _build_filter_predicates(
     return predicates, binds
 
 
+# PostgreSQL sqlstate for statement_timeout cancellation (query_canceled).
+_PG_QUERY_CANCELED = "57014"
+
+
+def _raise_if_query_timeout(exc: Exception) -> None:
+    """Map a statement-timeout to 504 (contract parity with /lake, which
+    maps its DuckDB watchdog interruption the same way) so clients get one
+    uniform 'query exceeded the time limit' signal on both engines."""
+    sqlstate = getattr(getattr(exc, "orig", None), "sqlstate", None)
+    if sqlstate == _PG_QUERY_CANCELED:
+        logger.warning("warehouse query hit the statement timeout (API-008)")
+        raise HTTPException(
+            status_code=504, detail="Warehouse query exceeded the time limit"
+        ) from None
+
+
 def _warehouse_unavailable() -> HTTPException:
     """503 with a safe body — and ALWAYS a server-side log trail (OBS-004):
     a degraded dependency must never be invisible to operators."""
@@ -125,10 +162,38 @@ def _warehouse_unavailable() -> HTTPException:
     )
 
 
+# Schema-catalog memoization: the dataset allowlist is identity-independent
+# metadata (schemas/columns/planner estimates — never data rows), so a short
+# TTL per ENGINE keeps information_schema scans off the hot path under
+# concurrent traffic without violating the no-result-cache policy (API-013:
+# result caches must key on identity+filters; this caches the catalog only).
+# Keying on the engine object keeps tests (fresh FakeEngine per test) and
+# credential rotations (new lru_cache engine) naturally isolated.
+_DISCOVERY_TTL_SECONDS = 30.0
+_discovery_cache: WeakKeyDictionary[Any, tuple[float, dict[str, dict[str, Any]]]] = (
+    WeakKeyDictionary()
+)
+_discovery_lock = threading.Lock()
+
+
 def _discover_datasets() -> dict[str, dict[str, Any]]:
+    engine = api_engine()
+    with _discovery_lock:
+        cached = _discovery_cache.get(engine)
+        if (
+            cached is not None
+            and time.monotonic() - cached[0] < _DISCOVERY_TTL_SECONDS
+        ):
+            return cached[1]
+    datasets = _discover_datasets_uncached(engine)
+    with _discovery_lock:
+        _discovery_cache[engine] = (time.monotonic(), datasets)
+    return datasets
+
+
+def _discover_datasets_uncached(engine: Any) -> dict[str, dict[str, Any]]:
     """Allowlist: every relation in marts/api, with its columns."""
     settings = get_platform_settings()
-    engine = api_engine()
     with engine.connect() as connection:
         # Same guardrails as every governed read (API-007/008): transaction
         # mode is set FIRST (it must precede any query in the transaction),
@@ -148,12 +213,40 @@ def _discover_datasets() -> dict[str, dict[str, Any]]:
             ),
             {"schemas": list(_ALLOWED_SCHEMAS)},
         ).fetchall()
+        # Planner row estimates from the catalog (no table scans): tables
+        # and matviews report reltuples; plain views have no estimate.
+        estimates = {
+            (schema, name): int(reltuples)
+            for schema, name, reltuples in connection.execute(
+                sa.text(
+                    """
+                    SELECT n.nspname, c.relname, c.reltuples
+                      FROM pg_class c
+                      JOIN pg_namespace n ON n.oid = c.relnamespace
+                     WHERE n.nspname = ANY(:schemas)
+                       AND c.relkind IN ('r', 'm')
+                       AND c.reltuples >= 0
+                    """
+                ),
+                {"schemas": list(_ALLOWED_SCHEMAS)},
+            ).fetchall()
+        }
     datasets: dict[str, dict[str, Any]] = {}
     for schema, table, column, data_type in rows:
-        key = f"{schema}.{table}"
-        entry = datasets.setdefault(
-            key, {"schema": schema, "name": table, "columns": []}
-        )
+        canonical = _canonical_dataset_id(schema, table)
+        entry = datasets.get(canonical)
+        if entry is None:
+            entry = {
+                "dataset": canonical,
+                "schema": schema,
+                "name": table,
+                "columns": [],
+                "row_estimate": estimates.get((schema, table)),
+            }
+            datasets[canonical] = entry
+            # Deprecated alias: the physical id keeps resolving (API-016).
+            if schema == _CONTRACT_SCHEMA:
+                datasets[f"{schema}.{table}"] = entry
         entry["columns"].append({"name": column, "type": data_type})
     return datasets
 
@@ -164,6 +257,9 @@ def list_datasets(_: InternalUser) -> dict[str, Any]:
         datasets = _discover_datasets()
     except Exception:
         raise _warehouse_unavailable() from None
+    # Canonical ids only — the deprecated `api.api_*` aliases resolve on the
+    # detail route but are not advertised.
+    unique = {value["dataset"]: value for value in datasets.values()}
     return {
         "data": [
             {
@@ -171,12 +267,19 @@ def list_datasets(_: InternalUser) -> dict[str, Any]:
                 "schema": value["schema"],
                 "name": value["name"],
                 "engine": "postgres",
-                "certified": value["schema"] == "api",
+                "certified": value["schema"] == _CONTRACT_SCHEMA,
+                # Contract version is explicit metadata (never baked into
+                # the id — the URL prefix already versions the API).
+                "version": _CONTRACT_VERSION
+                if value["schema"] == _CONTRACT_SCHEMA
+                else None,
                 "column_count": len(value["columns"]),
+                # Planner estimate (tables/matviews); null for plain views.
+                "row_estimate": value["row_estimate"],
             }
-            for key, value in sorted(datasets.items())
+            for key, value in sorted(unique.items())
         ],
-        "count": len(datasets),
+        "count": len(unique),
     }
 
 
@@ -192,9 +295,12 @@ def read_dataset(
 ) -> dict[str, Any]:
     """Paginated rows from one allowlisted mart/api view.
 
-    Filters are query params on allowlisted columns: `column=value` for
-    equality, or `column__op=value` with op in eq/neq/gt/gte/lt/lte/contains,
-    e.g. /warehouse/datasets/api.api_work_orders?status=open&due_at__lte=2026-08-01
+    Certified contracts are addressed by bare resource name
+    (`work_orders`); physical marts by dbt layer (`marts.{name}`); the API
+    version lives once in the route prefix. Filters are query params on
+    allowlisted columns: `column=value` for equality, or `column__op=value`
+    with op in eq/neq/gt/gte/lt/lte/contains, e.g.
+    /warehouse/datasets/work_orders?status=open&due_at__lte=2026-08-01
     """
     settings = get_platform_settings()
     try:
@@ -205,6 +311,9 @@ def read_dataset(
     if dataset not in datasets:
         raise HTTPException(status_code=404, detail="Unknown dataset")
     meta = datasets[dataset]
+    # Telemetry and provenance always speak the canonical id, whichever
+    # spelling the client used (consistent logging exchange).
+    canonical = meta["dataset"]
     column_names = {c["name"] for c in meta["columns"]}
     column_types = {c["name"]: c["type"] for c in meta["columns"]}
 
@@ -249,7 +358,8 @@ def read_dataset(
             )
     except HTTPException:
         raise
-    except Exception:
+    except Exception as exc:
+        _raise_if_query_timeout(exc)
         logger.exception("warehouse dataset query failed for %s", dataset)
         raise _warehouse_unavailable() from None
 
@@ -259,7 +369,7 @@ def read_dataset(
     logger.info(
         "warehouse dataset read dataset=%s rows=%d elapsed_ms=%d engine=postgres "
         "filter_columns=%s request_id=%s",
-        dataset,
+        canonical,
         len(rows),
         elapsed_ms,
         sorted(filters),
@@ -269,7 +379,10 @@ def read_dataset(
         "data": [dict(r) for r in rows],
         "count": int(total or 0),
         "meta": {
-            "dataset": dataset,
+            "dataset": canonical,
+            "version": _CONTRACT_VERSION
+            if meta["schema"] == _CONTRACT_SCHEMA
+            else None,
             "engine": "postgres",
             "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(),
             "limit": limit,
@@ -292,6 +405,8 @@ def warehouse_kpis(request: Request, _: InternalUser) -> dict[str, Any]:
         "WHERE run_started_at > now() - interval '30 days'",
         "open_work_orders": "SELECT count(*) FROM marts.fct_work_orders "
         "WHERE NOT is_closed",
+        "closed_work_orders_30d": "SELECT count(*) FROM marts.fct_work_orders "
+        "WHERE is_closed AND completed_at > now() - interval '30 days'",
         "machines_tracked": "SELECT count(*) FROM marts.dim_machines",
         "quality_pass_rate_30d": "SELECT round(avg(CASE WHEN passed THEN 1 ELSE 0 END) * 100, 1) "
         "FROM marts.fct_quality_inspections "
@@ -331,7 +446,7 @@ def warehouse_kpis(request: Request, _: InternalUser) -> dict[str, Any]:
     logger.info(
         "warehouse dataset read dataset=%s rows=%d elapsed_ms=%d engine=postgres "
         "filter_columns=%s request_id=%s",
-        "warehouse.kpis",
+        "kpis",
         len(kpis),
         elapsed_ms,
         [],

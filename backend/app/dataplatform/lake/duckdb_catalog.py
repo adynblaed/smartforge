@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import logging
 import threading
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from typing import Any
 
@@ -101,18 +101,23 @@ def refresh_catalog(
     return registered
 
 
-def query_readonly(
-    sql: str,
-    params: list[Any] | None = None,
+QueryRunner = Callable[..., tuple[list[str], list[tuple[Any, ...]]]]
+
+
+@contextmanager
+def read_scope(
     settings: PlatformSettings | None = None,
     *,
     timeout_ms: int | None = None,
-) -> tuple[list[str], list[tuple[Any, ...]]]:
-    """Execute an internally-built, parameterized query read-only.
-
-    Execution is bounded (DDB-006): a watchdog timer interrupts the DuckDB
-    connection after API_STATEMENT_TIMEOUT_MS (or the explicit override) and
-    the interruption surfaces as LakeQueryTimeoutError with a safe message.
+) -> Iterator[QueryRunner]:
+    """One read-only connection + one watchdog for a whole request's worth
+    of queries. A governed lake read runs several internally-built
+    statements (column probe, count, page); scoping them to a single
+    catalog open keeps per-request cost flat under concurrency instead of
+    paying the file-open/attach price per statement. The shared execution
+    budget (DDB-006) covers the scope: the watchdog interrupts the
+    connection after API_STATEMENT_TIMEOUT_MS and the interruption
+    surfaces as LakeQueryTimeoutError with a safe message.
     """
     resolved = settings or get_platform_settings()
     timeout_seconds = (
@@ -122,17 +127,38 @@ def query_readonly(
         watchdog = threading.Timer(timeout_seconds, connection.interrupt)
         watchdog.daemon = True
         watchdog.start()
+
+        def run(
+            sql: str, params: list[Any] | None = None
+        ) -> tuple[list[str], list[tuple[Any, ...]]]:
+            try:
+                cursor = connection.execute(sql, params or [])
+                column_names = [d[0] for d in cursor.description or []]
+                return column_names, cursor.fetchall()
+            except duckdb.InterruptException as exc:
+                logger.warning(
+                    "lake query interrupted after %.3fs (DDB-006)",
+                    timeout_seconds,
+                )
+                raise LakeQueryTimeoutError() from exc
+
         try:
-            cursor = connection.execute(sql, params or [])
-            column_names = [d[0] for d in cursor.description or []]
-            return column_names, cursor.fetchall()
-        except duckdb.InterruptException as exc:
-            logger.warning(
-                "lake query interrupted after %.3fs (DDB-006)", timeout_seconds
-            )
-            raise LakeQueryTimeoutError() from exc
+            yield run
         finally:
             watchdog.cancel()
+
+
+def query_readonly(
+    sql: str,
+    params: list[Any] | None = None,
+    settings: PlatformSettings | None = None,
+    *,
+    timeout_ms: int | None = None,
+) -> tuple[list[str], list[tuple[Any, ...]]]:
+    """Execute one internally-built, parameterized query read-only —
+    a single-statement read_scope (same bounded-execution guarantees)."""
+    with read_scope(settings, timeout_ms=timeout_ms) as run:
+        return run(sql, params)
 
 
 def list_relations(settings: PlatformSettings | None = None) -> list[dict[str, str]]:
