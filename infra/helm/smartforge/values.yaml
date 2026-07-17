@@ -214,9 +214,13 @@ oracle:
 #   secrets.app.existingSecret:
 #     SECRET_KEY               (required)
 #     FIRST_SUPERUSER_PASSWORD (required)
+#     SANDBOX_USER_PASSWORD    (required — seeded tier-sandbox accounts; the
+#                               app refuses known defaults outside local)
 #     SMTP_PASSWORD            (optional)
 #     FIIX_API_KEY             (optional)
 #     QDRANT_API_KEY           (optional — usually empty for in-cluster Qdrant)
+#     METRICS_BEARER_TOKEN     (optional — static bearer for /api/v1/metrics;
+#                               empty keeps the scrape endpoint in-network-open)
 #   secrets.anthropic.existingSecret:
 #     ANTHROPIC_API_KEY        (optional — empty selects the deterministic
 #                               offline AskAI fallback)
@@ -244,6 +248,17 @@ config:
   frontendHost: ""
   # Comma-separated. Defaults to https://dashboard.<domain> when empty.
   corsOrigins: ""
+  # Host-header allowlist (TrustedHostMiddleware), comma-separated. Defaults
+  # to the API ingress host (api.<domain>). The app REFUSES to start in
+  # production with "*", and the chart's probes send this host.
+  allowedHosts: ""
+  # Interactive API docs (/docs Swagger UI, /redoc, /api/v1/openapi.json).
+  # Served in every environment; "false" withdraws the surface.
+  apiDocsEnabled: "true"
+  # Feature-gate overrides (comma-separated feature keys; tier overrides
+  # only — never bypass authentication or the customer boundary).
+  featureFlagsEnable: ""
+  featureFlagsDisable: ""
   firstSuperuser: admin@futureform.com
   emailsFromEmail: admin@futureform.com
   smtp:

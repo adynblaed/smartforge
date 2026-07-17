@@ -86,10 +86,17 @@ spec:
                   key: WAREHOUSE_API_PASSWORD
                   optional: true
           {{- include "smartforge.pythonContainerSecurityContext" . | nindent 10 }}
+          # Probes send the API host in the Host header: kubelet defaults to
+          # the pod IP, which the TrustedHostMiddleware allowlist
+          # (ALLOWED_HOSTS, enforced in production) would reject as
+          # Host-header injection.
           livenessProbe:
             httpGet:
               path: /api/v1/utils/health-check/
               port: http
+              httpHeaders:
+                - name: Host
+                  value: {{ include "smartforge.apiHost" . | quote }}
             initialDelaySeconds: 15
             periodSeconds: 10
             timeoutSeconds: 5
@@ -98,6 +105,9 @@ spec:
             httpGet:
               path: /api/v1/utils/health-check/
               port: http
+              httpHeaders:
+                - name: Host
+                  value: {{ include "smartforge.apiHost" . | quote }}
             initialDelaySeconds: 5
             periodSeconds: 10
             timeoutSeconds: 5

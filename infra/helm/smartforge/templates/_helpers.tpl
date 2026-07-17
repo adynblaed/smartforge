@@ -126,6 +126,15 @@ ENVIRONMENT: {{ .Values.environment | quote }}
 PROJECT_NAME: {{ .Values.config.projectName | quote }}
 FRONTEND_HOST: {{ default (printf "https://%s" (include "smartforge.dashboardHost" .)) .Values.config.frontendHost | quote }}
 BACKEND_CORS_ORIGINS: {{ default (printf "https://%s" (include "smartforge.dashboardHost" .)) .Values.config.corsOrigins | quote }}
+# Host-header allowlist (TrustedHostMiddleware). The app REFUSES to start in
+# production with "*"; defaults to the API ingress host. Probes send a
+# matching Host header (backend-deployment.yaml).
+ALLOWED_HOSTS: {{ default (include "smartforge.apiHost" .) .Values.config.allowedHosts | quote }}
+# Interactive API docs (/docs, /redoc, /api/v1/openapi.json).
+API_DOCS_ENABLED: {{ .Values.config.apiDocsEnabled | quote }}
+# Feature-gate overrides (comma-separated keys; never bypass auth).
+FEATURE_FLAGS_ENABLE: {{ .Values.config.featureFlagsEnable | quote }}
+FEATURE_FLAGS_DISABLE: {{ .Values.config.featureFlagsDisable | quote }}
 FIRST_SUPERUSER: {{ .Values.config.firstSuperuser | quote }}
 EMAILS_FROM_EMAIL: {{ .Values.config.emailsFromEmail | quote }}
 SMTP_HOST: {{ .Values.config.smtp.host | quote }}
@@ -195,11 +204,27 @@ Secret-backed env fragments (shared across backend / workers / prestart).
     secretKeyRef:
       name: {{ include "smartforge.appSecretName" . }}
       key: FIRST_SUPERUSER_PASSWORD
+# REQUIRED outside local: the seeded tier-sandbox accounts' password. The
+# app refuses to start in staging/production while this is the known
+# default ("changethis") — provision a real value in the app Secret.
+- name: SANDBOX_USER_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "smartforge.appSecretName" . }}
+      key: SANDBOX_USER_PASSWORD
 - name: SMTP_PASSWORD
   valueFrom:
     secretKeyRef:
       name: {{ include "smartforge.appSecretName" . }}
       key: SMTP_PASSWORD
+      optional: true
+# Optional: static bearer for GET /api/v1/metrics (empty/absent = open for
+# in-network scrapers; the NetworkPolicy is the primary boundary).
+- name: METRICS_BEARER_TOKEN
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "smartforge.appSecretName" . }}
+      key: METRICS_BEARER_TOKEN
       optional: true
 {{- end -}}
 

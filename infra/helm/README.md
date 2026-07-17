@@ -60,7 +60,7 @@ contract consumed by the chart:
 
 | Values key                        | Secret keys |
 |-----------------------------------|-------------|
-| `secrets.app.existingSecret`      | `SECRET_KEY`, `FIRST_SUPERUSER_PASSWORD`, `SMTP_PASSWORD`?, `FIIX_API_KEY`?, `QDRANT_API_KEY`? |
+| `secrets.app.existingSecret`      | `SECRET_KEY`, `FIRST_SUPERUSER_PASSWORD`, `SANDBOX_USER_PASSWORD`, `SMTP_PASSWORD`?, `FIIX_API_KEY`?, `QDRANT_API_KEY`?, `METRICS_BEARER_TOKEN`? |
 | `postgres.existingSecret`         | `POSTGRES_PASSWORD` |
 | `warehouse.existingSecret`        | `WAREHOUSE_LOADER_PASSWORD`, `WAREHOUSE_DBT_PASSWORD`, `WAREHOUSE_API_PASSWORD` |
 | `oracle.existingSecret`           | `OMEGA_ORACLE_PASSWORD` |
@@ -72,6 +72,7 @@ Keys marked `?` are optional (`secretKeyRef.optional: true`).
 kubectl -n smartforge create secret generic smartforge-app \
   --from-literal=SECRET_KEY="$(openssl rand -hex 32)" \
   --from-literal=FIRST_SUPERUSER_PASSWORD='...' \
+  --from-literal=SANDBOX_USER_PASSWORD='...' \
   --from-literal=SMTP_PASSWORD='...' \
   --from-literal=FIIX_API_KEY='...'
 kubectl -n smartforge create secret generic smartforge-postgres \

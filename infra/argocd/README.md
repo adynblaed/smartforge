@@ -65,6 +65,36 @@ it leaves git ahead of the cluster (and selfHeal/auto-sync would re-apply git)
 does not downgrade the database; alembic migrations must stay
 backward-compatible one release back.
 
+## v1.0.0 config contract (what a sync needs to come up clean)
+
+The backend validates its configuration at import time and **refuses to
+start** on known-bad values, so a mis-provisioned environment fails the
+rollout at the first pod — loudly, not silently:
+
+- Secrets must not be known defaults (`SECRET_KEY`,
+  `FIRST_SUPERUSER_PASSWORD`, `SANDBOX_USER_PASSWORD`, `POSTGRES_PASSWORD` —
+  refused outside local). The full per-domain Secret contract is in
+  `../helm/README.md`; `SANDBOX_USER_PASSWORD` is REQUIRED in the app
+  Secret.
+- `ALLOWED_HOSTS` must not be `*` in production — the chart defaults it to
+  the API ingress host and points the liveness/readiness probes' Host
+  header at it, so probes pass the TrustedHost allowlist.
+- `FRONTEND_HOST` must not be localhost in production — the chart defaults
+  it to `https://dashboard.<domain>` (also the CORS default).
+
+Launch ordering is idempotent by construction: Secrets render as pre-*
+hooks → the prestart Job (PreSync) waits for the DB, runs alembic and the
+idempotent seed → workloads roll only after migrations land. Repeat syncs
+and `compose up`/`down` cycles converge to the same state. The
+data-platform side has its own gate: run
+`python -m app.dataplatform.cli preflight` in a backend pod after the
+first sync (CICD-011).
+
+Operational toggles exposed as chart values: `config.apiDocsEnabled`
+(/docs + /redoc, on by default), `config.allowedHosts`,
+`config.featureFlagsEnable/Disable`, and the optional
+`METRICS_BEARER_TOKEN` app-secret key for the Prometheus scrape endpoint.
+
 ## Day-2 tips
 
 - `argocd app diff smartforge-production` before syncing production.
