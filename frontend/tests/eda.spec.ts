@@ -1,41 +1,39 @@
 import { expect, test } from "@playwright/test"
 
-// Data Platform observability page (front-to-back over /api/v1/platform,
-// /warehouse and /lake). In a freshly provisioned sandbox those stores may not
-// exist yet and every section must degrade to its informative empty state —
+// EDA observability page (front-to-back over /api/v1/platform, /warehouse
+// and /lake). In a freshly provisioned sandbox those stores may not exist
+// yet and every section must degrade to its informative empty state —
 // never a crash or a blank screen. Uses the authenticated superuser state
 // (chromium project depends on the auth setup, same as validation.spec.ts).
 
-test("data platform page renders shell + breadcrumbs", async ({ page }) => {
-  await page.goto("/data-platform")
+test("eda page renders shell + breadcrumbs", async ({ page }) => {
+  await page.goto("/eda")
   await expect(
-    page.getByRole("heading", { name: "Data Platform" }),
+    page.getByRole("heading", { name: "Exploratory Data Analysis" }),
   ).toBeVisible()
   const bc = page.getByTestId("breadcrumbs")
   await expect(bc).toBeVisible()
-  await expect(bc.getByText("Datasources")).toBeVisible()
-  await expect(bc.getByText("Data Platform")).toBeVisible()
+  await expect(bc.getByText("Smart Services")).toBeVisible()
+  await expect(bc.getByText("EDA")).toBeVisible()
 })
 
-test("sidebar exposes Data Platform under Datasources", async ({ page }) => {
+test("sidebar exposes EDA under Smart Services", async ({ page }) => {
   await page.goto("/command-center")
-  await page.getByRole("link", { name: "Data Platform" }).click()
-  await expect(page).toHaveURL(/\/data-platform/)
+  await page.getByRole("link", { name: "EDA", exact: true }).click()
+  await expect(page).toHaveURL(/\/eda/)
   await expect(
-    page.getByRole("heading", { name: "Data Platform" }),
+    page.getByRole("heading", { name: "Exploratory Data Analysis" }),
   ).toBeVisible()
 })
 
 test("every section renders data or the not-provisioned empty state", async ({
   page,
 }) => {
-  await page.goto("/data-platform")
+  await page.goto("/eda")
   for (const title of [
-    "Replication Freshness",
+    "Recent Updates",
     "Work Orders Explorer",
-    "Recent Replication Runs",
-    "Reconciliation Results",
-    "Warehouse Marts & KPIs",
+    "Warehouse Marts & Datasets",
     "Lake Datasets & Load Manifests",
   ]) {
     await expect(page.getByText(title, { exact: true })).toBeVisible()
@@ -54,7 +52,7 @@ test("every section renders data or the not-provisioned empty state", async ({
 test("work orders explorer exposes the read-only query builder", async ({
   page,
 }) => {
-  await page.goto("/data-platform")
+  await page.goto("/eda")
   await expect(page.getByRole("button", { name: "Run query" })).toBeVisible()
   await expect(page.getByRole("button", { name: "Add filter" })).toBeVisible()
   await expect(page.getByText("certified · read-only")).toBeVisible()

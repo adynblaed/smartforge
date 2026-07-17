@@ -30,6 +30,7 @@ import { Route as LayoutQuotesRouteImport } from "./routes/_layout/quotes"
 import { Route as LayoutQualityRouteImport } from "./routes/_layout/quality"
 import { Route as LayoutOrderTrackerRouteImport } from "./routes/_layout/order-tracker"
 import { Route as LayoutOptimizationRouteImport } from "./routes/_layout/optimization"
+import { Route as LayoutOmegaRouteImport } from "./routes/_layout/omega"
 import { Route as LayoutMrpRouteImport } from "./routes/_layout/mrp"
 import { Route as LayoutMachinesRouteImport } from "./routes/_layout/machines"
 import { Route as LayoutLogsRouteImport } from "./routes/_layout/logs"
@@ -37,10 +38,10 @@ import { Route as LayoutKnowledgeBasesRouteImport } from "./routes/_layout/knowl
 import { Route as LayoutItemsRouteImport } from "./routes/_layout/items"
 import { Route as LayoutIntegrationsRouteImport } from "./routes/_layout/integrations"
 import { Route as LayoutIncidentsRouteImport } from "./routes/_layout/incidents"
+import { Route as LayoutFeedbackRouteImport } from "./routes/_layout/feedback"
 import { Route as LayoutFactoryMapRouteImport } from "./routes/_layout/factory-map"
-import { Route as LayoutEscalationsRouteImport } from "./routes/_layout/escalations"
+import { Route as LayoutEdaRouteImport } from "./routes/_layout/eda"
 import { Route as LayoutDatasourcesRouteImport } from "./routes/_layout/datasources"
-import { Route as LayoutDataPlatformRouteImport } from "./routes/_layout/data-platform"
 import { Route as LayoutCommandCenterRouteImport } from "./routes/_layout/command-center"
 import { Route as LayoutAskAiRouteImport } from "./routes/_layout/ask-ai"
 import { Route as LayoutAnalyticsRouteImport } from "./routes/_layout/analytics"
@@ -151,6 +152,11 @@ const LayoutOptimizationRoute = LayoutOptimizationRouteImport.update({
   path: "/optimization",
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutOmegaRoute = LayoutOmegaRouteImport.update({
+  id: "/omega",
+  path: "/omega",
+  getParentRoute: () => LayoutRoute,
+} as any)
 const LayoutMrpRoute = LayoutMrpRouteImport.update({
   id: "/mrp",
   path: "/mrp",
@@ -186,24 +192,24 @@ const LayoutIncidentsRoute = LayoutIncidentsRouteImport.update({
   path: "/incidents",
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutFeedbackRoute = LayoutFeedbackRouteImport.update({
+  id: "/feedback",
+  path: "/feedback",
+  getParentRoute: () => LayoutRoute,
+} as any)
 const LayoutFactoryMapRoute = LayoutFactoryMapRouteImport.update({
   id: "/factory-map",
   path: "/factory-map",
   getParentRoute: () => LayoutRoute,
 } as any)
-const LayoutEscalationsRoute = LayoutEscalationsRouteImport.update({
-  id: "/escalations",
-  path: "/escalations",
+const LayoutEdaRoute = LayoutEdaRouteImport.update({
+  id: "/eda",
+  path: "/eda",
   getParentRoute: () => LayoutRoute,
 } as any)
 const LayoutDatasourcesRoute = LayoutDatasourcesRouteImport.update({
   id: "/datasources",
   path: "/datasources",
-  getParentRoute: () => LayoutRoute,
-} as any)
-const LayoutDataPlatformRoute = LayoutDataPlatformRouteImport.update({
-  id: "/data-platform",
-  path: "/data-platform",
   getParentRoute: () => LayoutRoute,
 } as any)
 const LayoutCommandCenterRoute = LayoutCommandCenterRouteImport.update({
@@ -245,10 +251,10 @@ export interface FileRoutesByFullPath {
   "/analytics": typeof LayoutAnalyticsRoute
   "/ask-ai": typeof LayoutAskAiRoute
   "/command-center": typeof LayoutCommandCenterRoute
-  "/data-platform": typeof LayoutDataPlatformRoute
   "/datasources": typeof LayoutDatasourcesRoute
-  "/escalations": typeof LayoutEscalationsRoute
+  "/eda": typeof LayoutEdaRoute
   "/factory-map": typeof LayoutFactoryMapRoute
+  "/feedback": typeof LayoutFeedbackRoute
   "/incidents": typeof LayoutIncidentsRoute
   "/integrations": typeof LayoutIntegrationsRoute
   "/items": typeof LayoutItemsRoute
@@ -256,6 +262,7 @@ export interface FileRoutesByFullPath {
   "/logs": typeof LayoutLogsRoute
   "/machines": typeof LayoutMachinesRoute
   "/mrp": typeof LayoutMrpRoute
+  "/omega": typeof LayoutOmegaRoute
   "/optimization": typeof LayoutOptimizationRoute
   "/order-tracker": typeof LayoutOrderTrackerRoute
   "/quality": typeof LayoutQualityRoute
@@ -281,10 +288,10 @@ export interface FileRoutesByTo {
   "/analytics": typeof LayoutAnalyticsRoute
   "/ask-ai": typeof LayoutAskAiRoute
   "/command-center": typeof LayoutCommandCenterRoute
-  "/data-platform": typeof LayoutDataPlatformRoute
   "/datasources": typeof LayoutDatasourcesRoute
-  "/escalations": typeof LayoutEscalationsRoute
+  "/eda": typeof LayoutEdaRoute
   "/factory-map": typeof LayoutFactoryMapRoute
+  "/feedback": typeof LayoutFeedbackRoute
   "/incidents": typeof LayoutIncidentsRoute
   "/integrations": typeof LayoutIntegrationsRoute
   "/items": typeof LayoutItemsRoute
@@ -292,6 +299,7 @@ export interface FileRoutesByTo {
   "/logs": typeof LayoutLogsRoute
   "/machines": typeof LayoutMachinesRoute
   "/mrp": typeof LayoutMrpRoute
+  "/omega": typeof LayoutOmegaRoute
   "/optimization": typeof LayoutOptimizationRoute
   "/order-tracker": typeof LayoutOrderTrackerRoute
   "/quality": typeof LayoutQualityRoute
@@ -321,10 +329,10 @@ export interface FileRoutesById {
   "/_layout/analytics": typeof LayoutAnalyticsRoute
   "/_layout/ask-ai": typeof LayoutAskAiRoute
   "/_layout/command-center": typeof LayoutCommandCenterRoute
-  "/_layout/data-platform": typeof LayoutDataPlatformRoute
   "/_layout/datasources": typeof LayoutDatasourcesRoute
-  "/_layout/escalations": typeof LayoutEscalationsRoute
+  "/_layout/eda": typeof LayoutEdaRoute
   "/_layout/factory-map": typeof LayoutFactoryMapRoute
+  "/_layout/feedback": typeof LayoutFeedbackRoute
   "/_layout/incidents": typeof LayoutIncidentsRoute
   "/_layout/integrations": typeof LayoutIntegrationsRoute
   "/_layout/items": typeof LayoutItemsRoute
@@ -332,6 +340,7 @@ export interface FileRoutesById {
   "/_layout/logs": typeof LayoutLogsRoute
   "/_layout/machines": typeof LayoutMachinesRoute
   "/_layout/mrp": typeof LayoutMrpRoute
+  "/_layout/omega": typeof LayoutOmegaRoute
   "/_layout/optimization": typeof LayoutOptimizationRoute
   "/_layout/order-tracker": typeof LayoutOrderTrackerRoute
   "/_layout/quality": typeof LayoutQualityRoute
@@ -362,10 +371,10 @@ export interface FileRouteTypes {
     | "/analytics"
     | "/ask-ai"
     | "/command-center"
-    | "/data-platform"
     | "/datasources"
-    | "/escalations"
+    | "/eda"
     | "/factory-map"
+    | "/feedback"
     | "/incidents"
     | "/integrations"
     | "/items"
@@ -373,6 +382,7 @@ export interface FileRouteTypes {
     | "/logs"
     | "/machines"
     | "/mrp"
+    | "/omega"
     | "/optimization"
     | "/order-tracker"
     | "/quality"
@@ -398,10 +408,10 @@ export interface FileRouteTypes {
     | "/analytics"
     | "/ask-ai"
     | "/command-center"
-    | "/data-platform"
     | "/datasources"
-    | "/escalations"
+    | "/eda"
     | "/factory-map"
+    | "/feedback"
     | "/incidents"
     | "/integrations"
     | "/items"
@@ -409,6 +419,7 @@ export interface FileRouteTypes {
     | "/logs"
     | "/machines"
     | "/mrp"
+    | "/omega"
     | "/optimization"
     | "/order-tracker"
     | "/quality"
@@ -437,10 +448,10 @@ export interface FileRouteTypes {
     | "/_layout/analytics"
     | "/_layout/ask-ai"
     | "/_layout/command-center"
-    | "/_layout/data-platform"
     | "/_layout/datasources"
-    | "/_layout/escalations"
+    | "/_layout/eda"
     | "/_layout/factory-map"
+    | "/_layout/feedback"
     | "/_layout/incidents"
     | "/_layout/integrations"
     | "/_layout/items"
@@ -448,6 +459,7 @@ export interface FileRouteTypes {
     | "/_layout/logs"
     | "/_layout/machines"
     | "/_layout/mrp"
+    | "/_layout/omega"
     | "/_layout/optimization"
     | "/_layout/order-tracker"
     | "/_layout/quality"
@@ -624,6 +636,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof LayoutOptimizationRouteImport
       parentRoute: typeof LayoutRoute
     }
+    "/_layout/omega": {
+      id: "/_layout/omega"
+      path: "/omega"
+      fullPath: "/omega"
+      preLoaderRoute: typeof LayoutOmegaRouteImport
+      parentRoute: typeof LayoutRoute
+    }
     "/_layout/mrp": {
       id: "/_layout/mrp"
       path: "/mrp"
@@ -673,6 +692,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof LayoutIncidentsRouteImport
       parentRoute: typeof LayoutRoute
     }
+    "/_layout/feedback": {
+      id: "/_layout/feedback"
+      path: "/feedback"
+      fullPath: "/feedback"
+      preLoaderRoute: typeof LayoutFeedbackRouteImport
+      parentRoute: typeof LayoutRoute
+    }
     "/_layout/factory-map": {
       id: "/_layout/factory-map"
       path: "/factory-map"
@@ -680,11 +706,11 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof LayoutFactoryMapRouteImport
       parentRoute: typeof LayoutRoute
     }
-    "/_layout/escalations": {
-      id: "/_layout/escalations"
-      path: "/escalations"
-      fullPath: "/escalations"
-      preLoaderRoute: typeof LayoutEscalationsRouteImport
+    "/_layout/eda": {
+      id: "/_layout/eda"
+      path: "/eda"
+      fullPath: "/eda"
+      preLoaderRoute: typeof LayoutEdaRouteImport
       parentRoute: typeof LayoutRoute
     }
     "/_layout/datasources": {
@@ -692,13 +718,6 @@ declare module "@tanstack/react-router" {
       path: "/datasources"
       fullPath: "/datasources"
       preLoaderRoute: typeof LayoutDatasourcesRouteImport
-      parentRoute: typeof LayoutRoute
-    }
-    "/_layout/data-platform": {
-      id: "/_layout/data-platform"
-      path: "/data-platform"
-      fullPath: "/data-platform"
-      preLoaderRoute: typeof LayoutDataPlatformRouteImport
       parentRoute: typeof LayoutRoute
     }
     "/_layout/command-center": {
@@ -744,10 +763,10 @@ interface LayoutRouteChildren {
   LayoutAnalyticsRoute: typeof LayoutAnalyticsRoute
   LayoutAskAiRoute: typeof LayoutAskAiRoute
   LayoutCommandCenterRoute: typeof LayoutCommandCenterRoute
-  LayoutDataPlatformRoute: typeof LayoutDataPlatformRoute
   LayoutDatasourcesRoute: typeof LayoutDatasourcesRoute
-  LayoutEscalationsRoute: typeof LayoutEscalationsRoute
+  LayoutEdaRoute: typeof LayoutEdaRoute
   LayoutFactoryMapRoute: typeof LayoutFactoryMapRoute
+  LayoutFeedbackRoute: typeof LayoutFeedbackRoute
   LayoutIncidentsRoute: typeof LayoutIncidentsRoute
   LayoutIntegrationsRoute: typeof LayoutIntegrationsRoute
   LayoutItemsRoute: typeof LayoutItemsRoute
@@ -755,6 +774,7 @@ interface LayoutRouteChildren {
   LayoutLogsRoute: typeof LayoutLogsRoute
   LayoutMachinesRoute: typeof LayoutMachinesRoute
   LayoutMrpRoute: typeof LayoutMrpRoute
+  LayoutOmegaRoute: typeof LayoutOmegaRoute
   LayoutOptimizationRoute: typeof LayoutOptimizationRoute
   LayoutOrderTrackerRoute: typeof LayoutOrderTrackerRoute
   LayoutQualityRoute: typeof LayoutQualityRoute
@@ -773,10 +793,10 @@ const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutAnalyticsRoute: LayoutAnalyticsRoute,
   LayoutAskAiRoute: LayoutAskAiRoute,
   LayoutCommandCenterRoute: LayoutCommandCenterRoute,
-  LayoutDataPlatformRoute: LayoutDataPlatformRoute,
   LayoutDatasourcesRoute: LayoutDatasourcesRoute,
-  LayoutEscalationsRoute: LayoutEscalationsRoute,
+  LayoutEdaRoute: LayoutEdaRoute,
   LayoutFactoryMapRoute: LayoutFactoryMapRoute,
+  LayoutFeedbackRoute: LayoutFeedbackRoute,
   LayoutIncidentsRoute: LayoutIncidentsRoute,
   LayoutIntegrationsRoute: LayoutIntegrationsRoute,
   LayoutItemsRoute: LayoutItemsRoute,
@@ -784,6 +804,7 @@ const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutLogsRoute: LayoutLogsRoute,
   LayoutMachinesRoute: LayoutMachinesRoute,
   LayoutMrpRoute: LayoutMrpRoute,
+  LayoutOmegaRoute: LayoutOmegaRoute,
   LayoutOptimizationRoute: LayoutOptimizationRoute,
   LayoutOrderTrackerRoute: LayoutOrderTrackerRoute,
   LayoutQualityRoute: LayoutQualityRoute,

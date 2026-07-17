@@ -45,7 +45,7 @@ export const OPERATORS: Record<FieldType, OperatorOption[]> = {
 }
 
 /**
- * The certified api.api_work_orders contract, as a query-builder registry.
+ * The certified work_orders contract (v1), as a query-builder registry.
  * Keep in sync with dbt/models/api/api_work_orders.sql (additive, API-016).
  */
 export const WORK_ORDER_FIELDS: ExplorerField[] = [
@@ -135,4 +135,57 @@ export function genealogyLevelLabel(depth: number | null | undefined): string {
   if (depth === 1) return "child"
   if (depth === 2) return "grandchild"
   return `level ${depth}`
+}
+
+/* ------------------------------------------------- genealogy statistics */
+
+export interface DescendantStats {
+  children: number
+  grandchildren: number
+}
+
+interface GenealogyRow {
+  work_order_uid: string
+  parent_work_order_uid: string | null
+}
+
+/**
+ * Downstream association counts per work order, computed over the loaded
+ * result set in one O(n) pass: direct children plus their children
+ * (grandchildren). Powers the Genealogy column and the 3D node detail so a
+ * clicked root correlates its whole nested family at a glance.
+ */
+export function descendantStats(
+  rows: GenealogyRow[],
+): Map<string, DescendantStats> {
+  const childrenOf = new Map<string, string[]>()
+  for (const row of rows) {
+    const parent = row.parent_work_order_uid
+    if (!parent) continue
+    const kids = childrenOf.get(parent) ?? []
+    kids.push(row.work_order_uid)
+    childrenOf.set(parent, kids)
+  }
+  const stats = new Map<string, DescendantStats>()
+  for (const row of rows) {
+    const kids = childrenOf.get(row.work_order_uid) ?? []
+    let grandchildren = 0
+    for (const kid of kids) grandchildren += childrenOf.get(kid)?.length ?? 0
+    stats.set(row.work_order_uid, { children: kids.length, grandchildren })
+  }
+  return stats
+}
+
+const plural = (n: number, one: string, many: string): string =>
+  `${n} ${n === 1 ? one : many}`
+
+/** "1 child · 2 grandchildren" — empty string when nothing is downstream. */
+export function formatDescendants(stats: DescendantStats | undefined): string {
+  if (!stats) return ""
+  const parts: string[] = []
+  if (stats.children > 0)
+    parts.push(plural(stats.children, "child", "children"))
+  if (stats.grandchildren > 0)
+    parts.push(plural(stats.grandchildren, "grandchild", "grandchildren"))
+  return parts.join(" · ")
 }
