@@ -147,16 +147,16 @@ def test_forge_ai_overview_highlights_all(internal_client):
     assert len(r.json()["highlight"]) == 3
 
 
-def test_datasource_snapshot_export_import_roundtrip(internal_client):
+def test_datasource_snapshot_export_import_roundtrip(admin_client):
     # export every operational table to one CSV
-    r = internal_client.get("/api/v1/datasources/export")
+    r = admin_client.get("/api/v1/datasources/export")
     assert r.status_code == 200
     csv_text = r.text
     assert csv_text.startswith("table,row")
     assert "machines" in csv_text
 
     # re-import the same snapshot (replaces operational data)
-    imp = internal_client.post(
+    imp = admin_client.post(
         "/api/v1/datasources/import",
         files={"file": ("smart_forge_schema.csv", csv_text, "text/csv")},
     )
@@ -164,43 +164,43 @@ def test_datasource_snapshot_export_import_roundtrip(internal_client):
     assert imp.json()["summary"]["machines"] >= 1
 
     # data is intact after the round-trip
-    assert internal_client.get("/api/v1/machines/").json()["count"] >= 1
-    assert internal_client.get("/api/v1/purchase-orders").json()["count"] >= 1
+    assert admin_client.get("/api/v1/machines/").json()["count"] >= 1
+    assert admin_client.get("/api/v1/purchase-orders").json()["count"] >= 1
 
 
-def test_snapshot_import_rejects_bad_header(internal_client):
-    before = internal_client.get("/api/v1/machines/").json()["count"]
-    r = internal_client.post(
+def test_snapshot_import_rejects_bad_header(admin_client):
+    before = admin_client.get("/api/v1/machines/").json()["count"]
+    r = admin_client.post(
         "/api/v1/datasources/import",
         files={"file": ("x.csv", "foo,bar\n1,2\n", "text/csv")},
     )
     assert r.status_code == 400
     assert "header" in r.json()["detail"].lower()
     # data untouched (parsing/validation happens before any writes)
-    assert internal_client.get("/api/v1/machines/").json()["count"] == before
+    assert admin_client.get("/api/v1/machines/").json()["count"] == before
 
 
-def test_snapshot_import_rejects_bad_json(internal_client):
-    before = internal_client.get("/api/v1/machines/").json()["count"]
-    r = internal_client.post(
+def test_snapshot_import_rejects_bad_json(admin_client):
+    before = admin_client.get("/api/v1/machines/").json()["count"]
+    r = admin_client.post(
         "/api/v1/datasources/import",
         files={"file": ("x.csv", "table,row\nmachines,{not json}\n", "text/csv")},
     )
     assert r.status_code == 400
     assert "json" in r.json()["detail"].lower()
-    assert internal_client.get("/api/v1/machines/").json()["count"] == before
+    assert admin_client.get("/api/v1/machines/").json()["count"] == before
 
 
-def test_snapshot_import_rejects_empty_file(internal_client):
-    r = internal_client.post(
+def test_snapshot_import_rejects_empty_file(admin_client):
+    r = admin_client.post(
         "/api/v1/datasources/import",
         files={"file": ("x.csv", "", "text/csv")},
     )
     assert r.status_code == 400
 
 
-def test_snapshot_export_includes_expected_tables(internal_client):
-    text = internal_client.get("/api/v1/datasources/export").text
+def test_snapshot_export_includes_expected_tables(admin_client):
+    text = admin_client.get("/api/v1/datasources/export").text
     assert text.startswith("table,row")
     for table in ("machines", "purchase_orders", "incidents", "rca_records"):
         assert f"{table}," in text

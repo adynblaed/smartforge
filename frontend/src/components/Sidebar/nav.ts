@@ -25,6 +25,8 @@ import {
   Wrench,
 } from "lucide-react"
 
+import { OmegaIcon } from "@/components/Sidebar/OmegaIcon"
+
 // Single source of truth for app navigation — consumed by the sidebar
 // (AppSidebar) AND the shell breadcrumbs (RouteBreadcrumbs) so the two always
 // stay in parity.
@@ -34,11 +36,31 @@ export type Item = {
   title: string
   path: string
   superuserOnly?: boolean
+  /** Site-wide feature gate key (GET /features); gated items stay hidden
+   * until the server resolves the gate open for this user's tier. */
+  feature?: string
 }
 
 export type NavGroup = {
   label: string
   items: Item[]
+}
+
+/** One filter shared by the sidebar and the landing page so both surfaces
+ * always agree on what this user can see. */
+export function visibleNavGroups(
+  isSuperuser: boolean,
+  featureEnabled: (key: string) => boolean,
+): NavGroup[] {
+  return NAV_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => {
+      if (item.superuserOnly && !isSuperuser) return false
+      if (item.feature && !isSuperuser && !featureEnabled(item.feature))
+        return false
+      return true
+    }),
+  })).filter((group) => group.items.length > 0)
 }
 
 export const NAV_GROUPS: NavGroup[] = [
@@ -52,6 +74,14 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       { icon: Factory, title: "Factory Simulation", path: "/factory-map" },
       { icon: Bot, title: "ForgeAI", path: "/ask-ai" },
+    ],
+  },
+  {
+    label: "Smart Services",
+    items: [
+      { icon: Database, title: "EDA", path: "/eda" },
+      { icon: CalendarRange, title: "MRP", path: "/mrp" },
+      { icon: OmegaIcon as LucideIcon, title: "Omega", path: "/omega" },
     ],
   },
   {
@@ -74,14 +104,6 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    label: "MES",
-    items: [
-      { icon: Server, title: "Services", path: "/services" },
-      { icon: PlugZap, title: "Integrations", path: "/integrations" },
-      { icon: Siren, title: "Incidents", path: "/incidents" },
-    ],
-  },
-  {
     label: "Purchase Orders",
     items: [
       { icon: PackageCheck, title: "Order Tracker", path: "/order-tracker" },
@@ -90,25 +112,38 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    label: "Customer Portals",
-    items: [{ icon: LifeBuoy, title: "Escalations", path: "/escalations" }],
+    label: "MES",
+    items: [
+      { icon: Server, title: "Services", path: "/services" },
+      { icon: PlugZap, title: "Integrations", path: "/integrations" },
+      { icon: Siren, title: "Incidents", path: "/incidents" },
+    ],
   },
   {
     label: "Dashboards",
     items: [
-      { icon: BarChart3, title: "Analytics", path: "/analytics" },
+      {
+        icon: BarChart3,
+        title: "Analytics",
+        path: "/analytics",
+        feature: "analytics_exec",
+      },
       { icon: Users, title: "Admin", path: "/admin", superuserOnly: true },
-      { icon: Terminal, title: "Logs", path: "/logs" },
+      {
+        icon: Terminal,
+        title: "Logs",
+        path: "/logs",
+        feature: "logs_console",
+      },
     ],
   },
   {
     label: "Datasources",
     items: [
-      { icon: Table2, title: "Database Tables", path: "/datasources" },
-      { icon: Database, title: "Data Platform", path: "/data-platform" },
-      { icon: CalendarRange, title: "MRP", path: "/mrp" },
+      { icon: Table2, title: "Service Tables", path: "/datasources" },
       { icon: BookOpen, title: "Forge Facts", path: "/knowledge-bases" },
       { icon: ScrollText, title: "SOPs", path: "/sops" },
+      { icon: LifeBuoy, title: "Feedback", path: "/feedback" },
     ],
   },
 ]

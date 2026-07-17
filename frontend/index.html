@@ -15,13 +15,13 @@
     <script>
       (() => {
         try {
-          var t = localStorage.getItem("vite-ui-theme") || "dark"
+          let t = localStorage.getItem("vite-ui-theme") || "dark"
           if (t === "system") {
             t = window.matchMedia("(prefers-color-scheme: dark)").matches
               ? "dark"
               : "light"
           }
-          var root = document.documentElement
+          const root = document.documentElement
           if (t === "future") root.classList.add("dark", "future")
           else root.classList.add(t)
         } catch (_e) {}

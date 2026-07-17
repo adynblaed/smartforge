@@ -7,14 +7,16 @@ import { Input } from "@/components/ui/input"
 import { sf } from "@/smartforge/api"
 import { PageHeader, Panel, StatusBadge } from "@/smartforge/components"
 import { POLL } from "@/smartforge/constants"
+// The backend contract keeps its original names (Escalation model,
+// /customer/escalations endpoints); "feedback" is the product-facing term.
 import type { Escalation, Page } from "@/smartforge/types"
 
-export const Route = createFileRoute("/_layout/escalations")({
-  component: EscalationsPage,
-  head: () => ({ meta: [{ title: "Escalations - SmartForge" }] }),
+export const Route = createFileRoute("/_layout/feedback")({
+  component: FeedbackPage,
+  head: () => ({ meta: [{ title: "Feedback - SmartForge" }] }),
 })
 
-function EscalationsPage() {
+function FeedbackPage() {
   const { data } = useQuery({
     queryKey: ["escalations"],
     queryFn: () => sf.get<Page<Escalation>>("/customer/escalations"),
@@ -24,17 +26,17 @@ function EscalationsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Customer Escalations"
+        title="User Feedback"
         description="AI-to-human handoffs awaiting a support response."
       />
-      <Panel title="Open & Resolved Escalations">
+      <Panel title="Open & Resolved Feedback">
         <ul className="divide-y">
           {data?.data.map((e) => (
-            <EscalationRow key={e.id} esc={e} />
+            <FeedbackRow key={e.id} esc={e} />
           ))}
           {data?.data.length === 0 && (
             <li className="py-3 text-sm text-muted-foreground">
-              No escalations — low-confidence customer answers appear here.
+              No feedback — low-confidence customer answers appear here.
             </li>
           )}
         </ul>
@@ -43,7 +45,7 @@ function EscalationsPage() {
   )
 }
 
-function EscalationRow({ esc }: { esc: Escalation }) {
+function FeedbackRow({ esc }: { esc: Escalation }) {
   const qc = useQueryClient()
   const [response, setResponse] = useState("")
   const respond = useMutation({

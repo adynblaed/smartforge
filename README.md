@@ -50,17 +50,19 @@ Organized as the app sidebar (breadcrumbs mirror this grouping):
 - **Purchase Orders** — *Order Tracker*, *Supply Chain* (inventory,
   supplier risk, reorder recommendations, live PO operations), and
   *Quotes & Intake* (quote builder with branded PDF + PO review).
-- **Customer Portals** — *Escalations*, plus the customer-facing **Portal**
-  (`/portal`): order tracking and a scoped assistant.
-- **Dashboards** — *Analytics*, *Admin* (user management), and *Logs*.
-- **Datasources** — *Database Tables* (read-only live views with CSV
-  import/export), **Data Platform** (replication freshness, runs,
+- **Software Services** — **Data Platform** (replication freshness, runs,
   reconciliation, warehouse KPIs, lake manifests, and the **Work Orders
   explorer** — a read-only query builder over the certified, UUID-keyed,
-  genealogy-enriched `api.api_work_orders` contract), **MRP** (time-phased
-  supply planning from the governed `api.api_mrp_supply_plan` mart:
+  genealogy-enriched `api.api_work_orders` contract, with a 3D genealogy
+  galaxy and a Plotly EDA charts tab) and **MRP** (time-phased supply
+  planning from the governed `api.api_mrp_supply_plan` mart:
   demand/supply/projected-net per item per day with shortage and
-  safety-stock highlighting plus local what-if), *Forge Facts*, and *SOPs*.
+  safety-stock highlighting plus local what-if). The customer-facing
+  **Portal** (`/portal`) offers order tracking and a scoped assistant.
+- **Dashboards** — *Analytics*, *Admin* (user management), and *Logs*.
+- **Datasources** — *Database Tables* (read-only live views with CSV
+  import/export), *Forge Facts*, *SOPs*, and *Feedback* (AI-to-human
+  handoffs awaiting a support response).
 
 Borderless dark mode (shadcn palette + Future Form purple) is the default;
 a light theme is available from the **Appearance** menu.

@@ -67,19 +67,19 @@ All endpoints below are under `/api/v1`.
 | `/order-tracker` | Order Tracker - SmartForge | Purchase orders joined to customer orders | `GET /purchase-orders`, `/inventory`, `/suppliers` |
 | `/supply-chain` | Supply Chain - SmartForge | Inventory risk + supplier health + reorders | `GET /inventory`, `/supply-chain/risks`, `/suppliers`, `POST /supply-chain/reorders` |
 | `/quotes` | Quotes & Intake - Smart Forge | Order intake + PO builder | `GET /quotes`, `POST /quotes/generate` |
-| `/escalations` | Escalations - SmartForge | Customer escalation triage + responses | `GET /customer/escalations`, `POST /customer/escalations/{id}/respond` |
+| `/feedback` | Feedback - SmartForge | User feedback triage + responses (AI-to-human handoffs) | `GET /customer/escalations`, `POST /customer/escalations/{id}/respond` |
 | `/analytics` | Analytics - SmartForge | Cross-domain dashboards | `GET /command-center`, `/oee`, `/machines/` |
 | `/admin` | Admin - SmartForge | User management (**superuser**) | generated SDK: `UsersService` (`/users/`) |
 | `/logs` | Logs - Smart Forge | Per-service log console incl. audit trail | `GET /logs/services`, `/logs/{service}` |
 | `/datasources` | Datasources - SmartForge | Read-only live views over production tables + CSV import/export | domain list endpoints, `GET /datasources/table/{name}`, `/datasources/export`, `POST /datasources/import` |
-| `/data-platform` | Data Platform - SmartForge | Replication freshness, runs, reconciliation, warehouse marts/KPIs, lake catalog + manifests, and the Work Orders explorer (read-only query builder over the certified genealogy contract) | `GET /platform/health`, `/platform/freshness`, `/platform/replication/tables`, `/platform/replication/runs`, `/platform/reconciliation`, `/warehouse/datasets`, `/warehouse/datasets/api.api_work_orders`, `/warehouse/kpis`, `/lake/datasets`, `/lake/loads` |
-| `/mrp` | MRP - SmartForge | Time-phased supply planning grid (demand/supply/projected net per item per day, shortage + safety-stock highlighting, local what-if) | `GET /warehouse/datasets/api.api_mrp_supply_plan` |
+| `/eda` | EDA - SmartForge | Exploratory Data Analysis: replication freshness, runs, reconciliation, warehouse marts/KPIs, lake catalog + manifests, and the Work Orders explorer (3D genealogy galaxy, charts, and a read-only query builder over the certified genealogy contract) | `GET /platform/health`, `/platform/freshness`, `/platform/replication/tables`, `/platform/replication/runs`, `/platform/reconciliation`, `/warehouse/datasets`, `/warehouse/datasets/work_orders`, `/warehouse/kpis`, `/lake/datasets`, `/lake/loads` |
+| `/mrp` | MRP - SmartForge | Time-phased supply planning grid (demand/supply/projected net per item per day, shortage + safety-stock highlighting, local what-if) | `GET /warehouse/datasets/mrp_supply_plan` |
 | `/knowledge-bases` | Forge Facts - Smart Forge | Curated RAG facts CRUD + reindex | `GET/POST/PATCH/DELETE /ask-ai/knowledge-bases`, `POST .../sync` |
 | `/sops` | SOPs - Smart Forge | Chaptered standard operating procedures | `GET /sops/`, `GET/PATCH /sops/{code}` |
 | `/settings` | Settings - SmartForge | Profile, password, danger zone | generated SDK: `UsersService` |
 | `/items` | Items - SmartForge | Template demo CRUD (kept from the FastAPI template) | generated SDK: `ItemsService` (`/items/`) |
 
-The `/data-platform` sections degrade gracefully: when the platform stores are not provisioned (endpoints return 503), each section independently renders a "Data platform not provisioned" empty state pointing at `runbooks/` instead of crashing.
+The `/eda` sections degrade gracefully: when the platform stores are not provisioned (endpoints return 503), each section independently renders a "Data platform not provisioned" empty state pointing at `runbooks/` instead of crashing.
 
 ### Customer portal (`/portal` shell, customer accounts)
 
@@ -136,4 +136,4 @@ bunx playwright test --ui      # interactive mode
 docker compose down -v         # teardown + wipe test data
 ```
 
-Covers login/signup/reset flows, per-page data validation (`validation.spec.ts`), the customer portal, admin/user settings, and the data-platform page (`data-platform.spec.ts` — asserts the page renders either live data or the not-provisioned empty states, never a crash).
+Covers login/signup/reset flows, per-page data validation (`validation.spec.ts`), the customer portal, admin/user settings, and the EDA page (`eda.spec.ts` — asserts the page renders either live data or the not-provisioned empty states, never a crash).

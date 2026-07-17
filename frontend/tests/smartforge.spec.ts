@@ -56,10 +56,10 @@ test("datasources global dashboard renders live tables", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Import" })).toBeVisible()
   // Global tab is default — Grafana-style cards each render a table.
   await expect(page.locator("table").first()).toBeVisible()
-  // Switching to Database Tables shows the per-source spreadsheet.
+  // Switching to Service Tables shows the per-source spreadsheet.
   // `exact` avoids matching the sidebar "Add … to favorites" star actions.
   await page
-    .getByRole("button", { name: "Database Tables", exact: true })
+    .getByRole("button", { name: "Service Tables", exact: true })
     .click()
   await expect(
     page.getByRole("button", { name: "Machines", exact: true }),
@@ -122,7 +122,7 @@ test("sidebar navigates across SmartForge modules", async ({ page }) => {
     ["Incidents", "Incident Impact"],
     ["Supply Chain", "Supply Chain"],
     ["Quotes & Intake", "Order Intake & PO Builder"],
-    ["Escalations", "Customer Escalations"],
+    ["Feedback", "User Feedback"],
     ["ForgeAI", "ForgeAI"],
   ] as const) {
     // exact: the command-center stat tiles are also links (e.g. "Open Work

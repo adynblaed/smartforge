@@ -14,6 +14,7 @@ import {
   YAxis,
 } from "recharts"
 
+import { FeatureGate } from "@/components/Common/FeatureGate"
 import { cn } from "@/lib/utils"
 import { sf } from "@/smartforge/api"
 import {
@@ -173,260 +174,266 @@ function AnalyticsPage() {
         }
       />
 
-      {cc.isLoading && <Loading label="Loading factory intelligence…" />}
+      <FeatureGate feature="analytics_exec">
+        {cc.isLoading && <Loading label="Loading factory intelligence…" />}
 
-      {/* Executive KPI band — each tile links to its source page. */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
-        <Link to="/quality" className={STAT_CLS}>
-          <KpiTile
-            label="Overall OEE"
-            value={`${((k.avg_oee ?? 0) * 100).toFixed(1)}%`}
-            hint="overall effectiveness"
-            accent={HEX.info}
-            {...metricTrend("oee")}
-          />
-        </Link>
-        <Link to="/machines" className={STAT_CLS}>
-          <KpiTile
-            label="Avg Machine Health"
-            value={`${cc.data?.factory_health_summary.avg_health ?? 0}`}
-            hint={`${cc.data?.factory_health_summary.machines ?? 0} machines online`}
-            accent={HEX.success}
-            {...metricTrend("health")}
-          />
-        </Link>
-        <Link to="/quality" className={STAT_CLS}>
-          <KpiTile
-            label="Throughput / day"
-            value={Math.round(k.throughput ?? 0)}
-            hint="units produced / day"
-            {...metricTrend("throughput")}
-          />
-        </Link>
-        <Link to="/quality" className={STAT_CLS}>
-          <KpiTile
-            label="Scrap Rate"
-            value={`${((k.avg_scrap_rate ?? 0) * 100).toFixed(2)}%`}
-            hint="of total output"
-            accent={HEX.warning}
-            {...metricTrend("scrap")}
-          />
-        </Link>
-        <Link to="/work-orders" className={STAT_CLS}>
-          <KpiTile
-            label="Open Work Orders"
-            value={k.open_work_orders ?? 0}
-            hint="awaiting action"
-            accent={HEX.warning}
-            {...metricTrend("workorders")}
-          />
-        </Link>
-        <Link to="/tickets" className={STAT_CLS}>
-          <KpiTile
-            label="Active Alerts"
-            value={k.active_alerts ?? 0}
-            hint="needs attention"
-            accent={HEX.danger}
-            {...metricTrend("alerts")}
-          />
-        </Link>
-        <Link to="/incidents" className={STAT_CLS}>
-          <KpiTile
-            label="Unplanned Downtime"
-            value={`${k.unplanned_downtime_minutes ?? 0}m`}
-            hint="this period"
-            accent={HEX.danger}
-            {...metricTrend("downtime")}
-          />
-        </Link>
-        <Link to="/order-tracker" className={STAT_CLS}>
-          <KpiTile
-            label="Delayed Orders"
-            value={k.delayed_orders ?? 0}
-            hint="past due"
-            accent={HEX.danger}
-            {...metricTrend("delayedorders")}
-          />
-        </Link>
-      </div>
-
-      {/* Real-time time-series (built from the polling cadence) */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Panel title="OEE Trend (%)">
-          <TimeSeries
-            data={history}
-            dataKey="oee"
-            color={HEX.info}
-            domain={[0, 100]}
-          />
-        </Panel>
-        <Panel title="Throughput (units)">
-          <TimeSeries data={history} dataKey="throughput" color={HEX.success} />
-        </Panel>
-        <Panel title="Avg Machine Health">
-          <TimeSeries
-            data={history}
-            dataKey="health"
-            color="var(--primary)"
-            domain={[0, 100]}
-          />
-        </Panel>
-        <Panel title="Alerts & Open Work Orders">
-          <ResponsiveContainer width="100%" height={150}>
-            <LineChart data={history}>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="var(--border)"
-                vertical={false}
-              />
-              <XAxis
-                dataKey="t"
-                stroke="var(--muted-foreground)"
-                fontSize={10}
-                minTickGap={28}
-              />
-              <YAxis
-                stroke="var(--muted-foreground)"
-                fontSize={10}
-                allowDecimals={false}
-                width={28}
-              />
-              <Tooltip
-                contentStyle={{
-                  background: "var(--popover)",
-                  border: "1px solid var(--border)",
-                  borderRadius: 8,
-                  fontSize: 12,
-                }}
-              />
-              <Line
-                type="monotone"
-                dataKey="alerts"
-                stroke={HEX.danger}
-                strokeWidth={2}
-                dot={false}
-                isAnimationActive={false}
-              />
-              <Line
-                type="monotone"
-                dataKey="wos"
-                stroke={HEX.warning}
-                strokeWidth={2}
-                dot={false}
-                isAnimationActive={false}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-          <div className="mt-2 flex gap-4 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <i
-                className="size-2 rounded-full"
-                style={{ background: HEX.danger }}
-              />{" "}
-              Active alerts
-            </span>
-            <span className="flex items-center gap-1">
-              <i
-                className="size-2 rounded-full"
-                style={{ background: HEX.warning }}
-              />{" "}
-              Open work orders
-            </span>
-          </div>
-        </Panel>
-      </div>
-
-      {/* Breakdown row */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Panel title="OEE by Shift (%)">
-          {byShift.length > 0 ? (
-            <BarTrend
-              data={byShift}
-              dataKey="oee"
-              xKey="shift"
-              color={HEX.info}
-              height={200}
+        {/* Executive KPI band — each tile links to its source page. */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
+          <Link to="/quality" className={STAT_CLS}>
+            <KpiTile
+              label="Overall OEE"
+              value={`${((k.avg_oee ?? 0) * 100).toFixed(1)}%`}
+              hint="overall effectiveness"
+              accent={HEX.info}
+              {...metricTrend("oee")}
             />
-          ) : (
-            <p className="text-sm text-muted-foreground">No OEE records.</p>
-          )}
-        </Panel>
+          </Link>
+          <Link to="/machines" className={STAT_CLS}>
+            <KpiTile
+              label="Avg Machine Health"
+              value={`${cc.data?.factory_health_summary.avg_health ?? 0}`}
+              hint={`${cc.data?.factory_health_summary.machines ?? 0} machines online`}
+              accent={HEX.success}
+              {...metricTrend("health")}
+            />
+          </Link>
+          <Link to="/quality" className={STAT_CLS}>
+            <KpiTile
+              label="Throughput / day"
+              value={Math.round(k.throughput ?? 0)}
+              hint="units produced / day"
+              {...metricTrend("throughput")}
+            />
+          </Link>
+          <Link to="/quality" className={STAT_CLS}>
+            <KpiTile
+              label="Scrap Rate"
+              value={`${((k.avg_scrap_rate ?? 0) * 100).toFixed(2)}%`}
+              hint="of total output"
+              accent={HEX.warning}
+              {...metricTrend("scrap")}
+            />
+          </Link>
+          <Link to="/work-orders" className={STAT_CLS}>
+            <KpiTile
+              label="Open Work Orders"
+              value={k.open_work_orders ?? 0}
+              hint="awaiting action"
+              accent={HEX.warning}
+              {...metricTrend("workorders")}
+            />
+          </Link>
+          <Link to="/tickets" className={STAT_CLS}>
+            <KpiTile
+              label="Active Alerts"
+              value={k.active_alerts ?? 0}
+              hint="needs attention"
+              accent={HEX.danger}
+              {...metricTrend("alerts")}
+            />
+          </Link>
+          <Link to="/incidents" className={STAT_CLS}>
+            <KpiTile
+              label="Unplanned Downtime"
+              value={`${k.unplanned_downtime_minutes ?? 0}m`}
+              hint="this period"
+              accent={HEX.danger}
+              {...metricTrend("downtime")}
+            />
+          </Link>
+          <Link to="/order-tracker" className={STAT_CLS}>
+            <KpiTile
+              label="Delayed Orders"
+              value={k.delayed_orders ?? 0}
+              hint="past due"
+              accent={HEX.danger}
+              {...metricTrend("delayedorders")}
+            />
+          </Link>
+        </div>
 
-        <Panel title="OEE Components">
-          {/* each component links to Quality (its source). */}
-          <div className="space-y-3">
-            <Link to="/quality" className={STAT_CLS}>
-              <MeterRow
-                label="Availability"
-                value={avg((o) => o.availability) * 100}
-                color={HEX.success}
-              />
-            </Link>
-            <Link to="/quality" className={STAT_CLS}>
-              <MeterRow
-                label="Performance"
-                value={avg((o) => o.performance) * 100}
+        {/* Real-time time-series (built from the polling cadence) */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Panel title="OEE Trend (%)">
+            <TimeSeries
+              data={history}
+              dataKey="oee"
+              color={HEX.info}
+              domain={[0, 100]}
+            />
+          </Panel>
+          <Panel title="Throughput (units)">
+            <TimeSeries
+              data={history}
+              dataKey="throughput"
+              color={HEX.success}
+            />
+          </Panel>
+          <Panel title="Avg Machine Health">
+            <TimeSeries
+              data={history}
+              dataKey="health"
+              color="var(--primary)"
+              domain={[0, 100]}
+            />
+          </Panel>
+          <Panel title="Alerts & Open Work Orders">
+            <ResponsiveContainer width="100%" height={150}>
+              <LineChart data={history}>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="var(--border)"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="t"
+                  stroke="var(--muted-foreground)"
+                  fontSize={10}
+                  minTickGap={28}
+                />
+                <YAxis
+                  stroke="var(--muted-foreground)"
+                  fontSize={10}
+                  allowDecimals={false}
+                  width={28}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: "var(--popover)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 8,
+                    fontSize: 12,
+                  }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="alerts"
+                  stroke={HEX.danger}
+                  strokeWidth={2}
+                  dot={false}
+                  isAnimationActive={false}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="wos"
+                  stroke={HEX.warning}
+                  strokeWidth={2}
+                  dot={false}
+                  isAnimationActive={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+            <div className="mt-2 flex gap-4 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <i
+                  className="size-2 rounded-full"
+                  style={{ background: HEX.danger }}
+                />{" "}
+                Active alerts
+              </span>
+              <span className="flex items-center gap-1">
+                <i
+                  className="size-2 rounded-full"
+                  style={{ background: HEX.warning }}
+                />{" "}
+                Open work orders
+              </span>
+            </div>
+          </Panel>
+        </div>
+
+        {/* Breakdown row */}
+        <div className="grid gap-6 lg:grid-cols-3">
+          <Panel title="OEE by Shift (%)">
+            {byShift.length > 0 ? (
+              <BarTrend
+                data={byShift}
+                dataKey="oee"
+                xKey="shift"
                 color={HEX.info}
+                height={200}
               />
-            </Link>
-            <Link to="/quality" className={STAT_CLS}>
-              <MeterRow
-                label="Quality"
-                value={avg((o) => o.quality) * 100}
-                color="var(--primary)"
-              />
-            </Link>
-            <Link to="/quality" className={STAT_CLS}>
-              <MeterRow
-                label="Rework rate"
-                value={avg((o) => o.rework_rate) * 100}
-                color={HEX.warning}
-              />
-            </Link>
-          </div>
-        </Panel>
+            ) : (
+              <p className="text-sm text-muted-foreground">No OEE records.</p>
+            )}
+          </Panel>
 
-        <Panel title="Fleet Health Distribution">
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <Link to="/machines" className={STAT_CLS}>
-              <DistTile
-                label="Healthy"
-                value={dist.healthy}
-                color={HEX.success}
-              />
-            </Link>
-            <Link to="/machines" className={STAT_CLS}>
-              <DistTile
-                label="At risk"
-                value={dist.atRisk}
-                color={HEX.warning}
-              />
-            </Link>
-            <Link to="/machines" className={STAT_CLS}>
-              <DistTile
-                label="Critical"
-                value={dist.critical}
-                color={HEX.danger}
-              />
-            </Link>
-          </div>
-          <ul className="mt-4 space-y-1">
-            {cc.data?.factory_health_summary.at_risk.map((m) => (
-              <li key={m.code}>
-                <Link
-                  to="/machines"
-                  className="-mx-2 flex items-center justify-between rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent"
-                >
-                  <span>{m.code}</span>
-                  <span className={`font-semibold ${healthColor(m.health)}`}>
-                    {m.health}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </Panel>
-      </div>
+          <Panel title="OEE Components">
+            {/* each component links to Quality (its source). */}
+            <div className="space-y-3">
+              <Link to="/quality" className={STAT_CLS}>
+                <MeterRow
+                  label="Availability"
+                  value={avg((o) => o.availability) * 100}
+                  color={HEX.success}
+                />
+              </Link>
+              <Link to="/quality" className={STAT_CLS}>
+                <MeterRow
+                  label="Performance"
+                  value={avg((o) => o.performance) * 100}
+                  color={HEX.info}
+                />
+              </Link>
+              <Link to="/quality" className={STAT_CLS}>
+                <MeterRow
+                  label="Quality"
+                  value={avg((o) => o.quality) * 100}
+                  color="var(--primary)"
+                />
+              </Link>
+              <Link to="/quality" className={STAT_CLS}>
+                <MeterRow
+                  label="Rework rate"
+                  value={avg((o) => o.rework_rate) * 100}
+                  color={HEX.warning}
+                />
+              </Link>
+            </div>
+          </Panel>
+
+          <Panel title="Fleet Health Distribution">
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <Link to="/machines" className={STAT_CLS}>
+                <DistTile
+                  label="Healthy"
+                  value={dist.healthy}
+                  color={HEX.success}
+                />
+              </Link>
+              <Link to="/machines" className={STAT_CLS}>
+                <DistTile
+                  label="At risk"
+                  value={dist.atRisk}
+                  color={HEX.warning}
+                />
+              </Link>
+              <Link to="/machines" className={STAT_CLS}>
+                <DistTile
+                  label="Critical"
+                  value={dist.critical}
+                  color={HEX.danger}
+                />
+              </Link>
+            </div>
+            <ul className="mt-4 space-y-1">
+              {cc.data?.factory_health_summary.at_risk.map((m) => (
+                <li key={m.code}>
+                  <Link
+                    to="/machines"
+                    className="-mx-2 flex items-center justify-between rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent"
+                  >
+                    <span>{m.code}</span>
+                    <span className={`font-semibold ${healthColor(m.health)}`}>
+                      {m.health}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Panel>
+        </div>
+      </FeatureGate>
     </div>
   )
 }

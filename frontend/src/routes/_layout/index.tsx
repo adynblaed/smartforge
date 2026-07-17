@@ -2,8 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router"
 import { ArrowUpRight, ChevronRight } from "lucide-react"
 import { useMemo } from "react"
 
-import { NAV_GROUPS, type NavGroup } from "@/components/Sidebar/nav"
+import { type NavGroup, visibleNavGroups } from "@/components/Sidebar/nav"
 import useAuth from "@/hooks/useAuth"
+import { useFeatures } from "@/hooks/useFeatures"
 import { userDisplayName } from "@/smartforge/components"
 
 export const Route = createFileRoute("/_layout/")({
@@ -18,7 +19,7 @@ const GROUP_THUMB: Record<string, string> = {
   "Factory Intelligence": "/thumbnails/factory_intelligence.jpg",
   MES: "/thumbnails/mes_hook.jpg",
   "Purchase Orders": "/thumbnails/purchase_orders_rack.jpg",
-  "Customer Portals": "/thumbnails/customer_orders.jpg",
+  "Smart Services": "/thumbnails/smart_services.jpg",
   Dashboards: "/thumbnails/dashboards.jpg",
   Datasources: "/thumbnails/datasources.jpg",
 }
@@ -57,11 +58,9 @@ const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)]
 
 function HomePage() {
   const { user } = useAuth()
-  // Same model + superuser filtering as the sidebar.
-  const groups = NAV_GROUPS.map((g) => ({
-    ...g,
-    items: g.items.filter((it) => !it.superuserOnly || user?.is_superuser),
-  })).filter((g) => g.items.length > 0)
+  const { enabled } = useFeatures()
+  // Same model + superuser/feature filtering as the sidebar.
+  const groups = visibleNavGroups(!!user?.is_superuser, enabled)
   const totalServices = groups.reduce((n, g) => n + g.items.length, 0)
 
   // Fresh hero copy per visit.

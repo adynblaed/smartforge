@@ -18,7 +18,7 @@ function PortalAsk() {
       question,
       ai_confidence: ESCALATION_CONFIDENCE,
     })
-    toast.success("Your question was escalated to our support team.")
+    toast.success("Your question was sent to our support team.")
   }
 
   return (

@@ -7,21 +7,18 @@ import {
   SidebarHeader,
 } from "@/components/ui/sidebar"
 import useAuth from "@/hooks/useAuth"
+import { useFeatures } from "@/hooks/useFeatures"
 import { Main } from "./Main"
-import { NAV_GROUPS } from "./nav"
+import { visibleNavGroups } from "./nav"
 import { User } from "./User"
 
 export function AppSidebar() {
   const { user: currentUser } = useAuth()
+  const { enabled } = useFeatures()
 
-  // Shared nav model (also drives the shell breadcrumbs). Filter superuser-only
-  // items (e.g. Admin) and drop any group left empty.
-  const groups = NAV_GROUPS.map((g) => ({
-    ...g,
-    items: g.items.filter(
-      (it) => !it.superuserOnly || currentUser?.is_superuser,
-    ),
-  })).filter((g) => g.items.length > 0)
+  // Shared nav model (also drives the shell breadcrumbs + landing page).
+  // Superuser-only and feature-gated items are filtered per user tier.
+  const groups = visibleNavGroups(!!currentUser?.is_superuser, enabled)
 
   return (
     <Sidebar collapsible="icon">
