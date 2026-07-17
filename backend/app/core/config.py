@@ -1,4 +1,3 @@
-import secrets
 import warnings
 from typing import Annotated, Any, Literal
 
@@ -31,7 +30,13 @@ class Settings(BaseSettings):
         extra="ignore",
     )
     API_V1_STR: str = "/api/v1"
-    SECRET_KEY: str = secrets.token_urlsafe(32)
+    # Deliberately the known template default, NOT a random value: a random
+    # default silently mints a different key per worker/replica/restart —
+    # breaking cross-worker JWT validation and permanently orphaning
+    # EncryptedString ciphertext. "changethis" trips the non-default-secret
+    # validator below, so a deploy that forgot to set SECRET_KEY fails
+    # loudly instead of corrupting quietly (SEC-001).
+    SECRET_KEY: str = "changethis"
     # Session length without a refresh-token flow. 12h balances security (a
     # leaked token expires same-day) with usability (no mid-shift logouts).
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 12
@@ -55,6 +60,24 @@ class Settings(BaseSettings):
     RATE_LIMIT_INTERNAL_PER_MINUTE: int = 300
     RATE_LIMIT_CUSTOMER_PER_MINUTE: int = 120
     RATE_LIMIT_ANONYMOUS_PER_MINUTE: int = 30
+
+    # Site-wide feature-flag overrides (app/core/features.py): comma-
+    # separated feature keys force-enabled/disabled regardless of tier.
+    # Overrides never bypass authentication or the customer boundary.
+    FEATURE_FLAGS_ENABLE: str = ""
+    FEATURE_FLAGS_DISABLE: str = ""
+
+    # Interactive API documentation (/docs Swagger UI, /redoc ReDoc, and the
+    # OpenAPI schema). Served in every environment by default — the schema
+    # documents only the contract (auth is still enforced per endpoint);
+    # set false to withdraw the surface entirely on hardened deployments.
+    API_DOCS_ENABLED: bool = True
+
+    # Optional static bearer token for GET /api/v1/metrics. Empty (default)
+    # keeps the scrape endpoint open for in-network Prometheus; set it when
+    # the API port is reachable beyond the scrape network, and configure
+    # the scraper's `authorization` credentials to match.
+    METRICS_BEARER_TOKEN: str = ""
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -201,6 +224,30 @@ class Settings(BaseSettings):
         )
         self._check_default_secret("SANDBOX_USER_PASSWORD", self.SANDBOX_USER_PASSWORD)
 
+        return self
+
+    @model_validator(mode="after")
+    def _enforce_production_boundaries(self) -> Self:
+        """Misconfiguration traps that only bite in shared environments:
+        an open Host allowlist defeats TrustedHostMiddleware, and a
+        localhost FRONTEND_HOST poisons CORS and password-reset links.
+        Warn in staging, refuse in production (same posture as the
+        non-default-secret gate)."""
+        problems: list[str] = []
+        if self.ALLOWED_HOSTS == ["*"]:
+            problems.append(
+                "ALLOWED_HOSTS is '*' — set the real hostname allowlist"
+            )
+        if "localhost" in self.FRONTEND_HOST or "127.0.0.1" in self.FRONTEND_HOST:
+            problems.append(
+                "FRONTEND_HOST points at localhost — CORS and password-reset "
+                "links will target the wrong origin"
+            )
+        for message in problems:
+            if self.ENVIRONMENT == "production":
+                raise ValueError(message)
+            if self.ENVIRONMENT == "staging":
+                warnings.warn(message, stacklevel=1)
         return self
 
 

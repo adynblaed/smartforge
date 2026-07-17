@@ -1,9 +1,13 @@
 """WebSocket endpoints for real-time telemetry & order updates (spec §5D).
 
-Authenticated: the client passes its JWT as a `?token=` query parameter (the
-browser WebSocket API cannot set Authorization headers). Telemetry is internal-
-only; the orders stream is filtered per-customer so a customer never sees another
-tenant's order events. Best-effort — the frontend falls back to polling.
+Authenticated: the browser WebSocket API cannot set Authorization headers,
+so the client carries its JWT in the Sec-WebSocket-Protocol handshake
+header (`smartforge.bearer` + token) — headers do not land in access logs
+the way URLs do. The legacy `?token=` query parameter keeps working for
+older clients (deprecated: it leaks into any intermediary that logs URLs).
+Telemetry is internal-only; the orders stream is filtered per-customer so a
+customer never sees another tenant's order events. Best-effort — the
+frontend falls back to polling.
 """
 
 import asyncio
@@ -23,6 +27,24 @@ from app.core.db import engine
 from app.models import User
 
 router = APIRouter(tags=["realtime"])
+
+# Subprotocol label the SPA offers alongside the JWT; the server echoes it
+# back on accept (browsers require the accepted protocol to be one of the
+# offered ones).
+BEARER_SUBPROTOCOL = "smartforge.bearer"
+
+
+def _credentials_from(websocket: WebSocket) -> tuple[str | None, str | None]:
+    """(token, subprotocol_to_echo) from the handshake — header first,
+    query param as the deprecated fallback."""
+    offered = [
+        p.strip()
+        for p in websocket.headers.get("sec-websocket-protocol", "").split(",")
+        if p.strip()
+    ]
+    if len(offered) >= 2 and offered[0] == BEARER_SUBPROTOCOL:
+        return offered[1], BEARER_SUBPROTOCOL
+    return websocket.query_params.get("token"), None
 
 
 def _user_from_token(token: str | None) -> User | None:
@@ -51,8 +73,9 @@ async def _pump(
     channel: str,
     *,
     allow: Callable[[dict[str, Any]], bool] | None = None,
+    subprotocol: str | None = None,
 ) -> None:
-    await websocket.accept()
+    await websocket.accept(subprotocol=subprotocol)
     client = redis.get_redis()
     pubsub = client.pubsub()
     try:
@@ -85,16 +108,18 @@ async def _pump(
 
 @router.websocket("/ws/telemetry")
 async def ws_telemetry(websocket: WebSocket) -> None:
-    user = _user_from_token(websocket.query_params.get("token"))
+    token, subprotocol = _credentials_from(websocket)
+    user = _user_from_token(token)
     if not user or user.role not in INTERNAL_ROLES:
         await websocket.close(code=1008)  # policy violation
         return
-    await _pump(websocket, redis.TELEMETRY_CHANNEL)
+    await _pump(websocket, redis.TELEMETRY_CHANNEL, subprotocol=subprotocol)
 
 
 @router.websocket("/ws/orders")
 async def ws_orders(websocket: WebSocket) -> None:
-    user = _user_from_token(websocket.query_params.get("token"))
+    token, subprotocol = _credentials_from(websocket)
+    user = _user_from_token(token)
     if not user:
         await websocket.close(code=1008)
         return
@@ -103,4 +128,4 @@ async def ws_orders(websocket: WebSocket) -> None:
         # Customers only receive events for their OWN orders.
         cid = str(user.customer_id) if user.customer_id else "__none__"
         allow = lambda msg: msg.get("customer_id") == cid  # noqa: E731
-    await _pump(websocket, redis.ORDERS_CHANNEL, allow=allow)
+    await _pump(websocket, redis.ORDERS_CHANNEL, allow=allow, subprotocol=subprotocol)

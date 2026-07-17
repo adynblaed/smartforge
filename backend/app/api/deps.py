@@ -34,9 +34,13 @@ def get_current_user(session: SessionDep, token: TokenDep) -> User:
         )
         token_data = TokenPayload(**payload)
     except (InvalidTokenError, ValidationError):
+        # 401, not 403: failing to AUTHENTICATE (invalid/expired token) is
+        # distinct from lacking a permission — clients rely on this split
+        # to know when to force a relogin vs. surface "forbidden".
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
         )
     user = session.get(User, token_data.sub)
     if not user:
@@ -58,11 +62,18 @@ def get_current_active_superuser(current_user: CurrentUser) -> User:
 
 
 # ---- SmartForge RBAC (spec §11) ----
+# Everyone except customer-portal accounts. Finer-grained access above
+# this boundary is governed by the tier ladder + feature gates
+# (app/core/features.py) — enforced server-side for elevated features.
 INTERNAL_ROLES = {
+    UserRole.user,
     UserRole.admin,
     UserRole.operator,
     UserRole.maintenance,
     UserRole.planner,
+    UserRole.leadership,
+    UserRole.developer,
+    UserRole.beta_client,
 }
 
 

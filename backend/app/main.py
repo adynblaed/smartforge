@@ -20,7 +20,6 @@ from app.core.logging_config import setup_logging
 
 setup_logging()
 
-_IS_PROD = settings.ENVIRONMENT == "production"
 logger = logging.getLogger("smartforge")
 
 
@@ -35,7 +34,9 @@ if settings.SENTRY_DSN and settings.ENVIRONMENT != "local":
 @contextlib.asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     """Start the in-process telemetry simulator unless disabled (a dedicated
-    compose `worker` service can run it instead)."""
+    compose `worker` service can run it instead); on shutdown, drain the
+    simulator and dispose every shared connection pool (Redis + SQLAlchemy)
+    so reloads and rolling restarts never leak sockets."""
     task: asyncio.Task[None] | None = None
     if settings.SIMULATOR_ENABLED:
         from app.workers.telemetry_simulator import run_forever
@@ -48,15 +49,40 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
             task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await task
+        from app.core.redis import close_redis
+
+        with contextlib.suppress(Exception):
+            await close_redis()
+        from app.core.db import engine as app_engine
+
+        with contextlib.suppress(Exception):
+            app_engine.dispose()
+        # Warehouse engines are lazy lru_cache singletons — dispose only
+        # the ones this process actually created.
+        from app.dataplatform.warehouse import postgres as warehouse_pg
+
+        for cached_engine in (
+            warehouse_pg.loader_engine,
+            warehouse_pg.api_engine,
+        ):
+            if cached_engine.cache_info().currsize:
+                with contextlib.suppress(Exception):
+                    cached_engine().dispose()
 
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version="1.0.0",  # v1.0.0 LTS — keep in step with pyproject/Chart.appVersion
-    # Disable interactive docs + schema in production (avoid API surface disclosure).
-    openapi_url=None if _IS_PROD else f"{settings.API_V1_STR}/openapi.json",
-    docs_url=None if _IS_PROD else "/docs",
-    redoc_url=None if _IS_PROD else "/redoc",
+    # Interactive docs (/docs, /redoc) + schema ship in every environment
+    # behind one switch (API_DOCS_ENABLED); the schema documents the
+    # contract only — every endpoint still enforces its own auth.
+    openapi_url=(
+        f"{settings.API_V1_STR}/openapi.json"
+        if settings.API_DOCS_ENABLED
+        else None
+    ),
+    docs_url="/docs" if settings.API_DOCS_ENABLED else None,
+    redoc_url="/redoc" if settings.API_DOCS_ENABLED else None,
     generate_unique_id_function=custom_generate_unique_id,
     lifespan=lifespan,
 )
@@ -68,6 +94,9 @@ app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.ALLOWED_HOSTS)
 app.add_middleware(GZipMiddleware, minimum_size=512)
 
 # Set all CORS enabled origins — restrict methods + headers (no wildcards).
+# expose_headers: the SPA reads the server-issued X-Request-ID correlation
+# header off every response (API-014); without exposing it, cross-origin
+# dev-server sessions silently lose their support reference codes.
 if settings.all_cors_origins:
     app.add_middleware(
         CORSMiddleware,
@@ -75,6 +104,7 @@ if settings.all_cors_origins:
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
+        expose_headers=["X-Request-ID"],
         max_age=600,
     )
 

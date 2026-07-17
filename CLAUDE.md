@@ -54,7 +54,7 @@ docker compose up --build
 | URL | Service |
 |---|---|
 | http://localhost:5173 | App (login: `smartforge@futureform.com` / `futureform2026`) |
-| http://localhost:8000/docs | OpenAPI (disabled in production builds) |
+| http://localhost:8000/docs | Swagger UI (+ /redoc; every environment, `API_DOCS_ENABLED` kill switch) |
 | http://localhost:9090 / :3001 | Prometheus / Grafana (loopback-only) |
 | http://localhost:8080 | Adminer |
 
@@ -134,10 +134,11 @@ Redis/worker scope): `docs/architecture.md` §Runtime model.
 
 ## 6. API surface & contracts
 
-All endpoints live under `/api/v1` (JWT bearer auth; OpenAPI disabled in
-production). App domains (machines, work orders, quality, supply chain,
-customer portal, ForgeAI…) are catalogued in `docs/api.md`; the frontend
-route ↔ endpoint map is in `frontend/README.md`.
+All endpoints live under `/api/v1` (JWT bearer auth; interactive docs at
+`/docs` + `/redoc` in every environment, withdrawable via
+`API_DOCS_ENABLED=false`). App domains (machines, work orders, quality,
+supply chain, customer portal, ForgeAI…) are catalogued in `docs/api.md`;
+the frontend route ↔ endpoint map is in `frontend/README.md`.
 
 **Data platform** (typed, versioned, paginated, provenance-stamped):
 
@@ -146,7 +147,7 @@ route ↔ endpoint map is in `frontend/README.md`.
 | `GET /platform/health`, `/freshness`, `/replication/tables`, `/replication/runs`, `/reconciliation` | internal | Observability: contracts, watermarks, runs, reconciliation results |
 | `POST /platform/discovery/run`, `GET /platform/seed/plan`, `POST /platform/seed/confirm`, `POST /platform/sync/run` | **superuser** | Mutating ops; seeding requires exact plan fingerprint + confirmation phrase `SEED OMEGA` |
 | `GET /warehouse/datasets[/{dataset}]`, `GET /warehouse/kpis` | internal | Certified marts/api schemas only; allowlisted filter grammar `column[__op]=value` (op ∈ eq/neq/gt/gte/lt/lte/contains, values typed + bound) + `order_by`; `READ ONLY` transaction, 15 s statement timeout, `limit ≤ 1000` — serves the Work Orders explorer + MRP page |
-| `GET /lake/datasets[/{dataset}]`, `GET /lake/loads` | internal | Exploratory DuckDB views over published Parquet; read-only connection; bound parameters; manifest provenance ledger |
+| `GET /lake/datasets[/{dataset}]`, `GET /lake/loads` | internal | Exploratory DuckDB views over published Parquet — SAME contract standard as `/warehouse` (canonical `omega.{table}` ids + `version` metadata, `raw_oracle.*` accepted as deprecated alias; identical filter grammar + `order_by`; pagination caps; provenance `meta`); read-only connection, bound parameters, one connection scope per read; manifest provenance ledger |
 
 Contract rules (API-002/003/006/009, DBT-007): request/response schemas are
 Pydantic-typed; data values are always bound parameters; identifiers come

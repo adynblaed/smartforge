@@ -311,8 +311,10 @@ Every long-running path has a ceiling; every failure degrades safely:
 No secrets in code/config defaults/logs/errors (SEC-001; gitleaks +
 pip-audit + osv-scanner in CI); known-default credentials refuse to start
 outside development; TLS at Traefik and to the sources per environment
-(E1 at Day-0); role-aware rate limiting (API-017); OpenAPI disabled in
-production. GDPR & SOC 2 control mapping with data-subject procedures:
+(E1 at Day-0); role-aware rate limiting (API-017); interactive API docs
+(/docs, /redoc) served in every environment behind the `API_DOCS_ENABLED`
+switch — the schema documents the contract only; every endpoint enforces
+its own auth. GDPR & SOC 2 control mapping with data-subject procedures:
 [`docs/compliance.md`](../docs/compliance.md). Access management, owners,
 risk register, exceptions: [`docs/data-platform.md`](../docs/data-platform.md).
 
