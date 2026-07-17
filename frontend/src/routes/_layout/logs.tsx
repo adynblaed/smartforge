@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import { Terminal } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
+import { FeatureGate } from "@/components/Common/FeatureGate"
 import { cn } from "@/lib/utils"
 import { sf } from "@/smartforge/api"
 import { Loading, PageHeader } from "@/smartforge/components"
@@ -63,69 +64,71 @@ function LogsPage() {
         description="Per-service troubleshooting console — a bounded window of recent log lines, not a live event firehose."
       />
 
-      <div className="grid gap-4 lg:grid-cols-[200px_minmax(0,1fr)]">
-        {/* services / processes */}
-        <aside className="space-y-1">
-          {!services && <Loading />}
-          {services?.data.map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => setService(s)}
-              className={cn(
-                "flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-accent",
-                s === active
-                  ? "bg-accent font-medium"
-                  : "text-muted-foreground",
-              )}
-            >
-              <span
+      <FeatureGate feature="logs_console">
+        <div className="grid gap-4 lg:grid-cols-[200px_minmax(0,1fr)]">
+          {/* services / processes */}
+          <aside className="space-y-1">
+            {!services && <Loading />}
+            {services?.data.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setService(s)}
                 className={cn(
-                  "size-2 rounded-full",
-                  s === active ? "bg-emerald-400" : "bg-muted-foreground/40",
+                  "flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-accent",
+                  s === active
+                    ? "bg-accent font-medium"
+                    : "text-muted-foreground",
                 )}
-              />
-              {s}
-            </button>
-          ))}
-        </aside>
-
-        {/* terminal console */}
-        <div className="overflow-hidden rounded-lg border bg-[#0b0f17]">
-          <div className="flex items-center gap-2 border-b border-border px-3 py-2 font-mono text-xs text-zinc-400">
-            <span className="flex gap-1.5">
-              <span className="size-2.5 rounded-full bg-rose-500/70" />
-              <span className="size-2.5 rounded-full bg-amber-500/70" />
-              <span className="size-2.5 rounded-full bg-emerald-500/70" />
-            </span>
-            <span className="ml-2">
-              {active ? `${active} · journald` : "—"}
-            </span>
-          </div>
-          <div className="h-[60vh] overflow-auto p-3 font-mono text-xs leading-relaxed">
-            {logs?.data.map((l, i) => (
-              <div key={i} className="flex gap-2 whitespace-pre-wrap">
-                <span className="shrink-0 text-zinc-400/70">
-                  {l.ts.slice(11, 19)}
-                </span>
+              >
                 <span
                   className={cn(
-                    "w-12 shrink-0 font-semibold",
-                    LEVEL_STYLE[l.level],
+                    "size-2 rounded-full",
+                    s === active ? "bg-emerald-400" : "bg-muted-foreground/40",
                   )}
-                >
-                  {l.level}
-                </span>
-                <span className="text-zinc-100/90">{l.message}</span>
-              </div>
+                />
+                {s}
+              </button>
             ))}
-            {logs?.data.length === 0 && (
-              <p className="text-zinc-400">No recent log lines.</p>
-            )}
-            <div ref={endRef} />
+          </aside>
+
+          {/* terminal console */}
+          <div className="overflow-hidden rounded-lg border bg-[#0b0f17]">
+            <div className="flex items-center gap-2 border-b border-border px-3 py-2 font-mono text-xs text-zinc-400">
+              <span className="flex gap-1.5">
+                <span className="size-2.5 rounded-full bg-rose-500/70" />
+                <span className="size-2.5 rounded-full bg-amber-500/70" />
+                <span className="size-2.5 rounded-full bg-emerald-500/70" />
+              </span>
+              <span className="ml-2">
+                {active ? `${active} · journald` : "—"}
+              </span>
+            </div>
+            <div className="h-[60vh] overflow-auto p-3 font-mono text-xs leading-relaxed">
+              {logs?.data.map((l, i) => (
+                <div key={i} className="flex gap-2 whitespace-pre-wrap">
+                  <span className="shrink-0 text-zinc-400/70">
+                    {l.ts.slice(11, 19)}
+                  </span>
+                  <span
+                    className={cn(
+                      "w-12 shrink-0 font-semibold",
+                      LEVEL_STYLE[l.level],
+                    )}
+                  >
+                    {l.level}
+                  </span>
+                  <span className="text-zinc-100/90">{l.message}</span>
+                </div>
+              ))}
+              {logs?.data.length === 0 && (
+                <p className="text-zinc-400">No recent log lines.</p>
+              )}
+              <div ref={endRef} />
+            </div>
           </div>
         </div>
-      </div>
+      </FeatureGate>
     </div>
   )
 }
