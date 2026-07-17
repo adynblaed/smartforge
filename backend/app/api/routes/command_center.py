@@ -1,11 +1,15 @@
 """Executive aggregation, KPIs, and Prometheus metrics (spec §3B/§3E/§8)."""
 
+import secrets
+import threading
+import time
 from typing import Any
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, HTTPException, Request, Response
 from sqlmodel import func, select
 
 from app.api.deps import InternalUser, SessionDep
+from app.core.config import settings
 from app.exporters import prometheus as prom
 from app.models import (
     Alert,
@@ -134,8 +138,34 @@ def refresh_gauges(session: Any) -> None:
     prom.INVENTORY_BELOW_THRESHOLD.set(kpis["inventory_below_threshold"])
 
 
+# Scrape hardening: gauge refresh runs full-table aggregates, so it is
+# throttled to once per window regardless of scrape (or abuse) rate — the
+# endpoint itself must stay cheap because it is rate-limit-exempt and, on
+# in-network deployments, unauthenticated. State is per process; each
+# uvicorn worker refreshes its own registry on its own clock.
+_METRICS_REFRESH_WINDOW_SECONDS = 10.0
+_metrics_refresh_lock = threading.Lock()
+_metrics_last_refresh = 0.0
+
+
 @router.get("/metrics")
-def metrics(session: SessionDep) -> Response:
-    """Prometheus scrape endpoint (no auth — internal network)."""
-    refresh_gauges(session)
+def metrics(session: SessionDep, request: Request) -> Response:
+    """Prometheus scrape endpoint.
+
+    Auth: open by default for in-network scrapers; set METRICS_BEARER_TOKEN
+    to require `Authorization: Bearer <token>` (defense for deployments
+    where the API port is reachable beyond the scrape network)."""
+    expected = settings.METRICS_BEARER_TOKEN
+    if expected:
+        supplied = request.headers.get("Authorization", "")
+        if not secrets.compare_digest(supplied, f"Bearer {expected}"):
+            raise HTTPException(status_code=401, detail="Not authenticated")
+    global _metrics_last_refresh
+    now = time.monotonic()
+    with _metrics_refresh_lock:
+        due = now - _metrics_last_refresh >= _METRICS_REFRESH_WINDOW_SECONDS
+        if due:
+            _metrics_last_refresh = now
+    if due:
+        refresh_gauges(session)
     return Response(content=prom.render_metrics(), media_type="text/plain")

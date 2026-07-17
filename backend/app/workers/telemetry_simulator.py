@@ -140,8 +140,27 @@ async def run_forever() -> None:
         await asyncio.sleep(delay)
 
 
+async def _main() -> None:
+    """Standalone worker entrypoint with graceful drain: SIGTERM/SIGINT
+    cancel the loop between ticks instead of aborting one mid-write."""
+    import contextlib
+    import signal
+
+    loop = asyncio.get_running_loop()
+    task = asyncio.ensure_future(run_forever())
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        # add_signal_handler is unsupported on Windows event loops — the
+        # containerized worker (Linux) gets a clean drain; dev shells fall
+        # back to KeyboardInterrupt.
+        with contextlib.suppress(NotImplementedError):
+            loop.add_signal_handler(sig, task.cancel)
+    with contextlib.suppress(asyncio.CancelledError):
+        await task
+    logger.info("telemetry worker stopped cleanly")
+
+
 if __name__ == "__main__":
     from app.core.logging_config import setup_logging
 
     setup_logging()
-    asyncio.run(run_forever())
+    asyncio.run(_main())

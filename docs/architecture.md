@@ -82,14 +82,22 @@ generic 500 and logs the traceback with the request ID. Worker loops never
 die on a bad tick: they log with a consecutive-failure count and back off
 exponentially (capped) before retrying.
 
-**Redis — deliberately narrow.** Pub/sub fan-out only:
+**Redis — deliberately narrow.** Pub/sub fan-out —
 `smartforge:telemetry` (simulator/manual-telemetry → `/ws/telemetry`) and
-`smartforge:orders` (order progress → `/ws/orders`, customer-filtered),
-plus the `/services` health ping. Both WS endpoints authenticate the JWT
-before serving and close 1008 otherwise. Redis down = realtime degrades to
-polling (sockets stay open with keepalives); correctness never depends on
-Redis. There is **no Redis cache and no durable queue** — don't assume
-one; adding one is a reviewed architectural change.
+`smartforge:orders` (order progress → `/ws/orders`, customer-filtered) —
+plus the `/services` health ping and ONE piece of shared coordination
+state: the user-triggered table-sync status hash
+(`smartforge:sync:status`, `platform.py` `_SyncCoordinator`), which lets
+every uvicorn worker answer `/platform/sync/status` with the same
+queued/running/succeeded/failed truth and dedupe triggers across workers.
+That is coordination metadata, not a cache — the control tables remain
+the durable record, and Redis down degrades it to per-process memory
+(30 s retry window) without affecting the sync itself. Both WS endpoints
+authenticate the JWT before serving and close 1008 otherwise. Redis down
+= realtime degrades to polling (sockets stay open with keepalives);
+correctness never depends on Redis. There is **no Redis result cache and
+no durable queue** — don't assume one; adding one is a reviewed
+architectural change.
 
 **Workers & async work.** Exactly two long-running workers, each single
 replica by design: `worker` (telemetry → health → alerts) and
@@ -106,13 +114,20 @@ on logout redirect), per-page `staleTime`/`refetchInterval` (30–60 s on
 the Data Platform page), retries tiered by status, and 5xx surfacing to
 error boundaries — stale UI is bounded by the refetch interval and always
 re-validated. (2) *Process singletons* via `lru_cache` (settings, DB
-engines) — configuration is immutable per process; restart to change.
+engines) — configuration is immutable per process; restart to change. All
+engines are pool-tuned for concurrent traffic: pre-ping + 30-min recycle,
+app engine 10+20 overflow per worker, warehouse api reader 10+10.
 (3) *DuckDB catalog views* are a rebuilt artifact over immutable Parquet —
 they cannot serve stale data silently because freshness is computed from
 committed watermarks, not file presence. (4) *No server-side result
 cache* by policy (API-013): any proxy/client cache key must include
 identity, dataset, filters, and pagination. (5) Prometheus gauges refresh
-per worker tick. There is no Redis cache (see above).
+per worker tick. (6) *Schema-catalog memo*: the `/warehouse` dataset
+allowlist (identity-independent schema/column metadata, never rows) is
+memoized per engine for 30 s to keep `information_schema` scans off the
+hot path — within API-013 because no result data is cached. There is no
+Redis result cache (see above; the sync-status hash is coordination
+state, not a cache).
 
 **Command/query separation (CQRS-flavored).** Analytics *queries* are
 bounded, read-only, allowlisted GETs — `READ ONLY` transactions +

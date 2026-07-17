@@ -21,14 +21,35 @@ sources:
           error_after: {count: 30, period: hour}
         columns:
           - name: machine_id
-            data_tests: [unique, not_null]
+            data_tests:
+              - not_null
+              # Unique only where dlt merge enforces it: the lake raw views
+              # deliberately span the snapshot and all increments (duplicate
+              # keys expected; staging latest_by_key dedupes downstream).
+              - unique:
+                  config:
+                    enabled: "{{ target.name == 'warehouse' }}"
       - name: work_orders
         columns:
           - name: work_order_id
-            data_tests: [unique, not_null]
+            data_tests:
+              - not_null
+              # Unique only where dlt merge enforces it: the lake raw views
+              # deliberately span the snapshot and all increments (duplicate
+              # keys expected; staging latest_by_key dedupes downstream).
+              - unique:
+                  config:
+                    enabled: "{{ target.name == 'warehouse' }}"
           - name: work_order_uid
             description: Deterministic UUIDv5 stamped at extraction (DCT-011).
-            data_tests: [unique, not_null]
+            data_tests:
+              - not_null
+              # Unique only where dlt merge enforces it: the lake raw views
+              # deliberately span the snapshot and all increments (duplicate
+              # keys expected; staging latest_by_key dedupes downstream).
+              - unique:
+                  config:
+                    enabled: "{{ target.name == 'warehouse' }}"
       - name: sales_order_lines
         description: Open-order backlog lines (composite key order_no+line_no).
       - name: mrp_pegging
@@ -37,34 +58,83 @@ sources:
           error_after: {count: 30, period: hour}
         columns:
           - name: pegging_id
-            data_tests: [unique, not_null]
+            data_tests:
+              - not_null
+              # Unique only where dlt merge enforces it: the lake raw views
+              # deliberately span the snapshot and all increments (duplicate
+              # keys expected; staging latest_by_key dedupes downstream).
+              - unique:
+                  config:
+                    enabled: "{{ target.name == 'warehouse' }}"
       - name: production_runs
         columns:
           - name: run_id
-            data_tests: [unique, not_null]
+            data_tests:
+              - not_null
+              # Unique only where dlt merge enforces it: the lake raw views
+              # deliberately span the snapshot and all increments (duplicate
+              # keys expected; staging latest_by_key dedupes downstream).
+              - unique:
+                  config:
+                    enabled: "{{ target.name == 'warehouse' }}"
       - name: telemetry_events
         columns:
           - name: event_id
-            data_tests: [unique, not_null]
+            data_tests:
+              - not_null
+              # Unique only where dlt merge enforces it: the lake raw views
+              # deliberately span the snapshot and all increments (duplicate
+              # keys expected; staging latest_by_key dedupes downstream).
+              - unique:
+                  config:
+                    enabled: "{{ target.name == 'warehouse' }}"
       - name: quality_inspections
         columns:
           - name: inspection_id
-            data_tests: [unique, not_null]
+            data_tests:
+              - not_null
+              # Unique only where dlt merge enforces it: the lake raw views
+              # deliberately span the snapshot and all increments (duplicate
+              # keys expected; staging latest_by_key dedupes downstream).
+              - unique:
+                  config:
+                    enabled: "{{ target.name == 'warehouse' }}"
       - name: defects
         columns:
           - name: defect_id
-            data_tests: [unique, not_null]
+            data_tests:
+              - not_null
+              # Unique only where dlt merge enforces it: the lake raw views
+              # deliberately span the snapshot and all increments (duplicate
+              # keys expected; staging latest_by_key dedupes downstream).
+              - unique:
+                  config:
+                    enabled: "{{ target.name == 'warehouse' }}"
       - name: inventory_items
         freshness:
           warn_after: {count: 26, period: hour}
           error_after: {count: 30, period: hour}
         columns:
           - name: item_id
-            data_tests: [unique, not_null]
+            data_tests:
+              - not_null
+              # Unique only where dlt merge enforces it: the lake raw views
+              # deliberately span the snapshot and all increments (duplicate
+              # keys expected; staging latest_by_key dedupes downstream).
+              - unique:
+                  config:
+                    enabled: "{{ target.name == 'warehouse' }}"
       - name: purchase_orders
         columns:
           - name: po_id
-            data_tests: [unique, not_null]
+            data_tests:
+              - not_null
+              # Unique only where dlt merge enforces it: the lake raw views
+              # deliberately span the snapshot and all increments (duplicate
+              # keys expected; staging latest_by_key dedupes downstream).
+              - unique:
+                  config:
+                    enabled: "{{ target.name == 'warehouse' }}"
       - name: purchase_order_lines
       - name: suppliers
         freshness:
@@ -72,14 +142,28 @@ sources:
           error_after: {count: 30, period: hour}
         columns:
           - name: supplier_id
-            data_tests: [unique, not_null]
+            data_tests:
+              - not_null
+              # Unique only where dlt merge enforces it: the lake raw views
+              # deliberately span the snapshot and all increments (duplicate
+              # keys expected; staging latest_by_key dedupes downstream).
+              - unique:
+                  config:
+                    enabled: "{{ target.name == 'warehouse' }}"
       - name: customers
         freshness:
           warn_after: {count: 26, period: hour}
           error_after: {count: 30, period: hour}
         columns:
           - name: customer_id
-            data_tests: [unique, not_null]
+            data_tests:
+              - not_null
+              # Unique only where dlt merge enforces it: the lake raw views
+              # deliberately span the snapshot and all increments (duplicate
+              # keys expected; staging latest_by_key dedupes downstream).
+              - unique:
+                  config:
+                    enabled: "{{ target.name == 'warehouse' }}"
       - name: status_lookup
         freshness:
           warn_after: {count: 26, period: hour}

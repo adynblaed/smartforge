@@ -46,6 +46,9 @@ def loader_engine() -> Engine:
         settings.warehouse_loader_dsn,
         pool_pre_ping=True,
         pool_size=4,
+        # Recycle idle connections before typical LB/firewall idle
+        # timeouts sever them under us (concurrent-traffic hardening).
+        pool_recycle=1800,
         connect_args=_CONNECT_ARGS,
     )
 
@@ -58,6 +61,7 @@ def api_engine() -> Engine:
         pool_pre_ping=True,
         pool_size=10,
         max_overflow=10,
+        pool_recycle=1800,
         connect_args=_CONNECT_ARGS,
     )
 
@@ -142,7 +146,16 @@ def _grant_statements(settings: PlatformSettings) -> list[str]:
     dbt = _safe_pg_identifier(settings.WAREHOUSE_DBT_USER)
     api = _safe_pg_identifier(settings.WAREHOUSE_API_USER)
     grants = [
-        # Loader: control + raw_oracle + audit only (PG-002).
+        # Loader: control + raw_oracle + audit only (PG-002). The loader must
+        # OWN raw_oracle (not merely hold CREATE): dlt probes dataset
+        # existence via information_schema.schemata, which per the SQL
+        # standard lists only schemas the current role owns — a non-owner
+        # loader would try CREATE SCHEMA and hit the (intentional) missing
+        # database-level CREATE. Same for dlt's merge staging dataset, which
+        # is loader plumbing, not a governed warehouse schema.
+        f'ALTER SCHEMA raw_oracle OWNER TO "{loader}"',
+        'CREATE SCHEMA IF NOT EXISTS raw_oracle_staging',
+        f'ALTER SCHEMA raw_oracle_staging OWNER TO "{loader}"',
         f'GRANT USAGE, CREATE ON SCHEMA control, raw_oracle, audit TO "{loader}"',
         f'GRANT ALL ON ALL TABLES IN SCHEMA control, raw_oracle, audit TO "{loader}"',
         f'ALTER DEFAULT PRIVILEGES IN SCHEMA control GRANT ALL ON TABLES TO "{loader}"',
@@ -152,6 +165,7 @@ def _grant_statements(settings: PlatformSettings) -> list[str]:
         f'GRANT USAGE ON SCHEMA raw_oracle, control TO "{dbt}"',
         f'GRANT SELECT ON ALL TABLES IN SCHEMA raw_oracle, control TO "{dbt}"',
         f'ALTER DEFAULT PRIVILEGES IN SCHEMA raw_oracle GRANT SELECT ON TABLES TO "{dbt}"',
+        f'ALTER DEFAULT PRIVILEGES FOR ROLE "{loader}" IN SCHEMA raw_oracle GRANT SELECT ON TABLES TO "{dbt}"',
         f'ALTER DEFAULT PRIVILEGES IN SCHEMA control GRANT SELECT ON TABLES TO "{dbt}"',
         f'GRANT USAGE, CREATE ON SCHEMA staging, intermediate, marts, api TO "{dbt}"',
         f'GRANT ALL ON ALL TABLES IN SCHEMA staging, intermediate, marts, api TO "{dbt}"',

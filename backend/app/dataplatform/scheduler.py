@@ -9,9 +9,11 @@ Dagster/Airflow invoking the same `dispatch()`.
 
 from __future__ import annotations
 
+import contextlib
 import datetime as dt
 import logging
-import time
+import signal
+import threading
 
 from app.core.logging_config import setup_logging
 from app.dataplatform.config import get_platform_settings
@@ -43,14 +45,34 @@ def seconds_until_next_hour(now: dt.datetime) -> float:
     return (next_hour - now).total_seconds()
 
 
+# Set by SIGTERM/SIGINT: the loop drains (finishes any in-flight tick,
+# skips the next sleep) instead of dying mid-dispatch — a killed tick is
+# safe (idempotent merges, watermark untouched) but a drained one is free.
+_shutdown = threading.Event()
+
+
+def _install_signal_handlers() -> None:
+    def handle(signum: int, _frame: object) -> None:
+        logger.info("received signal %d — draining after current tick", signum)
+        _shutdown.set()
+
+    # Signal handlers only work on the main thread (and SIGTERM is not a
+    # thing on Windows dev shells) — best effort by design.
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        with contextlib.suppress(ValueError, AttributeError, OSError):
+            signal.signal(sig, handle)
+
+
 def run_forever() -> None:
     logger.info("platform worker started (hourly dispatch, UTC)")
+    _install_signal_handlers()
     start_metrics_exporter()
-    while True:
+    while not _shutdown.is_set():
         now = dt.datetime.now(dt.timezone.utc)
         wait = seconds_until_next_hour(now)
         logger.info("next dispatch in %.0fs", wait)
-        time.sleep(wait)
+        if _shutdown.wait(timeout=wait):
+            break
         try:
             result = dispatch()
             logger.info("dispatch finished: %s", result.get("status"))
@@ -62,6 +84,7 @@ def run_forever() -> None:
             # exceeds SLA (OBS-003).
             SCHEDULER_TICK_FAILURES.inc()
             logger.exception("dispatch tick failed")
+    logger.info("platform worker stopped cleanly")
 
 
 if __name__ == "__main__":
